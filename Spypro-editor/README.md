@@ -1,79 +1,136 @@
-> If you're interested in custom elements in general, head over to our [:notebook: custom-elements guide](https://github.com/bpmn-io/bpmn-js-examples/tree/master/custom-elements) to get an overview first.
+> :information_source: Checkout our [additional examples](https://github.com/bpmn-io/bpmn-js-examples/blob/main/README.md#properties-panel) if you are interested in extending the properties panel or rolling your own.
 
+# bpmn-js Modeler + Properties Panel Example
 
-# bpmn-js-nyan
-
-[![CI](https://github.com/bpmn-io/bpmn-js-nyan/workflows/CI/badge.svg)](https://github.com/bpmn-io/bpmn-js-nyan/actions?query=workflow%3ACI)
-
-[bpmn-js](https://github.com/bpmn-io/bpmn-js) + !["nyan cat in the wild"](./docs/cat.gif) = auto-win.
-
-This projects bundles lovely nyan cats into a custom BPMN 2.0 modeler.
+This example uses [bpmn-js](https://github.com/bpmn-io/bpmn-js) and [bpmn-js-properties-panel](https://github.com/bpmn-io/bpmn-js-properties-panel). It implements a BPMN 2.0 modeler that allows you to edit execution related properties via a properties panel.
 
 
 ## About
 
-Stand out and integrate nyan cats into your next BPMN Modeler!
+This example is a node-style web application that builds a user interface around the bpmn-js BPMN 2.0 modeler.
 
-!["nyan cat in bpmn-js"](./docs/screencast.gif)
-
-
-## Great Features
-
-* [Custom Colors](./lib/color-picker)
-* [Nyan Cats](./lib/nyan)
-* [Resize all elements](./lib/resize-all-rules)
-
+![demo application screenshot](./docs/screenshot.png "Screenshot of the modeler + properties panel example")
 
 ## Usage
 
+Add the [properties panel](https://github.com/bpmn-io/bpmn-js-properties-panel) together with [@bpmn-io/properties-panel](https://github.com/bpmn-io/properties-panel) to your project:
+
+```sh
+npm install --save bpmn-js-properties-panel @bpmn-io/properties-panel
+```
+
+Now extend the [bpmn-js](https://github.com/bpmn-io/bpmn-js) modeler with two properties panel related modules, the panel itself and a provider module that controls which properties are visible for each element. Additionally you must pass an element via `propertiesPanel.parent` into which the properties panel will be rendered (cf. [`src/app.js`](https://github.com/bpmn-io/bpmn-js-examples/blob/main/properties-panel/src/app.js#L16) for details).
+
 ```javascript
-import BpmnModeler from 'bpmn-js/lib/Modeler';
+import { 
+  BpmnPropertiesPanelModule, 
+  BpmnPropertiesProviderModule
+} from 'bpmn-js-properties-panel';
 
-import resizeAllModule from 'bpmn-js-nyan/lib/resize-all-rules';
-import colorPickerModule from 'bpmn-js-nyan/lib/color-picker';
-import nyanDrawModule from 'bpmn-js-nyan/lib/nyan/draw';
-import nyanPaletteModule from 'bpmn-js-nyan/lib/nyan/palette';
-
-
-var bpmnJS = new BpmnModeler({
+const bpmnModeler = new BpmnModeler({
+  container: '#js-canvas',
+  propertiesPanel: {
+    parent: '#js-properties-panel'
+  },
   additionalModules: [
-    resizeAllModule,
-    colorPickerModule,
-    nyanDrawModule,
-    nyanPaletteModule
+    BpmnPropertiesPanelModule,
+    BpmnPropertiesProviderModule
   ]
 });
 ```
 
+### Camunda Cloud
 
-## Building
+Additionally, if you'd like to use [Camunda Cloud](https://camunda.com/products/cloud/) execution related properties, include the [zeebe-bpmn-moddle](https://github.com/camunda-cloud/zeebe-bpmn-moddle) dependency which tells the modeler about `zeebe:XXX` extension properties:
 
-To build, lint and test the project run
-
+```sh
+npm install --save zeebe-bpmn-moddle
 ```
+
+Then, you need to pass the respective properties provider together with the moddle extension to the modeler:
+
+```javascript
+import {
+  BpmnPropertiesPanelModule,
+  BpmnPropertiesProviderModule,
+  ZeebePropertiesProviderModule
+} from 'bpmn-js-properties-panel';
+
+import ZeebeBpmnModdle from 'zeebe-bpmn-moddle/resources/zeebe.json'
+
+const bpmnModeler = new BpmnModeler({
+  container: '#js-canvas',
+  propertiesPanel: {
+    parent: '#js-properties-panel'
+  },
+  additionalModules: [
+    BpmnPropertiesPanelModule,
+    BpmnPropertiesProviderModule,
+    ZeebePropertiesProviderModule
+  ],
+  moddleExtensions: {
+    zeebe: ZeebeBpmnModdle
+  }
+});
+```
+
+### Camunda Platform
+
+If you'd like to use [Camunda Platform](https://camunda.com/products/camunda-platform/) execution related properties, include the [camunda-bpmn-moddle](https://github.com/camunda/camunda-bpmn-moddle) dependency which tells the modeler about `camunda:XXX` extension properties:
+
+```sh
+npm install --save camunda-bpmn-moddle
+```
+
+Then, you need to pass the respective properties provider together with the moddle extension to the modeler:
+
+```javascript
+import {
+  BpmnPropertiesPanelModule,
+  BpmnPropertiesProviderModule,
+  CamundaPlatformPropertiesProviderModule
+} from 'bpmn-js-properties-panel';
+
+import CamundaBpmnModdle from 'camunda-bpmn-moddle/resources/camunda.json'
+
+const bpmnModeler = new BpmnModeler({
+  container: '#js-canvas',
+  propertiesPanel: {
+    parent: '#js-properties-panel'
+  },
+  additionalModules: [
+    BpmnPropertiesPanelModule,
+    BpmnPropertiesProviderModule,
+    CamundaPlatformPropertiesProviderModule
+  ],
+  moddleExtensions: {
+    camunda: CamundaBpmnModdle
+  }
+});
+```
+
+## Building the Example
+
+You need a [NodeJS](http://nodejs.org) development stack with [npm](https://npmjs.org) and installed to build the project.
+
+To install all project dependencies execute
+
+```sh
 npm install
+```
+
+Build the example using [webpack](https://webpack.js.org/) via
+
+```sh
 npm run all
 ```
 
-To spin up the test interactively in the browser, execute
+You may also spawn a development setup by executing
 
-```
+```sh
 npm run dev
 ```
 
-Visit [localhost:9876/debug.html](http://localhost:9876/debug.html) in your browser.
+Both tasks generate the distribution ready client-side modeler application into the `public` folder.
 
-
-## Related
-
-If you enjoy nyan cats you might be interested in these related examples, too:
-
-* [Colors](https://github.com/bpmn-io/bpmn-js-examples/tree/master/colors)
-* [Custom Elements](https://github.com/bpmn-io/bpmn-js-examples/tree/master/custom-elements)
-* [Custom Modeling Rules](https://github.com/bpmn-io/bpmn-js-examples/tree/master/custom-modeling-rules)
-* [Theming](https://github.com/bpmn-io/bpmn-js-examples/tree/master/theming)
-
-
-## License
-
-MIT
+Serve the application locally or via a web server (nginx, apache, embedded).

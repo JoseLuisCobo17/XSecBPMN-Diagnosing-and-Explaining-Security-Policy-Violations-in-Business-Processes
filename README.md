@@ -20,3 +20,5 @@ npm install
 npm run all
 
 npm run dev
+
+#Visit localhost:9876/debug.html in your browser.

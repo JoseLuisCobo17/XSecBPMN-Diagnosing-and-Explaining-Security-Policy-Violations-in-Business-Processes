@@ -1,48 +1,51 @@
 {
-  "name": "bpmn-js-nyan",
-  "version": "2.2.0",
-  "description": "Lets processes fly!",
+  "name": "bpmn-js-example-properties-panel",
+  "version": "0.0.0",
+  "description": "A bpmn-js modeler + properties panel example",
   "scripts": {
-    "all": "run-s lint test",
-    "dev": "run-s test:watch",
-    "lint": "eslint .",
-    "test": "karma start",
-    "test:watch": "npm test -- --auto-watch --no-single-run"
+    "all": "run-s build",
+    "build": "webpack --mode production",
+    "dev": "webpack-dev-server --static=public --open",
+    "start": "run-s dev"
   },
-  "author": "Nico Rehwaldt <https://github.com/nikku>",
-  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bpmn-io/bpmn-js-nyan"
+    "url": "https://github.com/bpmn-io/bpmn-js-examples",
+    "directory": "properties-panel"
+  },
+  "keywords": [
+    "bpmnjs-example",
+    "bpmn-js-properties-panel"
+  ],
+  "author": {
+    "name": "Nico Rehwaldt",
+    "url": "https://github.com/nikku"
+  },
+  "contributors": [
+    {
+      "name": "bpmn.io contributors",
+      "url": "https://github.com/bpmn-io"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@bpmn-io/properties-panel": "^3.13.0",
+    "bpmn-js": "^17.9.0",
+    "bpmn-js-properties-panel": "^5.6.1",
+    "jquery": "^3.5.1",
+    "min-dash": "^4.1.1"
   },
   "devDependencies": {
-    "babel-core": "^6.26.3",
-    "babel-preset-env": "^1.7.0",
-    "bpmn-js": "^17.0.0",
-    "chai": "^4.4.0",
-    "diagram-js": "^14.0.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-bpmn-io": "^1.0.0",
-    "karma": "^6.4.2",
-    "karma-chrome-launcher": "^3.2.0",
-    "karma-mocha": "^2.0.1",
-    "karma-sinon-chai": "^2.0.2",
-    "karma-webpack": "^5.0.0",
-    "mocha": "^10.2.0",
+    "copy-webpack-plugin": "^12.0.0",
+    "css-loader": "^7.0.0",
+    "less": "^4.2.0",
+    "less-loader": "^12.2.0",
     "npm-run-all2": "^6.0.0",
-    "puppeteer": "^22.0.0",
-    "sinon": "^17.0.1",
-    "sinon-chai": "^3.1.0",
-    "webpack": "^5.89.0"
-  },
-  "dependencies": {
-    "inherits-browser": "^0.1.0"
-  },
-  "peerDependencies": {
-    "bpmn-js": "*",
-    "diagram-js": "*"
-  },
-  "files": [
-    "lib"
-  ]
+    "raw-loader": "^4.0.2",
+    "sirv-cli": "^2.0.0",
+    "style-loader": "^4.0.0",
+    "webpack": "^5.16.0",
+    "webpack-cli": "^5.0.0",
+    "webpack-dev-server": "^5.0.0"
+  }
 }
