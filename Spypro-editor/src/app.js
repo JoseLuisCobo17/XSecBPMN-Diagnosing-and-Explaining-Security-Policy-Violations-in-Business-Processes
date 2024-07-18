@@ -1,23 +1,16 @@
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
-
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
 import '@bpmn-io/properties-panel/assets/properties-panel.css';
-
 import './style.less';
 
 import $ from 'jquery';
 import BpmnModeler from 'bpmn-js/lib/Modeler';
-
 import { debounce } from 'min-dash';
-
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
-
 import diagramXML from '../resources/newDiagram.bpmn';
 
-
 var container = $('#js-drop-zone');
-
 var canvas = $('#js-canvas');
 
 var bpmnModeler = new BpmnModeler({
@@ -37,42 +30,31 @@ function createNewDiagram() {
 }
 
 async function openDiagram(xml) {
-
   try {
-
     await bpmnModeler.importXML(xml);
-
     container
       .removeClass('with-error')
       .addClass('with-diagram');
   } catch (err) {
-
     container
       .removeClass('with-diagram')
       .addClass('with-error');
-
     container.find('.error pre').text(err.message);
-
     console.error(err);
   }
 }
 
 function registerFileDrop(container, callback) {
-
   function handleFileSelect(e) {
     e.stopPropagation();
     e.preventDefault();
 
     var files = e.dataTransfer.files;
-
     var file = files[0];
-
     var reader = new FileReader();
 
     reader.onload = function(e) {
-
       var xml = e.target.result;
-
       callback(xml);
     };
 
@@ -82,7 +64,6 @@ function registerFileDrop(container, callback) {
   function handleDragOver(e) {
     e.stopPropagation();
     e.preventDefault();
-
     e.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
   }
 
@@ -90,9 +71,80 @@ function registerFileDrop(container, callback) {
   container.get(0).addEventListener('drop', handleFileSelect, false);
 }
 
+// Function that get the securityTasks of the schema and their subTasks
+function getSecurityTasks() {
+  var elementRegistry = bpmnModeler.get('elementRegistry');
+  var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
+  var id_model = definitions.diagrams[0].id;
+  var serviceTasks = elementRegistry.filter(e => e.type === 'bpmn:ServiceTask');
+  var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
+
+  var res = [];
+  serviceTaskBusinessObjects.forEach(function(element){
+    var list = element.outgoing;
+    var subTasks = [];
+    if(list){
+      list.forEach(function(task){
+        subTasks.push(task.targetRef.id);
+      });
+    }
+    var st = { 
+      id_model: id_model,
+      id_bpmn: element.id,
+      BoD: element.BoD || false,
+      SoD: element.SoD || false,
+      UoC: element.UoC || false,
+      Nu: element.Nu || 0,
+      Mth: element.Mth || 0,
+      P: element.P || 0,
+      User: element.User || "",
+      Log: element.Log || "",
+      SubTasks: subTasks
+    };
+
+    res.push(st);
+  });
+
+  return res;
+}
+
+// Save as modSecurity format file
+function modSecurity() {
+  var client = new Client();
+  // set content-type header and data as json in args parameter
+  var args = {
+    data: { modSecurity: getSecurityTasks() },
+    headers: { "Content-Type": "application/json" }
+  };
+  // registering remote methods
+  client.registerMethod("postMethod", "http://localhost:3000/modsecurity", "POST");
+  client.methods.postMethod(args, function (data, response) {
+    // handle response
+  });
+}
+
+// Synchronize with database (mongoDB)
+function synDB() {
+  var client = new Client();
+  var args = {
+    data: { modSecurity: getSecurityTasks() },
+    headers: { "Content-Type": "application/json" },
+  };
+  client.post("http://localhost:3000/syndb", args, function (data, response) {
+    // handle response
+  });
+}
+
+// Save as json file
+function saveJSON(done) {
+  var json = JSON.stringify(getSecurityTasks(), null, 2);
+
+  bpmnModeler.saveXML({ format: false }, function(err, xml) {
+    done(err, json);
+  });
+}
 
 // file drag / drop ///////////////////////
-
 // check file api availability
 if (!window.FileList || !window.FileReader) {
   window.alert(
@@ -103,18 +155,26 @@ if (!window.FileList || !window.FileReader) {
 }
 
 // bootstrap diagram functions
-
 $(function() {
-
   $('#js-create-diagram').click(function(e) {
     e.stopPropagation();
     e.preventDefault();
-
     createNewDiagram();
   });
 
   var downloadLink = $('#js-download-diagram');
   var downloadSvgLink = $('#js-download-svg');
+  var downloadJsonLink = $('#js-download-json');
+
+  $('#button1').click(function(){
+    alert('Exported to modSecurity in Downloads folder');
+    $.ajax({url: modSecurity()});
+  });
+
+  $('#button2').click(function(){
+    alert("Synchronized with mongoDB");
+    $.ajax({url: synDB()});
+  });
 
   $('.buttons a').click(function(e) {
     if (!$(this).is('.active')) {
@@ -137,30 +197,25 @@ $(function() {
   }
 
   var exportArtifacts = debounce(async function() {
-
     try {
-
       const { svg } = await bpmnModeler.saveSVG();
-
       setEncoded(downloadSvgLink, 'diagram.svg', svg);
     } catch (err) {
-
       console.error('Error happened saving SVG: ', err);
-
       setEncoded(downloadSvgLink, 'diagram.svg', null);
     }
 
     try {
-
       const { xml } = await bpmnModeler.saveXML({ format: true });
-
       setEncoded(downloadLink, 'diagram.bpmn', xml);
     } catch (err) {
-
       console.log('Error happened saving XML: ', err);
-
       setEncoded(downloadLink, 'diagram.bpmn', null);
     }
+
+    saveJSON(function(err, json) {
+      setEncoded(downloadJsonLink, 'diagram.json', err ? null : json);
+    });
   }, 500);
 
   bpmnModeler.on('commandStack.changed', exportArtifacts);
