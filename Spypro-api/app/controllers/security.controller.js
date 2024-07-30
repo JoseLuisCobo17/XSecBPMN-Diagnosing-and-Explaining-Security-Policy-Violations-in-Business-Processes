@@ -119,7 +119,6 @@ exports.modSecurity = function(req, res) {
 };
 
 exports.synDB = function(req, res){
-    
     var sts = req.body.modSecurity;
     for(var i=0; i<sts.length; i++){
         var security = new Security({id_model: sts[i].id_model, id_bpmn: sts[i].id_bpmn, 
@@ -139,7 +138,7 @@ exports.synDB = function(req, res){
 
 };
 
-exports.findAll = function(req, res) {
+/*exports.findAll = function(req, res) {
     // Retrieve and return all security task from the database.
     Security.find(function(err, securities){
         if(err) {
@@ -149,7 +148,19 @@ exports.findAll = function(req, res) {
             res.send(securities);
         }
     });
+};*/
+
+exports.findAll = async function(req, res) {
+    try {
+        // Retrieve and return all security tasks from the database.
+        const securities = await Security.find();
+        res.send(securities);
+    } catch (err) {
+        console.log(err);
+        res.status(500).send({message: "Some error occurred while retrieving security tasks."});
+    }
 };
+
 
 exports.findModel = function(req, res) {
     // Retrieve and return the security tasks belonging to a specific model from the database.
