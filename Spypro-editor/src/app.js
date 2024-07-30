@@ -10,6 +10,7 @@ import { debounce } from 'min-dash';
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 import diagramXML from '../resources/newDiagram.bpmn';
 
+const axios = require('axios');
 var container = $('#js-drop-zone');
 var canvas = $('#js-canvas');
 
@@ -123,15 +124,48 @@ function modSecurity() {
   });
 }
 
-// Synchronize with database (mongoDB)
-function synDB() {
-  var client = new Client();
+/*function synDB() {
+  console.log("Client");
   var args = {
     data: { modSecurity: getSecurityTasks() },
     headers: { "Content-Type": "application/json" },
   };
-  client.post("http://localhost:3000/syndb", args, function (data, response) {
-    // handle response
+
+  axios.post("http://localhost:3000/syndb", args.data, { headers: args.headers })
+    .then(function (response) {
+      console.log(response.data);
+    })
+    .catch(function (error) {
+      console.error(error);
+    });
+}*/
+
+function synDB() {
+  console.log("Client");
+  var args = {
+    data: {
+      modSecurity: getSecurityTasks()
+    },
+    headers: {
+      "Content-Type": "application/json"
+    }
+  };
+  axios.post("http://localhost:3000/syndb", args.data, {
+    headers: args.headers,
+    withCredentials: true // Esto permite el envío de cookies, si es necesario
+  }).then(function (response) {
+    console.log(response.data);
+  }).catch(function (error) {
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
+    } else if (error.request) {
+      console.error('Request data:', error.request);
+    } else {
+      console.error('Error message:', error.message);
+    }
+    console.error('Config:', error.config);
   });
 }
 
