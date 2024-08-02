@@ -14,6 +14,17 @@ const axios = require('axios');
 var container = $('#js-drop-zone');
 var canvas = $('#js-canvas');
 
+var propertiesPanelModule = require('bpmn-js-properties-panel');
+var propertiesProviderModule = require('../provider/security');
+var securityModdleDescriptor = require('../descriptors/security.json');
+
+// Comment out all custom modules initially
+ var securityPropertiesProvider = require('../provider/security');
+ var securityPaletteModule = require('../lib/security/palette');
+ //var securityDrawModule = require('../lib/security/draw');
+ //var colorPickerModule = require('../lib/color-picker');
+ //var resizeAllModule = require('../lib/resize-all-rules');
+
 var bpmnModeler = new BpmnModeler({
   container: canvas,
   propertiesPanel: {
@@ -21,8 +32,18 @@ var bpmnModeler = new BpmnModeler({
   },
   additionalModules: [
     BpmnPropertiesPanelModule,
-    BpmnPropertiesProviderModule
-  ]
+    BpmnPropertiesProviderModule,
+    propertiesPanelModule,
+    propertiesProviderModule,
+    securityPropertiesProvider,
+    securityPaletteModule,
+    //securityDrawModule,
+    //colorPickerModule,
+    //resizeAllModule
+  ],
+  moddleExtensions: {
+    security: securityModdleDescriptor
+  }
 });
 container.removeClass('with-diagram');
 
@@ -123,22 +144,6 @@ function modSecurity() {
     // handle response
   });
 }
-
-/*function synDB() {
-  console.log("Client");
-  var args = {
-    data: { modSecurity: getSecurityTasks() },
-    headers: { "Content-Type": "application/json" },
-  };
-
-  axios.post("http://localhost:3000/syndb", args.data, { headers: args.headers })
-    .then(function (response) {
-      console.log(response.data);
-    })
-    .catch(function (error) {
-      console.error(error);
-    });
-}*/
 
 function synDB() {
   console.log("Client");
