@@ -1,16 +1,17 @@
 import { html } from 'htm/preact';
 
-import { TextFieldEntry, isTextFieldEntryEdited } from '@bpmn-io/properties-panel';
+import { CheckboxEntry, isCheckboxEntryEdited } from '@bpmn-io/properties-panel';
 import { useService } from 'bpmn-js-properties-panel';
 
 export default function(element) {
-
   return [
     {
-      id: 'security',
+      id: 'spell',
       element,
       component: Spell,
-      isEdited: isTextFieldEntryEdited
+      isEdited: () => {
+        return isCheckboxEntryEdited() ? true : false;
+      }
     }
   ];
 }
@@ -23,23 +24,23 @@ function Spell(props) {
   const debounce = useService('debounceInput');
 
   const getValue = () => {
-    return element.businessObject.security || '';
+    return element.businessObject.spell || false;
   };
 
   const setValue = value => {
     return modeling.updateProperties(element, {
-      security: value
+      spell: value
     });
   };
 
-  return html`<${TextFieldEntry}
+  return html`<${CheckboxEntry}
     id=${ id }
     element=${ element }
-    description=${ translate('Apply a black magic security') }
+    description=${ translate('Apply a black magic spell') }
     label=${ translate('Spell') }
     getValue=${ getValue }
     setValue=${ setValue }
     debounce=${ debounce }
-    tooltip=${ translate('Check available securitys in the securitybook.') }
+    tooltip=${ translate('Check available spells in the spellbook.') }
   />`;
 }

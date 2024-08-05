@@ -10,13 +10,13 @@
     {
       "name": "BewitchedStartEvent",
       "extends": [
-        "bpmn:StartEvent"
+        "bpmn:ServiceTask"
       ],
       "properties": [
         {
           "name": "spell",
           "isAttr": true,
-          "type": "String"
+          "type": "Boolean"
         }
       ]
     }
