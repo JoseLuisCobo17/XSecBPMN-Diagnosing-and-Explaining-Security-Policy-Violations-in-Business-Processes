@@ -12,6 +12,8 @@ import diagramXML from '../resources/newDiagram.bpmn';
 //import propertiesProviderModule from '../provider/security';
 //import securityModdleDescriptor from '../descriptors/security.json';
 
+const axios = require('axios');
+
 var propertiesProviderModule = require('../provider/security');
 var securityModdleDescriptor = require('../descriptors/security.json');
 
