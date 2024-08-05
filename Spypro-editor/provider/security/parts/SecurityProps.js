@@ -1,69 +1,45 @@
-'use strict';
+import { html } from 'htm/preact';
 
-var entryFactory = require('bpmn-js-properties-panel');
+import { TextFieldEntry, isTextFieldEntryEdited } from '@bpmn-io/properties-panel';
+import { useService } from 'bpmn-js-properties-panel';
 
-var is = require('bpmn-js/lib/util/ModelUtil').is;
+export default function(element) {
 
-module.exports = function(group, element) {
+  return [
+    {
+      id: 'security',
+      element,
+      component: Spell,
+      isEdited: isTextFieldEntryEdited
+    }
+  ];
+}
 
-  // Only return an entry, if the currently selected
-  // element is a start event.
+function Spell(props) {
+  const { element, id } = props;
 
-  if (is(element, 'bpmn:ServiceTask')) {
-    group.entries.push(entryFactory.checkbox({
-      id : 'BoD',
-      description : '',
-      label : 'BoD Security Task',
-      options:[],
-      modelProperty : 'BoD'
-    }));
-    
-    group.entries.push(entryFactory.checkbox({
-      id : 'SoD',
-      description : '',
-      label : 'SoD Security Task',
-      options:[],
-      modelProperty : 'SoD'
-    }));
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
 
-    group.entries.push(entryFactory.checkbox({
-      id : 'UoC',
-      description : '',
-      label : 'UoC Security Task',
-      options:[],
-      modelProperty : 'UoC'
-    }));
+  const getValue = () => {
+    return element.businessObject.security || '';
+  };
 
-    group.entries.push(entryFactory.textBox({
-      id : 'Nu',
-      label : 'Nu',
-      modelProperty : 'Nu'
-    }));
+  const setValue = value => {
+    return modeling.updateProperties(element, {
+      security: value
+    });
+  };
 
-    group.entries.push(entryFactory.textBox({
-      id : 'Mth',
-      label : 'Mth',
-      modelProperty : 'Mth'
-    }));
-
-    group.entries.push(entryFactory.textBox({
-      id : 'P',
-      label : 'P',
-      modelProperty : 'P'
-    }));
-
-    group.entries.push(entryFactory.textBox({
-      id : 'User',
-      label : 'User',
-      modelProperty : 'User'
-    }));
-
-    group.entries.push(entryFactory.textBox({
-      id : 'Log',
-      label : 'Log',
-      modelProperty : 'Log'
-    }));
-
-  }
-
-};
+  return html`<${TextFieldEntry}
+    id=${ id }
+    element=${ element }
+    description=${ translate('Apply a black magic security') }
+    label=${ translate('Spell') }
+    getValue=${ getValue }
+    setValue=${ setValue }
+    debounce=${ debounce }
+    tooltip=${ translate('Check available securitys in the securitybook.') }
+  />`;
+}
