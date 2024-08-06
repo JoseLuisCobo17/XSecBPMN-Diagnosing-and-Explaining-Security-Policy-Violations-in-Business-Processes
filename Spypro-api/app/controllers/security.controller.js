@@ -2,14 +2,15 @@ const Security = require('../models/security.model.js');
 
 // Create and Save a new Security task
 exports.create = function (req, res) {
-    if (!req.body.Bod || !req.body.SoD || !req.body.UoC) {
+    if (!req.body.Bod || !req.body.Sod || !req.body.UoC) {
         return res.status(400).send({ message: "Security task can not be empty" });
     }
 
     const security = new Security({
         id_model: req.body.id_model,
         id_bpmn: req.body.id_bpmn || "Untitled security task",
-        Bod: req.body.Bod
+        Bod: req.body.Bod,
+        Sod: req.body.Sod
     });
 
     security.save(function (err, data) {
@@ -30,13 +31,24 @@ exports.modSecurity = function (req, res) {
         const st = req.body.modSecurity[i];
 
         // BoD type
-        if (st.Bod && !st.SoD && !st.UoC) {
+        if (st.Bod && !st.Sod && !st.Uoc) {
             for (let j = 0; j < st.SubTasks.length; j++) {
                 if (st.SubTasks[j + 1] != null) {
                     ms += `SecRule REQUEST_URI 'task/${st.SubTasks[j]}/claim' 'id:1001,log,allow,msg:'User who assign this task can assign the next task',tag:'BoD',tag:'Camunda_Rules',chain'\n`;
                     ms += `SecRule ARGS:userId '@streq ${st.User}'\n`;
                     ms += `SecRule REQUEST_URI 'task/${st.SubTasks[j + 1]}/claim 'id:1002,log,block,msg:'User tried to assign this task when he did not assign the previous one in BoD',tag:'BoD',tag:'Camunda_Rules',chain'\n`;
                     ms += `SecRule ARGS:userId '!@streq ${st.User}'\n\n`;
+                }
+            }
+        }
+        //SoD type
+        if(st.Bod == false && st.Sod == true && st.Uoc == false){
+            for(var j=0; j<st.SubTasks.length; j++){
+                if(st.SubTasks[j+1] != null){
+                    ms+="SecRule REQUEST_URI 'task/" +st.SubTasks[j] + "/claim' 'id:1003,log,allow,msg:'User who assign this task can not assign the next task',tag:'SoD',tag:'Camunda_Rules',chain'\n";
+                    ms+="SecRule ARGS:userId '@streq " + st.User + "'\n";
+                    ms+="SecRule REQUEST_URI 'task/" + st.SubTasks[j+1] + "/claim' 'id:1004,log,block,msg:'User tried to assign consecutive task in SoD',tag:'SoD',tag:'Camunda_Rules',chain'\n";
+                    ms+="SecRule ARGS:userId '@streq " + st.User + "'\n\n";
                 }
             }
         }
@@ -65,7 +77,7 @@ exports.synDB = async function (req, res) {
       if (existingSecurity) {
         // Actualiza las propiedades si el documento ya existe
         existingSecurity.Bod = st.Bod; // Asegúrate de que es "Bod" aquí
-        existingSecurity.SoD = st.SoD;
+        existingSecurity.Sod = st.Sod;
         existingSecurity.UoC = st.UoC;
         existingSecurity.SubTasks = st.SubTasks;
         existingSecurity.Nu = st.Nu;
@@ -80,8 +92,8 @@ exports.synDB = async function (req, res) {
         const newSecurity = new Security({
           id_model: st.id_model,
           id_bpmn: st.id_bpmn,
-          Bod: st.Bod, // Asegúrate de que es "Bod" aquí
-          SoD: st.SoD,
+          Bod: st.Bod, 
+          Sod: st.Sod,
           UoC: st.UoC,
           SubTasks: st.SubTasks,
           Nu: st.Nu,
@@ -157,6 +169,7 @@ exports.update = async function (req, res) {
         if (req.body.id_model !== undefined) security.id_model = req.body.id_model;
         if (req.body.id_bpmn !== undefined) security.id_bpmn = req.body.id_bpmn;
         if (req.body.Bod !== undefined) security.Bod = req.body.Bod;
+        if (req.body.Sod !== undefined) security.Sod = req.body.Sod;
         console.log('Updated security task:', security);
 
         const updatedSecurity = await security.save();

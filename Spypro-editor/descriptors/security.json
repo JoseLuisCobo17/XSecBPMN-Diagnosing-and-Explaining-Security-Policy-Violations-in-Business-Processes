@@ -17,6 +17,11 @@
           "name": "Bod",
           "isAttr": true,
           "type": "Boolean"
+        },
+        {
+          "name": "Sod",
+          "isAttr": true,
+          "type": "Boolean"
         }
       ]
     }
