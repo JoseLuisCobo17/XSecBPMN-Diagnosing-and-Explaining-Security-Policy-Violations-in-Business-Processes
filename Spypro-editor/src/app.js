@@ -98,18 +98,18 @@ function getSecurityTasks() {
   var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
 
   var res = [];
-  serviceTaskBusinessObjects.forEach(function(element){
+  serviceTaskBusinessObjects.forEach(function(element) {
     var list = element.outgoing;
     var subTasks = [];
-    if(list){
-      list.forEach(function(task){
+    if (list) {
+      list.forEach(function(task) {
         subTasks.push(task.targetRef.id);
       });
     }
-    var st = { 
+    var st = {
       id_model: id_model,
       id_bpmn: element.id,
-      BoD: element.BoD || false,
+      Bod: element.Bod || false, // Asegúrate de que es "Bod" aquí
       SoD: element.SoD || false,
       UoC: element.UoC || false,
       Nu: element.Nu || 0,
@@ -138,19 +138,14 @@ function modSecurity() {
 }
 
 function synDB() {
-  var args = {
-    data: {
-      modSecurity: getSecurityTasks()
-    },
+  const tasks = getSecurityTasks();
+  console.log('Tasks to be synchronized:', tasks); // Log para depuración
+  axios.post("http://localhost:3000/syndb", { modSecurity: tasks }, {
     headers: {
       "Content-Type": "application/json"
     }
-  };
-  axios.post("http://localhost:3000/syndb", args.data, {
-    headers: args.headers,
-    withCredentials: true
   }).then(function (response) {
-    console.log(response.data);
+    console.log('Sync response:', response.data);
   }).catch(function (error) {
     if (error.response) {
       console.error('Response data:', error.response.data);

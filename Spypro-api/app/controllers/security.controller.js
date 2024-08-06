@@ -2,22 +2,14 @@ const Security = require('../models/security.model.js');
 
 // Create and Save a new Security task
 exports.create = function (req, res) {
-    if (!req.body.BoD || !req.body.SoD || !req.body.UoC) {
+    if (!req.body.Bod || !req.body.SoD || !req.body.UoC) {
         return res.status(400).send({ message: "Security task can not be empty" });
     }
 
     const security = new Security({
         id_model: req.body.id_model,
         id_bpmn: req.body.id_bpmn || "Untitled security task",
-        BoD: req.body.BoD,
-        SoD: req.body.SoD,
-        UoC: req.body.UoC,
-        SubTasks: req.body.SubTasks,
-        Nu: req.body.Nu,
-        Mth: req.body.Mth,
-        P: req.body.P,
-        User: req.body.User,
-        Log: req.body.Log
+        Bod: req.body.Bod
     });
 
     security.save(function (err, data) {
@@ -38,7 +30,7 @@ exports.modSecurity = function (req, res) {
         const st = req.body.modSecurity[i];
 
         // BoD type
-        if (st.BoD && !st.SoD && !st.UoC) {
+        if (st.Bod && !st.SoD && !st.UoC) {
             for (let j = 0; j < st.SubTasks.length; j++) {
                 if (st.SubTasks[j + 1] != null) {
                     ms += `SecRule REQUEST_URI 'task/${st.SubTasks[j]}/claim' 'id:1001,log,allow,msg:'User who assign this task can assign the next task',tag:'BoD',tag:'Camunda_Rules',chain'\n`;
@@ -47,58 +39,6 @@ exports.modSecurity = function (req, res) {
                     ms += `SecRule ARGS:userId '!@streq ${st.User}'\n\n`;
                 }
             }
-        }
-
-        // SoD type
-        if (!st.BoD && st.SoD && !st.UoC) {
-            for (let j = 0; j < st.SubTasks.length; j++) {
-                if (st.SubTasks[j + 1] != null) {
-                    ms += `SecRule REQUEST_URI 'task/${st.SubTasks[j]}/claim' 'id:1003,log,allow,msg:'User who assign this task can not assign the next task',tag:'SoD',tag:'Camunda_Rules',chain'\n`;
-                    ms += `SecRule ARGS:userId '@streq ${st.User}'\n`;
-                    ms += `SecRule REQUEST_URI 'task/${st.SubTasks[j + 1]}/claim' 'id:1004,log,block,msg:'User tried to assign consecutive task in SoD',tag:'SoD',tag:'Camunda_Rules',chain'\n`;
-                    ms += `SecRule ARGS:userId '@streq ${st.User}'\n\n`;
-                }
-            }
-        }
-
-        // UoC1 type
-        if (!st.BoD && !st.SoD && st.UoC && st.Mth != 0 && st.Nu == 0 && st.P == 0) {
-            ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}/claim' 'id:1006,log,msg:'User tried to execute a task more times than he could do it',tag:'C1',tag:'Camunda_Rules',setvar:ip.counter_c1_1=+1,chain'\n`;
-            ms += `SecRule ARGS:userId '@streq ${st.User}' 'chain'\n`;
-            ms += `SecRule ip:counter_c1_1 '@gt 4' 't:none,log,setvar:user.to_block_c1_1=1'\n`;
-            ms += `SecRule user:to_block_c1 '@gt 0' 'id:1007,block'\n\n`;
-        }
-
-        // UoC2 type
-        if (!st.BoD && !st.SoD && st.UoC && st.P != 0) {
-            ms += `SecRule REQUEST_URI 'task/create' 'id:1008,log,pass,msg:'Admin created a task with C2 restriction',tag:'C2',tag:'Camunda_Rules',chain'\n`;
-            ms += `SecRule ARGS:description '@streq C2' 'exec:/usr/share/modsecurity-crs/scripts/createTime.lua'\n`;
-            ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}' 'id:1009,log,block,msg:'User tried to execute a task when he was out of time/date',tag:'C2',tag:'Camunda_Rules',chain'\n`;
-            ms += `SecRule ARGS:userId '@streq ${st.User}' 'chain'\n`;
-            ms += `SecRuleScript '/usr/share/modsecurity-crs/scripts/dates.lua'\n`;
-            ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}/claim' 'id:1010,log,msg:'User tried to execute a task more times than he could do it',tag:'C2',tag:'Camunda_Rules',setvar:ip.counter_c2_1=+1,chain'\n`;
-            ms += `SecRule ARGS:userId '@streq ${st.User}' 'chain'\n`;
-            ms += `SecRule ip:counter_c2_1 '@gt 5' 't:none,setvar:user.to_block_c2_1=1'\n`;
-            ms += `SecRule user:to_block_c2_1 '@gt 0' 'id:1011,block'\n\n`;
-        }
-
-        // UoC3 type
-        if (!st.BoD && !st.SoD && st.UoC && st.User != "") {
-            ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}/identity-links' 'id:1005,log,block,msg:'Admin tried to assign a task to the wrong group/role',tag:'C3',tag:'Camunda_Rules',chain'\n`;
-            ms += `SecRule ARGS:groupId '!@streq Advisor'\n\n`;
-        }
-
-        // SoD & UoC2 type
-        if (!st.BoD && st.SoD && st.UoC && st.P != 0 && st.User != "") {
-            ms += `SecRule REQUEST_URI 'task/create' 'id:1012,log,pass,msg:'Admin created a task with C2 restriction',tag:'C2',tag:'Camunda_Rules',chain'\n`;
-            ms += `SecRule ARGS:description '@streq C2' 'exec:/usr/share/modsecurity-crs/scripts/createTime.lua'\n`;
-            ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}/claim' 'id:1013,log,block,msg:'User tried to execute a task when he was out of time/date',tag:'C2',tag:'Camunda_Rules',chain'\n`;
-            ms += `SecRule ARGS:userId '@streq ${st.User}' 'chain'\n`;
-            ms += `SecRuleScript '/usr/share/modsecurity-crs/scripts/dates.lua'\n`;
-            ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}/claim' 'id:1014,log,msg:'User tried to execute a task more times than he could do it',tag:'C2',tag:'Camunda_Rules',setvar:ip.counter_c2_1=+1,chain'\n`;
-            ms += `SecRule ARGS:userId '@streq ${st.User}' 'chain'\n`;
-            ms += `SecRule ip:counter_c2_1 '@gt 3' 't:none,setvar:user.to_block_c2_1=1'\n`;
-            ms += `SecRule user:to_block_c2_1 '@gt 0' 'id:1015,block'\n`;
         }
     }
 
@@ -114,35 +54,52 @@ exports.modSecurity = function (req, res) {
     });
 };
 
+// Sincronización de la base de datos
 exports.synDB = async function (req, res) {
-    try {
-        const sts = req.body.modSecurity;
-        for (const st of sts) {
-            const security = new Security({
-                id_model: st.id_model,
-                id_bpmn: st.id_bpmn,
-                BoD: st.BoD,
-                SoD: st.SoD,
-                UoC: st.UoC,
-                SubTasks: st.SubTasks,
-                Nu: st.Nu,
-                Mth: st.Mth,
-                P: st.P,
-                User: st.User,
-                Log: st.Log
-            });
+  try {
+    const sts = req.body.modSecurity;
+    console.log('Received tasks for synchronization:', sts); // Log para depuración
 
-            await Security.findOneAndDelete({ id_bpmn: security.id_bpmn });
-            await security.save();
-        }
-
-        res.send(req.body.status);
-    } catch (error) {
-        console.log("Some error occurred while synchronizing the Security tasks.", error);
-        res.status(500).send({ message: "Some error occurred while synchronizing the Security tasks." });
+    for (const st of sts) {
+      const existingSecurity = await Security.findOne({ id_bpmn: st.id_bpmn });
+      if (existingSecurity) {
+        // Actualiza las propiedades si el documento ya existe
+        existingSecurity.Bod = st.Bod; // Asegúrate de que es "Bod" aquí
+        existingSecurity.SoD = st.SoD;
+        existingSecurity.UoC = st.UoC;
+        existingSecurity.SubTasks = st.SubTasks;
+        existingSecurity.Nu = st.Nu;
+        existingSecurity.Mth = st.Mth;
+        existingSecurity.P = st.P;
+        existingSecurity.User = st.User;
+        existingSecurity.Log = st.Log;
+        await existingSecurity.save();
+        console.log('Updated security task:', existingSecurity); // Log para depuración
+      } else {
+        // Crea un nuevo documento si no existe
+        const newSecurity = new Security({
+          id_model: st.id_model,
+          id_bpmn: st.id_bpmn,
+          Bod: st.Bod, // Asegúrate de que es "Bod" aquí
+          SoD: st.SoD,
+          UoC: st.UoC,
+          SubTasks: st.SubTasks,
+          Nu: st.Nu,
+          Mth: st.Mth,
+          P: st.P,
+          User: st.User,
+          Log: st.Log
+        });
+        await newSecurity.save();
+        console.log('Created new security task:', newSecurity); // Log para depuración
+      }
     }
+    res.send({ status: 'Synchronization successful' });
+  } catch (error) {
+    console.log("Some error occurred while synchronizing the Security tasks.", error);
+    res.status(500).send({ message: "Some error occurred while synchronizing the Security tasks." });
+  }
 };
-
 // Retrieve and return all security tasks from the database.
 exports.findAll = async function (req, res) {
     try {
@@ -186,40 +143,28 @@ exports.findOne = function (req, res) {
 };
 
 // Update a security task identified by the securityId in the request
-exports.update = function (req, res) {
-    Security.findById(req.params.securityId, function (err, security) {
-        if (err) {
-            console.log(err);
-            if (err.kind === 'ObjectId') {
-                return res.status(404).send({ message: "Security task not found with id " + req.params.securityId });
-            }
-            return res.status(500).send({ message: "Error finding security task with id " + req.params.securityId });
-        }
+exports.update = async function (req, res) {
+    try {
+        console.log('Update request received for id:', req.params.securityId);
+        console.log('Request body:', req.body);
 
+        const security = await Security.findById(req.params.securityId);
         if (!security) {
             return res.status(404).send({ message: "Security task not found with id " + req.params.securityId });
         }
 
-        security.id_model = req.body.id_model;
-        security.id_bpmn = req.body.id_bpmn;
-        security.BoD = req.body.BoD;
-        security.SoD = req.body.SoD;
-        security.UoC = req.body.UoC;
-        security.SubTasks = req.body.SubTasks;
-        security.Nu = req.body.Nu;
-        security.Mth = req.body.Mth;
-        security.P = req.body.P;
-        security.User = req.body.User;
-        security.Log = req.body.Log;
+        // Actualizar solo los campos que se pasan en el cuerpo de la solicitud
+        if (req.body.id_model !== undefined) security.id_model = req.body.id_model;
+        if (req.body.id_bpmn !== undefined) security.id_bpmn = req.body.id_bpmn;
+        if (req.body.Bod !== undefined) security.Bod = req.body.Bod;
+        console.log('Updated security task:', security);
 
-        security.save(function (err, data) {
-            if (err) {
-                res.status(500).send({ message: "Could not update security task with id " + req.params.securityId });
-            } else {
-                res.send(data);
-            }
-        });
-    });
+        const updatedSecurity = await security.save();
+        res.send(updatedSecurity);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Could not update security task with id " + req.params.securityId });
+    }
 };
 
 // Delete a security task with the specified securityId in the request
