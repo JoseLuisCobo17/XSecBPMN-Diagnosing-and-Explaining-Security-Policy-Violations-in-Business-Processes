@@ -2,15 +2,16 @@ const Security = require('../models/security.model.js');
 
 // Create and Save a new Security task
 exports.create = function (req, res) {
-    if (!req.body.Bod || !req.body.Sod || !req.body.UoC) {
+    if (req.body.Bod === undefined || req.body.Sod === undefined || req.body.Uoc === undefined) {
         return res.status(400).send({ message: "Security task can not be empty" });
     }
 
     const security = new Security({
         id_model: req.body.id_model,
         id_bpmn: req.body.id_bpmn || "Untitled security task",
-        Bod: req.body.Bod,
-        Sod: req.body.Sod
+        Bod: req.body.Bod === true, // Convertir a booleano
+        Sod: req.body.Sod === true, // Convertir a booleano
+        Uoc: req.body.Uoc === true // Convertir a booleano
     });
 
     security.save(function (err, data) {
@@ -52,6 +53,56 @@ exports.modSecurity = function (req, res) {
                 }
             }
         }
+        //UoC1 type
+        if(st.BoD == false && st.SoD == false && st.UoC == true && st.Mth!=0 && st.Nu == 0 && st.P == 0){
+            ms+="SecRule REQUEST_URI 'task/" + st.SubTasks[0] + "/claim' 'id:1006,log,msg:'User tried to execute a task more times than he could do it',tag:'C1',tag:'Camunda_Rules',setvar:ip.counter_c1_1=+1,chain'\n";
+            ms+="SecRule ARGS:userId '@streq " + st.User + "' 'chain'\n";
+            ms+="SecRule ip:counter_c1_1 '@gt 4' 't:none,log,setvar:user.to_block_c1_1=1'\n";
+            ms+="SecRule user:to_block_c1 '@gt 0' 'id:1007,block'\n\n";
+        }
+
+        //UoC2 type
+        if(st.BoD == false && st.SoD == false && st.UoC == true && st.P != 0){
+            ms+="SecRule REQUEST_URI 'task/create' 'id:1008,log,pass,msg:'Admin created a task with C2 restriction',tag:'C2',tag:'Camunda_Rules',chain'\n";
+            ms+="SecRule ARGS:description '@streq C2' 'exec:/usr/share/modsecurity-crs/scripts/createTime.lua'\n";
+            ms+="SecRule REQUEST_URI 'task/" + st.SubTasks[0] + "' 'id:1009,log,block,msg:'User tried to execute a task when he was out of time/date',tag:'C2',tag:'Camunda_Rules',chain'\n";
+            ms+="SecRule ARGS:userId '@streq "+ st.User +"' 'chain'\n";
+            ms+="SecRuleScript '/usr/share/modsecurity-crs/scripts/dates.lua'\n";
+            ms+="SecRule REQUEST_URI 'task/" + st.SubTasks[0] + "/claim' 'id:1010,log,msg:'User tried to execute a task more times than he could do it',tag:'C2',tag:'Camunda_Rules',setvar:ip.counter_c2_1=+1,chain'\n";
+            ms+="SecRule ARGS:userId '@streq " + st.User + "' 'chain'\n";
+            ms+="SecRule ip:counter_c2_1 '@gt 5' 't:none,setvar:user.to_block_c2_1=1'\n";
+            ms+="SecRule user:to_block_c2_1 '@gt 0' 'id:1011,block'\n\n";
+        
+        }
+
+        //UoC3 type
+        if(st.BoD == false && st.SoD == false && st.UoC == true && st.User!=""){
+            ms+="SecRule REQUEST_URI 'task/" + st.SubTasks[0] + "/identity-links' 'id:1005,log,block,msg:'Admin tried to assign a task to the wrong group/role',tag:'C3',tag:'Camunda_Rules',chain'\n";
+            ms+="SecRule ARGS:groupId '!@streq Advisor'\n\n";
+        }
+
+        //SoD & UoC2 type
+        if(st.BoD == false && st.SoD == true && st.UoC == true && st.P != 0 && st.User!=""){
+            ms+="SecRule REQUEST_URI 'task/create' 'id:1012,log,pass,msg:'Admin created a task with C2 restriction',tag:'C2',tag:'Camunda_Rules',chain'\n";
+            ms+="SecRule ARGS:description '@streq C2' 'exec:/usr/share/modsecurity-crs/scripts/createTime.lua'\n";
+            ms+="SecRule REQUEST_URI 'task/" + st.SubTasks[0] + "/claim' 'id:1013,log,block,msg:'User tried to execute a task when he was out of time/date',tag:'C2',tag:'Camunda_Rules',chain'\n";
+            ms+="SecRule ARGS:userId '@streq " + st.User + "' 'chain'\n";
+            ms+="SecRuleScript '/usr/share/modsecurity-crs/scripts/dates.lua'\n";
+            ms+="SecRule REQUEST_URI 'task/" + st.SubTasks[0] + "/claim' 'id:1014,log,msg:'User tried to execute a task more times than he could do it',tag:'C2',tag:'Camunda_Rules',setvar:ip.counter_c2_1=+1,chain'\n";
+            ms+="SecRule ARGS:userId '@streq " + st.User + "' 'chain'\n";
+            ms+="SecRule ip:counter_c2_1 '@gt 3' 't:none,setvar:user.to_block_c2_1=1'\n";
+            ms+="SecRule user:to_block_c2_1 '@gt 0' 'id:1015,block'\n";
+            ms+="SecRule REQUEST_URI 'task/create' 'id:1012,log,pass,msg:'Admin created a task with C2 restriction',tag:'C2',tag:'Camunda_Rules',chain'\n";
+            ms+="SecRule ARGS:description '@streq C2' 'exec:/usr/share/modsecurity-crs/scripts/createTime.lua'\n";
+            ms+="SecRule REQUEST_URI 'task/" + st.SubTasks[0] + "/claim' 'id:1013,log,block,msg:'User tried to execute a task when he was out of time/date',tag:'C2',tag:'Camunda_Rules',chain'\n";
+            ms+="SecRule ARGS:userId '!@streq " + st.User + "' 'chain'\n";
+            ms+="SecRuleScript '/usr/share/modsecurity-crs/scripts/dates.lua'\n";
+            ms+="SecRule REQUEST_URI 'task/" + st.SubTasks[0] + "/claim' 'id:1014,log,msg:'User tried to execute a task more times than he could do it',tag:'C2',tag:'Camunda_Rules',setvar:ip.counter_c2_1=+1,chain'\n";
+            ms+="SecRule ARGS:userId '!@streq " + st.User + "' 'chain'\n";
+            ms+="SecRule ip:counter_c2_1 '@gt 3' 't:none,setvar:user.to_block_c2_1=1'\n";
+            ms+="SecRule user:to_block_c2_1 '@gt 0' 'id:1015,block'\n\n";
+
+        }
     }
 
     res.send(req.body.status);
@@ -68,50 +119,48 @@ exports.modSecurity = function (req, res) {
 
 // Sincronización de la base de datos
 exports.synDB = async function (req, res) {
-  try {
-    const sts = req.body.modSecurity;
-    console.log('Received tasks for synchronization:', sts); // Log para depuración
-
-    for (const st of sts) {
-      const existingSecurity = await Security.findOne({ id_bpmn: st.id_bpmn });
-      if (existingSecurity) {
-        // Actualiza las propiedades si el documento ya existe
-        existingSecurity.Bod = st.Bod; // Asegúrate de que es "Bod" aquí
-        existingSecurity.Sod = st.Sod;
-        existingSecurity.UoC = st.UoC;
-        existingSecurity.SubTasks = st.SubTasks;
-        existingSecurity.Nu = st.Nu;
-        existingSecurity.Mth = st.Mth;
-        existingSecurity.P = st.P;
-        existingSecurity.User = st.User;
-        existingSecurity.Log = st.Log;
-        await existingSecurity.save();
-        console.log('Updated security task:', existingSecurity); // Log para depuración
-      } else {
-        // Crea un nuevo documento si no existe
-        const newSecurity = new Security({
-          id_model: st.id_model,
-          id_bpmn: st.id_bpmn,
-          Bod: st.Bod, 
-          Sod: st.Sod,
-          UoC: st.UoC,
-          SubTasks: st.SubTasks,
-          Nu: st.Nu,
-          Mth: st.Mth,
-          P: st.P,
-          User: st.User,
-          Log: st.Log
-        });
-        await newSecurity.save();
-        console.log('Created new security task:', newSecurity); // Log para depuración
+    try {
+      const sts = req.body.modSecurity;
+      console.log('Received tasks for synchronization:', sts); // Log para depuración
+  
+      for (const st of sts) {
+        const existingSecurity = await Security.findOne({ id_bpmn: st.id_bpmn });
+        if (existingSecurity) {
+          existingSecurity.Bod = st.Bod === true; // Convertir a booleano
+          existingSecurity.Sod = st.Sod === true; // Convertir a booleano
+          existingSecurity.Uoc = st.Uoc === true; // Convertir a booleano
+          existingSecurity.SubTasks = st.SubTasks;
+          existingSecurity.Nu = st.Nu;
+          existingSecurity.Mth = st.Mth;
+          existingSecurity.P = st.P;
+          existingSecurity.User = st.User;
+          existingSecurity.Log = st.Log;
+          await existingSecurity.save();
+          console.log('Updated security task:', existingSecurity); // Log para depuración
+        } else {
+          const newSecurity = new Security({
+            id_model: st.id_model,
+            id_bpmn: st.id_bpmn,
+            Bod: st.Bod === true, // Convertir a booleano
+            Sod: st.Sod === true, // Convertir a booleano
+            Uoc: st.Uoc === true, // Convertir a booleano
+            SubTasks: st.SubTasks,
+            Nu: st.Nu,
+            Mth: st.Mth,
+            P: st.P,
+            User: st.User,
+            Log: st.Log
+          });
+          await newSecurity.save();
+          console.log('Created new security task:', newSecurity); // Log para depuración
+        }
       }
+      res.send({ status: 'Synchronization successful' });
+    } catch (error) {
+      console.log("Some error occurred while synchronizing the Security tasks.", error);
+      res.status(500).send({ message: "Some error occurred while synchronizing the Security tasks." });
     }
-    res.send({ status: 'Synchronization successful' });
-  } catch (error) {
-    console.log("Some error occurred while synchronizing the Security tasks.", error);
-    res.status(500).send({ message: "Some error occurred while synchronizing the Security tasks." });
-  }
-};
+  };
 // Retrieve and return all security tasks from the database.
 exports.findAll = async function (req, res) {
     try {
@@ -170,6 +219,7 @@ exports.update = async function (req, res) {
         if (req.body.id_bpmn !== undefined) security.id_bpmn = req.body.id_bpmn;
         if (req.body.Bod !== undefined) security.Bod = req.body.Bod;
         if (req.body.Sod !== undefined) security.Sod = req.body.Sod;
+        if (req.body.Uoc !== undefined) security.Uoc = req.body.Uoc;
         console.log('Updated security task:', security);
 
         const updatedSecurity = await security.save();

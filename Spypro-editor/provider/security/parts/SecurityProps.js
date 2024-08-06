@@ -15,6 +15,12 @@ export default function(element) {
       element,
       component: SoDFunction,
       isEdited: isCheckboxEntryEdited
+    },
+    {
+      id: 'UoC',
+      element,
+      component: UoCFunction,
+      isEdited: isCheckboxEntryEdited
     }
   ];
 }
@@ -93,10 +99,49 @@ function SoDFunction(props) {
   />`;
 }
 
+function UoCFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return false; // Valor predeterminado si businessObject no está definido
+    }
+    const value = element.businessObject.Uoc; // Nota: UoC debe ser Uoc para coincidir con la base de datos
+    console.log('Current UoC value (getValue):', value); // Log para depuración
+    return value === true; // Asegurarse de que devuelve un booleano
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; // Salir si businessObject no está definido
+    }
+    console.log('Setting UoC to (setValue):', value); // Log para depuración
+    modeling.updateProperties(element, {
+      Uoc: value // Asegúrate de que es "Uoc" aquí
+    });
+  };
+
+  return html`<${CheckboxEntry}
+    id=${id}
+    element=${element}
+    label=${translate('UoC')}
+    getValue=${getValue}
+    setValue=${setValue}
+    debounce=${debounce}
+    tooltip=${translate('Check available spells in the spellbook.')}
+  />`;
+}
+
 function isCheckboxEntryEdited(element) {
   if (!element || !element.businessObject) {
     return false;
   }
-  const propValue = element.businessObject.Bod;
-  return typeof propValue !== 'undefined';
+  const boDValue = element.businessObject.Bod;
+  const soDValue = element.businessObject.Sod;
+  const uoCValue = element.businessObject.Uoc;
+  return typeof boDValue !== 'undefined' || typeof soDValue !== 'undefined' || typeof uoCValue !== 'undefined';
 }

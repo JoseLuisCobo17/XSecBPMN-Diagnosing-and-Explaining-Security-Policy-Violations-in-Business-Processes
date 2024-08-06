@@ -5,7 +5,7 @@ var SecuritySchema = mongoose.Schema({
     id_bpmn: { type: String, required: true, unique:true },
     Bod: {type: Boolean, default: false},
     Sod: {type: Boolean, default: false},
-    UoC: {type: Boolean, default: false},
+    Uoc: {type: Boolean, default: false},
     SubTasks: [String],
     Nu: Number,
     Mth: Number,

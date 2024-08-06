@@ -109,9 +109,9 @@ function getSecurityTasks() {
     var st = {
       id_model: id_model,
       id_bpmn: element.id,
-      Bod: element.Bod || false, // Asegúrate de que es "Bod" aquí
+      Bod: element.Bod || false, 
       Sod: element.Sod || false,
-      UoC: element.UoC || false,
+      Uoc: element.Uoc || false,
       Nu: element.Nu || 0,
       Mth: element.Mth || 0,
       P: element.P || 0,

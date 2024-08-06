@@ -22,6 +22,11 @@
           "name": "Sod",
           "isAttr": true,
           "type": "Boolean"
+        },
+        {
+          "name": "Uoc",
+          "isAttr": true,
+          "type": "Boolean"
         }
       ]
     }
