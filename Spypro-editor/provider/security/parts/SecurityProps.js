@@ -35,6 +35,12 @@ export default function(element) {
       element,
       component: MthFunction, 
       isEdited: isNumberEntryEdited 
+    },
+    {
+      id: 'P',
+      element,
+      component: PFunction, 
+      isEdited: isNumberEntryEdited 
     }
   ];
 }
@@ -217,6 +223,43 @@ function MthFunction(props) {
     id=${id}
     element=${element}
     label=${translate('Mth')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter a numeric value.')}
+  />`;
+}
+
+function PFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return ''; // Valor predeterminado si businessObject no está definido
+    }
+    const value = element.businessObject.P;
+    console.log('Current P value (getValue):', value); // Log para depuración
+    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; // Salir si businessObject no está definido
+    }
+    console.log('Setting P to (setValue):', value); // Log para depuración
+    modeling.updateProperties(element, {
+      P: Number(value) // Asegúrate de convertir a número
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('P')}
     getValue=${getValue}
     setValue=${debounce(setValue)}
     debounce=${debounce}
