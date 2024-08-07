@@ -14,7 +14,8 @@ exports.create = function (req, res) {
         Uoc: req.body.Uoc === true,
         Nu: Number(req.body.Nu),
         Mth: Number(req.body.Mth),
-        P: Number(req.body.P)   
+        P: Number(req.body.P),
+        User: req.body.User || ''   
     });
 
     security.save(function (err, data) {
@@ -226,6 +227,7 @@ exports.update = async function (req, res) {
         if (req.body.Nu !== undefined) security.Nu = req.body.Nu;
         if (req.body.Mth !== undefined) security.Mth = req.body.Mth;
         if (req.body.P !== undefined) security.P = req.body.P;
+        if (req.body.User !== undefined) security.User = req.body.User;
         console.log('Updated security task:', security);
 
         const updatedSecurity = await security.save();

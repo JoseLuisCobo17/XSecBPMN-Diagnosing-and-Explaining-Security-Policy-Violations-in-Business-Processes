@@ -41,6 +41,12 @@ export default function(element) {
       element,
       component: PFunction, 
       isEdited: isNumberEntryEdited 
+    },
+    {
+      id: 'User',
+      element,
+      component: UserFunction,
+      isEdited: isStringEntryEdited
     }
   ];
 }
@@ -267,6 +273,43 @@ function PFunction(props) {
   />`;
 }
 
+function UserFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return ''; // Valor predeterminado si businessObject no está definido
+    }
+    const value = element.businessObject.User;
+    console.log('Current User value (getValue):', value); // Log para depuración
+    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; // Salir si businessObject no está definido
+    }
+    console.log('Setting User to (setValue):', value); // Log para depuración
+    modeling.updateProperties(element, {
+      User: value // Establece el valor de User
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('User')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter a user name.')}
+  />`;
+}
+
 function isCheckboxEntryEdited(element) {
   if (!element || !element.businessObject) {
     return false;
@@ -283,4 +326,12 @@ function isNumberEntryEdited(element) {
   }
   const nuValue = element.businessObject.Nu;
   return typeof nuValue !== 'undefined' && !isNaN(nuValue);
+}
+
+function isStringEntryEdited(element) {
+  if (!element || !element.businessObject) {
+    return false;
+  }
+  const userValue = element.businessObject.User;
+  return typeof userValue !== 'undefined' && userValue !== '';
 }
