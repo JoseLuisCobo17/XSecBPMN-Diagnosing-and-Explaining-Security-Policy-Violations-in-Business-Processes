@@ -29,7 +29,13 @@ export default function(element) {
       element,
       component: NuFunction, 
       isEdited: isNumberEntryEdited 
-  }
+    },
+    {
+      id: 'Mth',
+      element,
+      component: MthFunction, 
+      isEdited: isNumberEntryEdited 
+    }
   ];
 }
 
@@ -174,6 +180,43 @@ function NuFunction(props) {
     id=${id}
     element=${element}
     label=${translate('Nu')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter a numeric value.')}
+  />`;
+}
+
+function MthFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return ''; // Valor predeterminado si businessObject no está definido
+    }
+    const value = element.businessObject.Mth;
+    console.log('Current Mth value (getValue):', value); // Log para depuración
+    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; // Salir si businessObject no está definido
+    }
+    console.log('Setting Mth to (setValue):', value); // Log para depuración
+    modeling.updateProperties(element, {
+      Mth: Number(value) // Asegúrate de convertir a número
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Mth')}
     getValue=${getValue}
     setValue=${debounce(setValue)}
     debounce=${debounce}
