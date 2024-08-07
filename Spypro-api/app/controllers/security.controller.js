@@ -9,9 +9,10 @@ exports.create = function (req, res) {
     const security = new Security({
         id_model: req.body.id_model,
         id_bpmn: req.body.id_bpmn || "Untitled security task",
-        Bod: req.body.Bod === true, // Convertir a booleano
-        Sod: req.body.Sod === true, // Convertir a booleano
-        Uoc: req.body.Uoc === true // Convertir a booleano
+        Bod: req.body.Bod === true,
+        Sod: req.body.Sod === true, 
+        Uoc: req.body.Uoc === true,
+        Nu: Number(req.body.Nu) 
     });
 
     security.save(function (err, data) {
@@ -126,9 +127,9 @@ exports.synDB = async function (req, res) {
       for (const st of sts) {
         const existingSecurity = await Security.findOne({ id_bpmn: st.id_bpmn });
         if (existingSecurity) {
-          existingSecurity.Bod = st.Bod === true; // Convertir a booleano
-          existingSecurity.Sod = st.Sod === true; // Convertir a booleano
-          existingSecurity.Uoc = st.Uoc === true; // Convertir a booleano
+          existingSecurity.Bod = st.Bod === true; 
+          existingSecurity.Sod = st.Sod === true; 
+          existingSecurity.Uoc = st.Uoc === true; 
           existingSecurity.SubTasks = st.SubTasks;
           existingSecurity.Nu = st.Nu;
           existingSecurity.Mth = st.Mth;
@@ -141,9 +142,9 @@ exports.synDB = async function (req, res) {
           const newSecurity = new Security({
             id_model: st.id_model,
             id_bpmn: st.id_bpmn,
-            Bod: st.Bod === true, // Convertir a booleano
-            Sod: st.Sod === true, // Convertir a booleano
-            Uoc: st.Uoc === true, // Convertir a booleano
+            Bod: st.Bod === true, 
+            Sod: st.Sod === true, 
+            Uoc: st.Uoc === true, 
             SubTasks: st.SubTasks,
             Nu: st.Nu,
             Mth: st.Mth,
@@ -220,6 +221,7 @@ exports.update = async function (req, res) {
         if (req.body.Bod !== undefined) security.Bod = req.body.Bod;
         if (req.body.Sod !== undefined) security.Sod = req.body.Sod;
         if (req.body.Uoc !== undefined) security.Uoc = req.body.Uoc;
+        if (req.body.Nu !== undefined) security.Nu = req.body.Nu;
         console.log('Updated security task:', security);
 
         const updatedSecurity = await security.save();

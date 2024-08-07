@@ -27,6 +27,11 @@
           "name": "Uoc",
           "isAttr": true,
           "type": "Boolean"
+        },
+        {
+          "name": "Nu",
+          "isAttr": true,
+          "type": "Integer"
         }
       ]
     }

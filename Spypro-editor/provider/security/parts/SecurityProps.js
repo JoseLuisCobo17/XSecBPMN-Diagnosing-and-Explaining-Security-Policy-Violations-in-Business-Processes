@@ -1,6 +1,8 @@
 import { html } from 'htm/preact';
 import { CheckboxEntry } from '@bpmn-io/properties-panel';
 import { useService } from 'bpmn-js-properties-panel';
+import { TextFieldEntry } from '@bpmn-io/properties-panel';
+
 
 export default function(element) {
   return [
@@ -21,7 +23,13 @@ export default function(element) {
       element,
       component: UoCFunction,
       isEdited: isCheckboxEntryEdited
-    }
+    },
+    {
+      id: 'Nu',
+      element,
+      component: NuFunction, 
+      isEdited: isNumberEntryEdited 
+  }
   ];
 }
 
@@ -136,6 +144,43 @@ function UoCFunction(props) {
   />`;
 }
 
+function NuFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return ''; // Valor predeterminado si businessObject no está definido
+    }
+    const value = element.businessObject.Nu;
+    console.log('Current Nu value (getValue):', value); // Log para depuración
+    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; // Salir si businessObject no está definido
+    }
+    console.log('Setting Nu to (setValue):', value); // Log para depuración
+    modeling.updateProperties(element, {
+      Nu: Number(value) // Asegúrate de convertir a número
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Nu')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter a numeric value.')}
+  />`;
+}
+
 function isCheckboxEntryEdited(element) {
   if (!element || !element.businessObject) {
     return false;
@@ -144,4 +189,12 @@ function isCheckboxEntryEdited(element) {
   const soDValue = element.businessObject.Sod;
   const uoCValue = element.businessObject.Uoc;
   return typeof boDValue !== 'undefined' || typeof soDValue !== 'undefined' || typeof uoCValue !== 'undefined';
+}
+
+function isNumberEntryEdited(element) {
+  if (!element || !element.businessObject) {
+    return false;
+  }
+  const nuValue = element.businessObject.Nu;
+  return typeof nuValue !== 'undefined' && !isNaN(nuValue);
 }
