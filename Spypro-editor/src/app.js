@@ -11,6 +11,7 @@ import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js
 import diagramXML from '../resources/newDiagram.bpmn';
 import  securityDrawModule from '../lib/security/draw';
 import securityPaletteModule from '../lib/security/palette';
+import resizeAllModule from '../lib/resize-all-rules';
 
 const axios = require('axios');
 
@@ -33,6 +34,7 @@ var bpmnModeler = new BpmnModeler({
     propertiesProviderModule,
     securityPaletteModule,
     securityDrawModule,
+    resizeAllModule,
   ],
   moddleExtensions: {
     security: securityModdleDescriptor
