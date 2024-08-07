@@ -9,8 +9,8 @@ import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from 'min-dash';
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 import diagramXML from '../resources/newDiagram.bpmn';
-//import propertiesProviderModule from '../provider/security';
-//import securityModdleDescriptor from '../descriptors/security.json';
+import  securityDrawModule from '../lib/security/draw';
+import securityPaletteModule from '../lib/security/palette';
 
 const axios = require('axios');
 
@@ -19,9 +19,7 @@ var securityModdleDescriptor = require('../descriptors/security.json');
 
 var container = $('#js-drop-zone');
 var canvas = $('#js-canvas');
-
 var propertiesPanelModule = require('bpmn-js-properties-panel');
-var securityPaletteModule = require('../lib/security/palette');
 
 var bpmnModeler = new BpmnModeler({
   container: canvas,
@@ -34,6 +32,7 @@ var bpmnModeler = new BpmnModeler({
     propertiesPanelModule,
     propertiesProviderModule,
     securityPaletteModule,
+    securityDrawModule,
   ],
   moddleExtensions: {
     security: securityModdleDescriptor

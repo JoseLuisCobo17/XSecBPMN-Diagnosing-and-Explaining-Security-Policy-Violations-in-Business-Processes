@@ -1,4 +1,6 @@
-module.exports = {
-    __init__: [ 'securityRenderer' ],
-    securityRenderer: [ 'type', require('./SecurityRenderer') ]
-  };
+import SecurityRenderer from './SecurityRenderer';
+
+export default {
+  __init__: [ 'securityRenderer' ],
+  securityRenderer: [ 'type', SecurityRenderer ]
+};
