@@ -47,6 +47,12 @@ export default function(element) {
       element,
       component: UserFunction,
       isEdited: isStringEntryEdited
+    },
+    {
+      id: 'Log',
+      element,
+      component: LogFunction,
+      isEdited: isStringEntryEdited
     }
   ];
 }
@@ -303,6 +309,43 @@ function UserFunction(props) {
     id=${id}
     element=${element}
     label=${translate('User')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter a user name.')}
+  />`;
+}
+
+function LogFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return ''; // Valor predeterminado si businessObject no está definido
+    }
+    const value = element.businessObject.Log;
+    console.log('Current Log value (getValue):', value); // Log para depuración
+    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; // Salir si businessObject no está definido
+    }
+    console.log('Setting Log to (setValue):', value); // Log para depuración
+    modeling.updateProperties(element, {
+      Log: value // Establece el valor de Log
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Log')}
     getValue=${getValue}
     setValue=${debounce(setValue)}
     debounce=${debounce}
