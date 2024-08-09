@@ -365,10 +365,10 @@ function isCheckboxEntryEdited(element) {
 
 function isNumberEntryEdited(element) {
   if (!element || !element.businessObject) {
-    return false;
+    return 0;
   }
   const nuValue = element.businessObject.Nu;
-  return typeof nuValue !== 'undefined' && !isNaN(nuValue);
+  return (typeof nuValue !== 'undefined' && !isNaN(nuValue)) ? nuValue : 0;
 }
 
 function isStringEntryEdited(element) {
