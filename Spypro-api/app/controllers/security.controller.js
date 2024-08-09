@@ -34,7 +34,6 @@ const fs = require('fs');
 const path = require('path');
 
 exports.modSecurity = function (req, res) {
-    console.log('Function modSecurity called at:', new Date().toISOString());
     let ms = "";
 
     if (!req.body.modSecurity) {
@@ -50,6 +49,7 @@ exports.modSecurity = function (req, res) {
 
         // BoD type
         if (st.Bod && !st.Sod && !st.Uoc) {
+            console.log('Generating BoD rules...');
             for (let j = 0; j < st.SubTasks.length; j++) {
                 if (st.SubTasks[j + 1] != null) {
                     ms += `SecRule REQUEST_URI 'task/${st.SubTasks[j]}/claim' 'id:1001,log,allow,msg:"User who assign this task can assign the next task",tag:"BoD",tag:"Camunda_Rules",chain'\n`;
@@ -62,6 +62,7 @@ exports.modSecurity = function (req, res) {
 
         // SoD type
         if (!st.Bod && st.Sod && !st.Uoc) {
+            console.log('Generating SoD rules...');
             for (let j = 0; j < st.SubTasks.length; j++) {
                 if (st.SubTasks[j + 1] != null) {
                     ms += `SecRule REQUEST_URI 'task/${st.SubTasks[j]}/claim' 'id:1003,log,allow,msg:"User who assign this task cannot assign the next task",tag:"SoD",tag:"Camunda_Rules",chain'\n`;
@@ -74,6 +75,7 @@ exports.modSecurity = function (req, res) {
 
         // UoC1 type
         if (!st.Bod && !st.Sod && st.Uoc && st.Mth != 0 && st.Nu == 0 && st.P == 0) {
+            console.log('Generating UoC1 rules...');
             ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}/claim' 'id:1006,log,msg:"User tried to execute a task more times than he could do it",tag:"C1",tag:"Camunda_Rules",setvar:ip.counter_c1_1=+1,chain'\n`;
             ms += `SecRule ARGS:userId '@streq ${st.User}' 'chain'\n`;
             ms += `SecRule ip:counter_c1_1 '@gt 4' 't:none,log,setvar:user.to_block_c1_1=1'\n`;
@@ -82,6 +84,7 @@ exports.modSecurity = function (req, res) {
 
         // UoC2 type
         if (!st.Bod && !st.Sod && st.Uoc && st.P != 0) {
+            console.log('Generating UoC2 rules...');
             ms += `SecRule REQUEST_URI 'task/create' 'id:1008,log,pass,msg:"Admin created a task with C2 restriction",tag:"C2",tag:"Camunda_Rules",chain'\n`;
             ms += `SecRule ARGS:description '@streq C2' 'exec:/usr/share/modsecurity-crs/scripts/createTime.lua'\n`;
             ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}' 'id:1009,log,block,msg:"User tried to execute a task when he was out of time/date",tag:"C2",tag:"Camunda_Rules",chain'\n`;
@@ -95,12 +98,14 @@ exports.modSecurity = function (req, res) {
 
         // UoC3 type
         if (!st.Bod && !st.Sod && st.Uoc && st.User != "") {
+            console.log('Generating UoC3 rules...');
             ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}/identity-links' 'id:1005,log,block,msg:"Admin tried to assign a task to the wrong group/role",tag:"C3",tag:"Camunda_Rules",chain'\n`;
             ms += `SecRule ARGS:groupId '!@streq Advisor'\n\n`;
         }
 
         // SoD & UoC2 type
         if (!st.Bod && st.Sod && st.Uoc && st.P != 0 && st.User != "") {
+            console.log('Generating SoD & UoC2 rules...');
             ms += `SecRule REQUEST_URI 'task/create' 'id:1012,log,pass,msg:"Admin created a task with C2 restriction",tag:"C2",tag:"Camunda_Rules",chain'\n`;
             ms += `SecRule ARGS:description '@streq C2' 'exec:/usr/share/modsecurity-crs/scripts/createTime.lua'\n`;
             ms += `SecRule REQUEST_URI 'task/${st.SubTasks[0]}/claim' 'id:1013,log,block,msg:"User tried to execute a task when he was out of time/date",tag:"C2",tag:"Camunda_Rules",chain'\n`;
@@ -125,7 +130,7 @@ exports.modSecurity = function (req, res) {
     console.log('Generated ModSecurity rules:', ms);
 
     // Write to file
-    const filePath = path.join(__dirname, '..', 'downloads', 'modSecurity.txt'); // Use a relative path
+    const filePath = path.join(__dirname, '..', 'downloads', 'modSecurity.txt');
 
     fs.mkdir(path.dirname(filePath), { recursive: true }, (err) => {
         if (err) {

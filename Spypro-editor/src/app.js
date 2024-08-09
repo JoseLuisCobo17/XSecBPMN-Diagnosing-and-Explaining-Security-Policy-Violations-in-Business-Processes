@@ -136,17 +136,17 @@ function modSecurity() {
   return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
     .then(response => {
       console.log('Data posted successfully:', response.data);
-      return response.data; // Devuelve los datos de la respuesta
+      return response.data;
     })
     .catch(error => {
       console.error('Error posting data:', error);
-      throw error; // Propaga el error para que se maneje en el `.catch()`
+      throw error;
     });
 }
 
 function synDB() {
   const tasks = getSecurityTasks();
-  console.log('Tasks to be synchronized:', tasks); // Log para depuración
+  console.log('Tasks to be synchronized:', tasks);
   axios.post("http://localhost:3000/syndb", { modSecurity: tasks }, {
     headers: {
       "Content-Type": "application/json"
@@ -175,6 +175,16 @@ function saveJSON(done) {
   });
 }
 
+function updateModSecurityFile() {
+  modSecurity()
+    .then(() => {
+      console.log('ModSecurity file updated.');
+    })
+    .catch(() => {
+      console.error('Error updating ModSecurity file.');
+    });
+}
+
 if (!window.FileList || !window.FileReader) {
   window.alert(
     'Parece que usas un navegador antiguo que no soporta arrastrar y soltar. ' +
@@ -194,15 +204,15 @@ $(function() {
   var downloadSvgLink = $('#js-download-svg');
   var downloadJsonLink = $('#js-download-json');
 
-  let isExporting = false; // Variable de bloqueo
+  let isExporting = false;
 
   $('#button1').click(function(){
     if (isExporting) {
-      return; // Si ya está exportando, no hacer nada
+      return;
     }
 
-    isExporting = true; // Bloquear más llamadas
-    $(this).prop('disabled', true); // Deshabilitar el botón
+    isExporting = true;
+    $(this).prop('disabled', true);
 
     modSecurity()
       .then(() => {
@@ -212,14 +222,14 @@ $(function() {
         alert('Error al exportar a modSecurity');
       })
       .finally(() => {
-        isExporting = false; // Liberar el bloqueo
-        $(this).prop('disabled', false); // Habilitar el botón nuevamente
+        isExporting = false;
+        $(this).prop('disabled', false);
       });
   });
 
   $('#button2').click(function(){
     alert("Sincronizado con mongoDB");
-    synDB(); // Llamar directamente a la función synDB
+    synDB();
   });
 
   $('.buttons a').click(function(e) {
@@ -264,5 +274,8 @@ $(function() {
     });
   }, 500);
 
-  bpmnModeler.on('commandStack.changed', exportArtifacts);
+  bpmnModeler.on('commandStack.changed', () => {
+    exportArtifacts(); // Actualiza archivos descargables
+    updateModSecurityFile(); // Actualiza el archivo modSecurity.txt
+  });
 });
