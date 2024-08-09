@@ -9,7 +9,7 @@ import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from 'min-dash';
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 import diagramXML from '../resources/newDiagram.bpmn';
-import  securityDrawModule from '../lib/security/draw';
+import securityDrawModule from '../lib/security/draw';
 import securityPaletteModule from '../lib/security/palette';
 import resizeAllModule from '../lib/resize-all-rules';
 
@@ -110,7 +110,7 @@ function getSecurityTasks() {
     var st = {
       id_model: id_model,
       id_bpmn: element.id,
-      Bod: element.Bod || false, 
+      Bod: element.Bod || false,
       Sod: element.Sod || false,
       Uoc: element.Uoc || false,
       Nu: element.Nu || 0,
@@ -128,19 +128,25 @@ function getSecurityTasks() {
 }
 
 function modSecurity() {
-  var client = new Client();
-  var args = {
+  const args = {
     data: { modSecurity: getSecurityTasks() },
     headers: { "Content-Type": "application/json" }
   };
-  client.registerMethod("postMethod", "http://localhost:3000/modsecurity", "POST");
-  client.methods.postMethod(args, function (data, response) {
-  });
+
+  return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
+    .then(response => {
+      console.log('Data posted successfully:', response.data);
+      return response.data;
+    })
+    .catch(error => {
+      console.error('Error posting data:', error);
+      throw error;
+    });
 }
 
 function synDB() {
   const tasks = getSecurityTasks();
-  console.log('Tasks to be synchronized:', tasks); // Log para depuración
+  console.log('Tasks to be synchronized:', tasks);
   axios.post("http://localhost:3000/syndb", { modSecurity: tasks }, {
     headers: {
       "Content-Type": "application/json"
@@ -161,12 +167,26 @@ function synDB() {
   });
 }
 
-function saveJSON(done) {
-  var json = JSON.stringify(getSecurityTasks(), null, 2);
-
-  bpmnModeler.saveXML({ format: false }, function(err, xml) {
-    done(err, json);
+function saveJSON() {
+  return new Promise((resolve, reject) => {
+    try {
+      const json = JSON.stringify(getSecurityTasks(), null, 2);
+      console.log('Generated JSON:', json);
+      resolve(json);
+    } catch (err) {
+      reject(err);
+    }
   });
+}
+
+function updateModSecurityFile() {
+  modSecurity()
+    .then(() => {
+      console.log('ModSecurity file updated.');
+    })
+    .catch(() => {
+      console.error('Error updating ModSecurity file.');
+    });
 }
 
 if (!window.FileList || !window.FileReader) {
@@ -188,14 +208,32 @@ $(function() {
   var downloadSvgLink = $('#js-download-svg');
   var downloadJsonLink = $('#js-download-json');
 
+  let isExporting = false;
+
   $('#button1').click(function(){
-    alert('Exportado a modSecurity en la carpeta de Descargas');
-    $.ajax({url: modSecurity()});
+    if (isExporting) {
+      return;
+    }
+
+    isExporting = true;
+    $(this).prop('disabled', true);
+
+    modSecurity()
+      .then(() => {
+        alert('Exportado a modSecurity en la carpeta de Descargas');
+      })
+      .catch(() => {
+        alert('Error al exportar a modSecurity');
+      })
+      .finally(() => {
+        isExporting = false;
+        $(this).prop('disabled', false);
+      });
   });
 
   $('#button2').click(function(){
     alert("Sincronizado con mongoDB");
-    $.ajax({url: synDB()});
+    synDB();
   });
 
   $('.buttons a').click(function(e) {
@@ -207,10 +245,12 @@ $(function() {
 
   function setEncoded(link, name, data) {
     var encodedData = encodeURIComponent(data);
+    console.log('Data:', data);
+    console.log('Encoded Data:', encodedData);
 
     if (data) {
       link.addClass('active').attr({
-        'href': 'data:application/bpmn20-xml;charset=UTF-8,' + encodedData,
+        'href': 'data:application/json;charset=UTF-8,' + encodedData,
         'download': name
       });
     } else {
@@ -226,7 +266,7 @@ $(function() {
       console.error('Error al guardar SVG: ', err);
       setEncoded(downloadSvgLink, 'diagram.svg', null);
     }
-
+  
     try {
       const { xml } = await bpmnModeler.saveXML({ format: true });
       setEncoded(downloadLink, 'diagram.bpmn', xml);
@@ -234,11 +274,18 @@ $(function() {
       console.log('Error al guardar XML: ', err);
       setEncoded(downloadLink, 'diagram.bpmn', null);
     }
-
-    saveJSON(function(err, json) {
-      setEncoded(downloadJsonLink, 'diagram.json', err ? null : json);
-    });
+  
+    try {
+      const json = await saveJSON();
+      setEncoded(downloadJsonLink, 'diagram.json', json);
+    } catch (err) {
+      console.log('Error al guardar JSON: ', err);
+      setEncoded(downloadJsonLink, 'diagram.json', null);
+    }
   }, 500);
 
-  bpmnModeler.on('commandStack.changed', exportArtifacts);
+  bpmnModeler.on('commandStack.changed', () => {
+    exportArtifacts(); // Actualiza archivos descargables
+    updateModSecurityFile(); // Actualiza el archivo modSecurity.txt
+  });
 });
