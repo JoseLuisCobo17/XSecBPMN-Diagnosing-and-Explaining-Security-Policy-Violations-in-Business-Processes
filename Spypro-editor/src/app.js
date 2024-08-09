@@ -9,7 +9,7 @@ import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from 'min-dash';
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 import diagramXML from '../resources/newDiagram.bpmn';
-import  securityDrawModule from '../lib/security/draw';
+import securityDrawModule from '../lib/security/draw';
 import securityPaletteModule from '../lib/security/palette';
 import resizeAllModule from '../lib/resize-all-rules';
 
@@ -128,14 +128,20 @@ function getSecurityTasks() {
 }
 
 function modSecurity() {
-  var client = new Client();
-  var args = {
+  const args = {
     data: { modSecurity: getSecurityTasks() },
     headers: { "Content-Type": "application/json" }
   };
-  client.registerMethod("postMethod", "http://localhost:3000/modsecurity", "POST");
-  client.methods.postMethod(args, function (data, response) {
-  });
+
+  return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
+    .then(response => {
+      console.log('Data posted successfully:', response.data);
+      return response.data; // Devuelve los datos de la respuesta
+    })
+    .catch(error => {
+      console.error('Error posting data:', error);
+      throw error; // Propaga el error para que se maneje en el `.catch()`
+    });
 }
 
 function synDB() {
@@ -188,14 +194,32 @@ $(function() {
   var downloadSvgLink = $('#js-download-svg');
   var downloadJsonLink = $('#js-download-json');
 
+  let isExporting = false; // Variable de bloqueo
+
   $('#button1').click(function(){
-    alert('Exportado a modSecurity en la carpeta de Descargas');
-    $.ajax({url: modSecurity()});
+    if (isExporting) {
+      return; // Si ya está exportando, no hacer nada
+    }
+
+    isExporting = true; // Bloquear más llamadas
+    $(this).prop('disabled', true); // Deshabilitar el botón
+
+    modSecurity()
+      .then(() => {
+        alert('Exportado a modSecurity en la carpeta de Descargas');
+      })
+      .catch(() => {
+        alert('Error al exportar a modSecurity');
+      })
+      .finally(() => {
+        isExporting = false; // Liberar el bloqueo
+        $(this).prop('disabled', false); // Habilitar el botón nuevamente
+      });
   });
 
   $('#button2').click(function(){
     alert("Sincronizado con mongoDB");
-    $.ajax({url: synDB()});
+    synDB(); // Llamar directamente a la función synDB
   });
 
   $('.buttons a').click(function(e) {
