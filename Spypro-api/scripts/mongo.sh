@@ -7,4 +7,4 @@ sudo killall -9 mongod
 sudo mongod --dbpath /var/lib/mongodb --logpath /var/log/mongodb/mongod.log --fork
 
 # Abrir una nueva terminal y ejecutar api.sh
-gnome-terminal -- bash -c "/home/jose_luis/Escritorio/tfg/Spypro-api/scripts/api.sh; exec bash"
+gnome-terminal -- bash -c "/home/jose_luis/Escritorio/Investigacion/Spypro/Spypro-api/scripts/api.sh; exec bash"

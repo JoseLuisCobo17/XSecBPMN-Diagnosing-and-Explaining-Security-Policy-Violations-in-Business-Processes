@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Cambiar al directorio del proyecto
-cd /home/jose_luis/Escritorio/tfg/Spypro-api
+cd /home/jose_luis/Escritorio/Investigacion/Spypro/Spypro-api
 
 # Detener cualquier instancia en ejecución de Node.js
 killall -9 node

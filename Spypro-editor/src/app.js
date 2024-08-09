@@ -9,9 +9,18 @@ import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from 'min-dash';
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 import diagramXML from '../resources/newDiagram.bpmn';
+import  securityDrawModule from '../lib/security/draw';
+import securityPaletteModule from '../lib/security/palette';
+import resizeAllModule from '../lib/resize-all-rules';
+
+const axios = require('axios');
+
+var propertiesProviderModule = require('../provider/security');
+var securityModdleDescriptor = require('../descriptors/security.json');
 
 var container = $('#js-drop-zone');
 var canvas = $('#js-canvas');
+var propertiesPanelModule = require('bpmn-js-properties-panel');
 
 var bpmnModeler = new BpmnModeler({
   container: canvas,
@@ -20,9 +29,18 @@ var bpmnModeler = new BpmnModeler({
   },
   additionalModules: [
     BpmnPropertiesPanelModule,
-    BpmnPropertiesProviderModule
-  ]
+    BpmnPropertiesProviderModule,
+    propertiesPanelModule,
+    propertiesProviderModule,
+    securityPaletteModule,
+    securityDrawModule,
+    resizeAllModule,
+  ],
+  moddleExtensions: {
+    security: securityModdleDescriptor
+  }
 });
+
 container.removeClass('with-diagram');
 
 function createNewDiagram() {
@@ -30,17 +48,19 @@ function createNewDiagram() {
 }
 
 async function openDiagram(xml) {
+  console.log('Opening diagram...');
   try {
     await bpmnModeler.importXML(xml);
+    console.log('Diagram imported successfully.');
     container
       .removeClass('with-error')
       .addClass('with-diagram');
   } catch (err) {
+    console.error('Error during importXML:', err);
     container
       .removeClass('with-diagram')
       .addClass('with-error');
     container.find('.error pre').text(err.message);
-    console.error(err);
   }
 }
 
@@ -64,14 +84,13 @@ function registerFileDrop(container, callback) {
   function handleDragOver(e) {
     e.stopPropagation();
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+    e.dataTransfer.dropEffect = 'copy';
   }
 
   container.get(0).addEventListener('dragover', handleDragOver, false);
   container.get(0).addEventListener('drop', handleFileSelect, false);
 }
 
-// Function that get the securityTasks of the schema and their subTasks
 function getSecurityTasks() {
   var elementRegistry = bpmnModeler.get('elementRegistry');
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
@@ -80,20 +99,20 @@ function getSecurityTasks() {
   var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
 
   var res = [];
-  serviceTaskBusinessObjects.forEach(function(element){
+  serviceTaskBusinessObjects.forEach(function(element) {
     var list = element.outgoing;
     var subTasks = [];
-    if(list){
-      list.forEach(function(task){
+    if (list) {
+      list.forEach(function(task) {
         subTasks.push(task.targetRef.id);
       });
     }
-    var st = { 
+    var st = {
       id_model: id_model,
       id_bpmn: element.id,
-      BoD: element.BoD || false,
-      SoD: element.SoD || false,
-      UoC: element.UoC || false,
+      Bod: element.Bod || false, 
+      Sod: element.Sod || false,
+      Uoc: element.Uoc || false,
       Nu: element.Nu || 0,
       Mth: element.Mth || 0,
       P: element.P || 0,
@@ -108,34 +127,40 @@ function getSecurityTasks() {
   return res;
 }
 
-// Save as modSecurity format file
 function modSecurity() {
   var client = new Client();
-  // set content-type header and data as json in args parameter
   var args = {
     data: { modSecurity: getSecurityTasks() },
     headers: { "Content-Type": "application/json" }
   };
-  // registering remote methods
   client.registerMethod("postMethod", "http://localhost:3000/modsecurity", "POST");
   client.methods.postMethod(args, function (data, response) {
-    // handle response
   });
 }
 
-// Synchronize with database (mongoDB)
 function synDB() {
-  var client = new Client();
-  var args = {
-    data: { modSecurity: getSecurityTasks() },
-    headers: { "Content-Type": "application/json" },
-  };
-  client.post("http://localhost:3000/syndb", args, function (data, response) {
-    // handle response
+  const tasks = getSecurityTasks();
+  console.log('Tasks to be synchronized:', tasks); // Log para depuración
+  axios.post("http://localhost:3000/syndb", { modSecurity: tasks }, {
+    headers: {
+      "Content-Type": "application/json"
+    }
+  }).then(function (response) {
+    console.log('Sync response:', response.data);
+  }).catch(function (error) {
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
+    } else if (error.request) {
+      console.error('Request data:', error.request);
+    } else {
+      console.error('Error message:', error.message);
+    }
+    console.error('Config:', error.config);
   });
 }
 
-// Save as json file
 function saveJSON(done) {
   var json = JSON.stringify(getSecurityTasks(), null, 2);
 
@@ -144,17 +169,14 @@ function saveJSON(done) {
   });
 }
 
-// file drag / drop ///////////////////////
-// check file api availability
 if (!window.FileList || !window.FileReader) {
   window.alert(
-    'Looks like you use an older browser that does not support drag and drop. ' +
-    'Try using Chrome, Firefox or the Internet Explorer > 10.');
+    'Parece que usas un navegador antiguo que no soporta arrastrar y soltar. ' +
+    'Prueba usar Chrome, Firefox o Internet Explorer > 10.');
 } else {
   registerFileDrop(container, openDiagram);
 }
 
-// bootstrap diagram functions
 $(function() {
   $('#js-create-diagram').click(function(e) {
     e.stopPropagation();
@@ -167,12 +189,12 @@ $(function() {
   var downloadJsonLink = $('#js-download-json');
 
   $('#button1').click(function(){
-    alert('Exported to modSecurity in Downloads folder');
+    alert('Exportado a modSecurity en la carpeta de Descargas');
     $.ajax({url: modSecurity()});
   });
 
   $('#button2').click(function(){
-    alert("Synchronized with mongoDB");
+    alert("Sincronizado con mongoDB");
     $.ajax({url: synDB()});
   });
 
@@ -201,7 +223,7 @@ $(function() {
       const { svg } = await bpmnModeler.saveSVG();
       setEncoded(downloadSvgLink, 'diagram.svg', svg);
     } catch (err) {
-      console.error('Error happened saving SVG: ', err);
+      console.error('Error al guardar SVG: ', err);
       setEncoded(downloadSvgLink, 'diagram.svg', null);
     }
 
@@ -209,7 +231,7 @@ $(function() {
       const { xml } = await bpmnModeler.saveXML({ format: true });
       setEncoded(downloadLink, 'diagram.bpmn', xml);
     } catch (err) {
-      console.log('Error happened saving XML: ', err);
+      console.log('Error al guardar XML: ', err);
       setEncoded(downloadLink, 'diagram.bpmn', null);
     }
 

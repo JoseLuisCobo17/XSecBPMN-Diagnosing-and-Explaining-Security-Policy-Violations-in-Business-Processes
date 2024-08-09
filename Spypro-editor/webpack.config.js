@@ -21,7 +21,8 @@ module.exports = {
       "timers": require.resolve("timers-browserify"),
       "url": require.resolve("url"),
       "assert": require.resolve("assert"),
-      "crypto": require.resolve("crypto-browserify")
+      "crypto": require.resolve("crypto-browserify"),
+      "fs": false
     }
   },
   module: {
@@ -31,6 +32,9 @@ module.exports = {
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env']
+          }
         },
       },
       {
@@ -48,6 +52,20 @@ module.exports = {
       {
         test: /\.bpmn$/,
         use: 'raw-loader'
+      },
+      {
+        test: /\.(png|jpg|gif)$/,
+        use: [
+          {
+            loader: 'url-loader',
+            options: {
+              limit: 8192, // 8kb
+              fallback: 'file-loader',
+              name: '[name].[ext]',
+              outputPath: 'images/'
+            }
+          }
+        ]
       }
     ],
   },
