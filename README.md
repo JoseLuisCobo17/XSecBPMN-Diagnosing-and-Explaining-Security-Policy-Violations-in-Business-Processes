@@ -1,9 +1,7 @@
-# Automatic-Monitoring-and-Diagnosis-of-Security-Policies
+# SpyPro
 
 # Building
-cd ~/Escritorio/Investigacion/Owner avatar
-Automatic-Monitoring-and-Diagnosis-of-Security-Policies
-/Automatic-Monitoring-and-Diagnosis-of-Security-Policies/Spypro-api
+cd ~/home/jose_luis/Escritorio/Investigacion/Spypro/Spypro-api
 
 npm install
 
@@ -11,9 +9,7 @@ npm start
 
 cd .. 
 
-cd ~/Escritorio/Investigacion/Owner avatar
-Automatic-Monitoring-and-Diagnosis-of-Security-Policies
-/Automatic-Monitoring-and-Diagnosis-of-Security-Policies/Spypro-editor
+cd ~/home/jose_luis/Escritorio/Investigacion/Spypro/Spypro-editor
 
 npm install
 
