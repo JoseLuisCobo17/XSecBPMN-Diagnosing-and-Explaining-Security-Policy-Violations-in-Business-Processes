@@ -1,4 +1,4 @@
 module.exports = {
   __init__: [ 'propertiesProvider' ],
-  propertiesProvider: [ 'type', require('./SecurityPropertiesProvider') ]
+  propertiesProvider: [ 'type', require('./SecurityPropertiesProvider').default ]
 };

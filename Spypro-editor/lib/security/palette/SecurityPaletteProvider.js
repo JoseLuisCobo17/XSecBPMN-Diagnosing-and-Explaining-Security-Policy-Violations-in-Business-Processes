@@ -1,10 +1,10 @@
-var Lock = require('../lock');
+import Lock from '../lock';
 
 
 /**
  * A provider for quick service task production
  */
-function SecurityPaletteProvider(palette, create, elementFactory) {
+export default function SecurityPaletteProvider(palette, create, elementFactory) {
 
   this._create = create;
   this._elementFactory = elementFactory;
@@ -12,20 +12,29 @@ function SecurityPaletteProvider(palette, create, elementFactory) {
   palette.registerProvider(this);
 }
 
+SecurityPaletteProvider.$inject = [
+  'palette',
+  'create',
+  'elementFactory'
+];
+
 SecurityPaletteProvider.prototype.getPaletteEntries = function() {
 
   var elementFactory = this._elementFactory,
       create = this._create;
 
   function startCreate(event) {
-    var serviceTaskShape = elementFactory.create('shape', { type: 'bpmn:ServiceTask' });
+    var serviceTaskShape = elementFactory.create(
+      'shape', { type: 'bpmn:ServiceTask' }
+    );
+
     create.start(event, serviceTaskShape);
   }
 
   return {
     'create-service-task': {
       group: 'activity',
-      title: 'Create a new security LOCK!',
+      title: 'Create a new security CAT!',
       imageUrl: Lock.dataURL,
       action: {
         dragstart: startCreate,
@@ -34,5 +43,3 @@ SecurityPaletteProvider.prototype.getPaletteEntries = function() {
     }
   };
 };
-
-module.exports = SecurityPaletteProvider;
