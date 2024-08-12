@@ -1,47 +1,11 @@
 'use strict';
 
-import inherits from 'inherits-browser';
-import BaseRenderer from 'diagram-js/lib/draw/BaseRenderer';
+var inherits = require('inherits');
+var BaseRenderer = require('diagram-js/lib/draw/BaseRenderer');
+var is = require('bpmn-js/lib/util/ModelUtil').is;
+var lockDataURL = require('../lock').dataURL;
 
-import {
-  is
-} from 'bpmn-js/lib/util/ModelUtil';
-import {
-  append as svgAppend,
-  create as svgCreate
-} from 'tiny-svg';
-import Lock from '../lock';
-
-export default function SecurityRender(eventBus) {
-  BaseRenderer.call(this, eventBus, 1500);
-
-  this.canRender = function(element) {
-    return is(element, 'bpmn:ServiceTask');
-  };
-
-
-  this.drawShape = function(parent, shape) {
-    var url = Lock.dataURL;
-
-    var lockGfx = svgCreate('image', {
-      x: 0,
-      y: 0,
-      width: shape.width,
-      height: shape.height,
-      href: url
-    });
-
-    svgAppend(parent, lockGfx);
-
-    return lockGfx;
-  };
-}
-
-inherits(SecurityRender, BaseRenderer);
-
-SecurityRender.$inject = [ 'eventBus' ];
-
-/*function SecurityRenderer(eventBus) {
+function SecurityRenderer(eventBus) {
   BaseRenderer.call(this, eventBus, 1500); // Call the super constructor
 }
 
@@ -64,4 +28,4 @@ SecurityRenderer.prototype.drawShape = function(parent, shape) {
   return lockGfx;
 };
 
-module.exports = SecurityRenderer;*/
+module.exports = SecurityRenderer;

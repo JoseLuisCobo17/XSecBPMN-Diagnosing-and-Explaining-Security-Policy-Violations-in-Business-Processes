@@ -9,18 +9,21 @@ import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from 'min-dash';
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 import diagramXML from '../resources/newDiagram.bpmn';
-import securityDrawModule from '../lib/security/draw';
-import securityPaletteModule from '../lib/security/palette';
-import resizeAllModule from '../lib/resize-all-rules';
 
 const axios = require('axios');
+var container = $('#js-drop-zone');
+var canvas = $('#js-canvas');
 
+var propertiesPanelModule = require('bpmn-js-properties-panel');
 var propertiesProviderModule = require('../provider/security');
 var securityModdleDescriptor = require('../descriptors/security.json');
 
-var container = $('#js-drop-zone');
-var canvas = $('#js-canvas');
-var propertiesPanelModule = require('bpmn-js-properties-panel');
+// Comment out all custom modules initially
+ var securityPropertiesProvider = require('../provider/security');
+ var securityPaletteModule = require('../lib/security/palette');
+ //var securityDrawModule = require('../lib/security/draw');
+ //var colorPickerModule = require('../lib/color-picker');
+ //var resizeAllModule = require('../lib/resize-all-rules');
 
 var bpmnModeler = new BpmnModeler({
   container: canvas,
@@ -32,15 +35,16 @@ var bpmnModeler = new BpmnModeler({
     BpmnPropertiesProviderModule,
     propertiesPanelModule,
     propertiesProviderModule,
+    securityPropertiesProvider,
     securityPaletteModule,
-    securityDrawModule,
-    resizeAllModule,
+    //securityDrawModule,
+    //colorPickerModule,
+    //resizeAllModule
   ],
   moddleExtensions: {
     security: securityModdleDescriptor
   }
 });
-
 container.removeClass('with-diagram');
 
 function createNewDiagram() {
@@ -48,19 +52,17 @@ function createNewDiagram() {
 }
 
 async function openDiagram(xml) {
-  console.log('Opening diagram...');
   try {
     await bpmnModeler.importXML(xml);
-    console.log('Diagram imported successfully.');
     container
       .removeClass('with-error')
       .addClass('with-diagram');
   } catch (err) {
-    console.error('Error during importXML:', err);
     container
       .removeClass('with-diagram')
       .addClass('with-error');
     container.find('.error pre').text(err.message);
+    console.error(err);
   }
 }
 
@@ -84,13 +86,14 @@ function registerFileDrop(container, callback) {
   function handleDragOver(e) {
     e.stopPropagation();
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
   }
 
   container.get(0).addEventListener('dragover', handleDragOver, false);
   container.get(0).addEventListener('drop', handleFileSelect, false);
 }
 
+// Function that get the securityTasks of the schema and their subTasks
 function getSecurityTasks() {
   var elementRegistry = bpmnModeler.get('elementRegistry');
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
@@ -99,20 +102,20 @@ function getSecurityTasks() {
   var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
 
   var res = [];
-  serviceTaskBusinessObjects.forEach(function(element) {
+  serviceTaskBusinessObjects.forEach(function(element){
     var list = element.outgoing;
     var subTasks = [];
-    if (list) {
-      list.forEach(function(task) {
+    if(list){
+      list.forEach(function(task){
         subTasks.push(task.targetRef.id);
       });
     }
-    var st = {
+    var st = { 
       id_model: id_model,
       id_bpmn: element.id,
-      Bod: element.Bod || false,
-      Sod: element.Sod || false,
-      Uoc: element.Uoc || false,
+      BoD: element.BoD || false,
+      SoD: element.SoD || false,
+      UoC: element.UoC || false,
       Nu: element.Nu || 0,
       Mth: element.Mth || 0,
       P: element.P || 0,
@@ -127,32 +130,36 @@ function getSecurityTasks() {
   return res;
 }
 
+// Save as modSecurity format file
 function modSecurity() {
-  const args = {
+  var client = new Client();
+  // set content-type header and data as json in args parameter
+  var args = {
     data: { modSecurity: getSecurityTasks() },
     headers: { "Content-Type": "application/json" }
   };
-
-  return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
-    .then(response => {
-      console.log('Data posted successfully:', response.data);
-      return response.data;
-    })
-    .catch(error => {
-      console.error('Error posting data:', error);
-      throw error;
-    });
+  // registering remote methods
+  client.registerMethod("postMethod", "http://localhost:3000/modsecurity", "POST");
+  client.methods.postMethod(args, function (data, response) {
+    // handle response
+  });
 }
 
 function synDB() {
-  const tasks = getSecurityTasks();
-  console.log('Tasks to be synchronized:', tasks);
-  axios.post("http://localhost:3000/syndb", { modSecurity: tasks }, {
+  console.log("Client");
+  var args = {
+    data: {
+      modSecurity: getSecurityTasks()
+    },
     headers: {
       "Content-Type": "application/json"
     }
+  };
+  axios.post("http://localhost:3000/syndb", args.data, {
+    headers: args.headers,
+    withCredentials: true // Esto permite el envío de cookies, si es necesario
   }).then(function (response) {
-    console.log('Sync response:', response.data);
+    console.log(response.data);
   }).catch(function (error) {
     if (error.response) {
       console.error('Response data:', error.response.data);
@@ -167,36 +174,26 @@ function synDB() {
   });
 }
 
-function saveJSON() {
-  return new Promise((resolve, reject) => {
-    try {
-      const json = JSON.stringify(getSecurityTasks(), null, 2);
-      console.log('Generated JSON:', json);
-      resolve(json);
-    } catch (err) {
-      reject(err);
-    }
+// Save as json file
+function saveJSON(done) {
+  var json = JSON.stringify(getSecurityTasks(), null, 2);
+
+  bpmnModeler.saveXML({ format: false }, function(err, xml) {
+    done(err, json);
   });
 }
 
-function updateModSecurityFile() {
-  modSecurity()
-    .then(() => {
-      console.log('ModSecurity file updated.');
-    })
-    .catch(() => {
-      console.error('Error updating ModSecurity file.');
-    });
-}
-
+// file drag / drop ///////////////////////
+// check file api availability
 if (!window.FileList || !window.FileReader) {
   window.alert(
-    'Parece que usas un navegador antiguo que no soporta arrastrar y soltar. ' +
-    'Prueba usar Chrome, Firefox o Internet Explorer > 10.');
+    'Looks like you use an older browser that does not support drag and drop. ' +
+    'Try using Chrome, Firefox or the Internet Explorer > 10.');
 } else {
   registerFileDrop(container, openDiagram);
 }
 
+// bootstrap diagram functions
 $(function() {
   $('#js-create-diagram').click(function(e) {
     e.stopPropagation();
@@ -208,32 +205,14 @@ $(function() {
   var downloadSvgLink = $('#js-download-svg');
   var downloadJsonLink = $('#js-download-json');
 
-  let isExporting = false;
-
   $('#button1').click(function(){
-    if (isExporting) {
-      return;
-    }
-
-    isExporting = true;
-    $(this).prop('disabled', true);
-
-    modSecurity()
-      .then(() => {
-        alert('Exportado a modSecurity en la carpeta de Descargas');
-      })
-      .catch(() => {
-        alert('Error al exportar a modSecurity');
-      })
-      .finally(() => {
-        isExporting = false;
-        $(this).prop('disabled', false);
-      });
+    alert('Exported to modSecurity in Downloads folder');
+    $.ajax({url: modSecurity()});
   });
 
   $('#button2').click(function(){
-    alert("Sincronizado con mongoDB");
-    synDB();
+    alert("Synchronized with mongoDB");
+    $.ajax({url: synDB()});
   });
 
   $('.buttons a').click(function(e) {
@@ -245,12 +224,10 @@ $(function() {
 
   function setEncoded(link, name, data) {
     var encodedData = encodeURIComponent(data);
-    console.log('Data:', data);
-    console.log('Encoded Data:', encodedData);
 
     if (data) {
       link.addClass('active').attr({
-        'href': 'data:application/json;charset=UTF-8,' + encodedData,
+        'href': 'data:application/bpmn20-xml;charset=UTF-8,' + encodedData,
         'download': name
       });
     } else {
@@ -263,29 +240,22 @@ $(function() {
       const { svg } = await bpmnModeler.saveSVG();
       setEncoded(downloadSvgLink, 'diagram.svg', svg);
     } catch (err) {
-      console.error('Error al guardar SVG: ', err);
+      console.error('Error happened saving SVG: ', err);
       setEncoded(downloadSvgLink, 'diagram.svg', null);
     }
-  
+
     try {
       const { xml } = await bpmnModeler.saveXML({ format: true });
       setEncoded(downloadLink, 'diagram.bpmn', xml);
     } catch (err) {
-      console.log('Error al guardar XML: ', err);
+      console.log('Error happened saving XML: ', err);
       setEncoded(downloadLink, 'diagram.bpmn', null);
     }
-  
-    try {
-      const json = await saveJSON();
-      setEncoded(downloadJsonLink, 'diagram.json', json);
-    } catch (err) {
-      console.log('Error al guardar JSON: ', err);
-      setEncoded(downloadJsonLink, 'diagram.json', null);
-    }
+
+    saveJSON(function(err, json) {
+      setEncoded(downloadJsonLink, 'diagram.json', err ? null : json);
+    });
   }, 500);
 
-  bpmnModeler.on('commandStack.changed', () => {
-    exportArtifacts(); // Actualiza archivos descargables
-    updateModSecurityFile(); // Actualiza el archivo modSecurity.txt
-  });
+  bpmnModeler.on('commandStack.changed', exportArtifacts);
 });
