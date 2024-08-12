@@ -110,7 +110,7 @@ function getSecurityTasks() {
     var st = {
       id_model: id_model,
       id_bpmn: element.id,
-      Bod: element.Bod || false, 
+      Bod: element.Bod || false,
       Sod: element.Sod || false,
       Uoc: element.Uoc || false,
       Nu: element.Nu || 0,
@@ -167,11 +167,15 @@ function synDB() {
   });
 }
 
-function saveJSON(done) {
-  var json = JSON.stringify(getSecurityTasks(), null, 2);
-
-  bpmnModeler.saveXML({ format: false }, function(err, xml) {
-    done(err, json);
+function saveJSON() {
+  return new Promise((resolve, reject) => {
+    try {
+      const json = JSON.stringify(getSecurityTasks(), null, 2);
+      console.log('Generated JSON:', json);
+      resolve(json);
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -241,10 +245,12 @@ $(function() {
 
   function setEncoded(link, name, data) {
     var encodedData = encodeURIComponent(data);
+    console.log('Data:', data);
+    console.log('Encoded Data:', encodedData);
 
     if (data) {
       link.addClass('active').attr({
-        'href': 'data:application/bpmn20-xml;charset=UTF-8,' + encodedData,
+        'href': 'data:application/json;charset=UTF-8,' + encodedData,
         'download': name
       });
     } else {
@@ -260,7 +266,7 @@ $(function() {
       console.error('Error al guardar SVG: ', err);
       setEncoded(downloadSvgLink, 'diagram.svg', null);
     }
-
+  
     try {
       const { xml } = await bpmnModeler.saveXML({ format: true });
       setEncoded(downloadLink, 'diagram.bpmn', xml);
@@ -268,10 +274,14 @@ $(function() {
       console.log('Error al guardar XML: ', err);
       setEncoded(downloadLink, 'diagram.bpmn', null);
     }
-
-    saveJSON(function(err, json) {
-      setEncoded(downloadJsonLink, 'diagram.json', err ? null : json);
-    });
+  
+    try {
+      const json = await saveJSON();
+      setEncoded(downloadJsonLink, 'diagram.json', json);
+    } catch (err) {
+      console.log('Error al guardar JSON: ', err);
+      setEncoded(downloadJsonLink, 'diagram.json', null);
+    }
   }, 500);
 
   bpmnModeler.on('commandStack.changed', () => {
