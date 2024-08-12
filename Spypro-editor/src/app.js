@@ -132,14 +132,13 @@ function modSecurity() {
     data: { modSecurity: getSecurityTasks() },
     headers: { "Content-Type": "application/json" }
   };
-
   return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
     .then(response => {
-      console.log('Data posted successfully:', response.data);
+      console.log('ModSecurity rules generated and posted successfully:', response.data);
       return response.data;
     })
     .catch(error => {
-      console.error('Error posting data:', error);
+      console.error('Error posting ModSecurity rules:', error);
       throw error;
     });
 }
