@@ -143,6 +143,22 @@ function modSecurity() {
     });
 }
 
+function esperRules() {
+  const args = {
+    data: { modSecurity: getSecurityTasks() }, // Cambiado de esperRules a modSecurity
+    headers: { "Content-Type": "application/json" }
+  };
+  return axios.post("http://localhost:3000/esperrules", args.data, { headers: args.headers })
+    .then(response => {
+      console.log('EsperRules generated and posted successfully:', response.data);
+      return response.data;
+    })
+    .catch(error => {
+      console.error('Error posting EsperRules:', error);
+      throw error;
+    });
+}
+
 function synDB() {
   const tasks = getSecurityTasks();
   console.log('Tasks to be synchronized:', tasks);
@@ -180,11 +196,12 @@ function saveJSON() {
 
 function updateModSecurityFile() {
   modSecurity()
+  esperRules()
     .then(() => {
-      console.log('ModSecurity file updated.');
+      console.log('ModSecurity and esperRules file updated.');
     })
     .catch(() => {
-      console.error('Error updating ModSecurity file.');
+      console.error('Error updating ModSecurity/esperRules file.');
     });
 }
 
@@ -233,6 +250,27 @@ $(function() {
   $('#button2').click(function(){
     alert("Sincronizado con mongoDB");
     synDB();
+  });
+
+  $('#button3').click(function(){
+    if (isExporting) {
+      return;
+    }
+
+    isExporting = true;
+    $(this).prop('disabled', true);
+
+    esperRules()
+      .then(() => {
+        alert('Exportado a esperRules en la carpeta de esperRules');
+      })
+      .catch(() => {
+        alert('Error al exportar a esperRules');
+      })
+      .finally(() => {
+        isExporting = false;
+        $(this).prop('disabled', false);
+      });
   });
 
   $('.buttons a').click(function(e) {

@@ -1,4 +1,6 @@
 const Security = require('../models/security.model.js');
+const fs = require('fs');
+const path = require('path');
 
 // Create and Save a new Security task
 exports.create = function (req, res) {
@@ -30,9 +32,6 @@ exports.create = function (req, res) {
 };
 
 // Method that receives a JSON and transforms it into a txt file (modSecurity format)
-const fs = require('fs');
-const path = require('path');
-
 exports.modSecurity = function (req, res) {
     let ms = "";
 
@@ -150,6 +149,193 @@ exports.modSecurity = function (req, res) {
     });
 };
 
+exports.esperRules = function (req, res) {
+    let ms = "";
+
+    if (!req.body.modSecurity) {
+        return res.status(400).send({ message: "No esperRules data provided" });
+    }
+
+    console.log('esperRules data received:', req.body.modSecurity);
+
+    for (let i = 0; i < req.body.modSecurity.length; i++) {
+        const st = req.body.modSecurity[i];
+        console.log('Processing task:', st);
+
+        // BoD type
+        if (st.Bod && !st.Sod && !st.Uoc) {
+            console.log('Generating BoD rules...');
+
+            ms += `# EPL Rules for Binding of Duty (BoD)\n`;
+            ms += `create schema TaskClaimEvent(userId string, taskId string, timestamp long);\n\n`;
+
+            for (let j = 0; j < st.SubTasks.length - 1; j++) {
+                ms += `insert into BoDViolationEvent\n`;
+                ms += `select e1.userId as violatingUser, e1.taskId as firstTask, e2.taskId as secondTask, e2.timestamp as violationTime\n`;
+                ms += `from pattern [\n`;
+                ms += `    every e1=TaskClaimEvent(userId = '${st.User}', taskId = '${st.SubTasks[j]}') -> \n`;
+                ms += `    e2=TaskClaimEvent(userId != e1.userId and taskId = '${st.SubTasks[j + 1]}')\n`;
+                ms += `    where timer:within(10 seconds)\n`;
+                ms += `];\n\n`;
+            }
+
+            ms += `# Output the detected BoD violations\n`;
+            ms += `select * from BoDViolationEvent;\n\n`;
+
+            console.log('BoD rules added:', ms); // Debugging log
+        }
+
+        // SoD type
+        if (!st.Bod && st.Sod && !st.Uoc) {
+            console.log('Generating SoD rules...');
+            ms += `# EPL Rules for Separation of Duty (SoD)\n`;
+            ms += `create schema TaskClaimEvent(userId string, taskId string, timestamp long);\n\n`;
+
+            for (let j = 0; j < st.SubTasks.length - 1; j++) {
+                ms += `insert into SoDViolationEvent\n`;
+                ms += `select e1.userId as violatingUser, e1.taskId as firstTask, e2.taskId as secondTask, e2.timestamp as violationTime\n`;
+                ms += `from pattern [\n`;
+                ms += `    every e1=TaskClaimEvent -> e2=TaskClaimEvent(userId = e1.userId and e2.taskId = '${st.SubTasks[j + 1]}' and e1.taskId = '${st.SubTasks[j]}')\n`;
+                ms += `    where timer:within(10 seconds)\n`;
+                ms += `];\n\n`;
+            }
+
+            ms += `# Output the detected SoD violations\n`;
+            ms += `select * from SoDViolationEvent;\n\n`;
+
+            console.log('SoD rules added:', ms); // Debugging log
+        }
+
+        // UoC1 type
+        if (!st.Bod && !st.Sod && st.Uoc && st.Mth != 0 && st.Nu == 0 && st.P == 0) {
+            console.log('Generating UoC1 rules...');
+            ms += `# EPL Rules for UoC1 Type\n`;
+            ms += `create schema TaskClaimEvent(userId string, taskId string, timestamp long);\n\n`;
+
+            ms += `insert into UoC1ViolationEvent\n`;
+            ms += `select e.userId as violatingUser, e.taskId, e.timestamp as violationTime\n`;
+            ms += `from TaskClaimEvent.win:time_batch(1 hour) as e\n`;
+            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}'\n`;
+            ms += `group by e.userId, e.taskId\n`;
+            ms += `having count(*) > 4;\n\n`;
+
+            ms += `# Output the detected UoC1 violations\n`;
+            ms += `select * from UoC1ViolationEvent;\n\n`;
+        }
+
+        // UoC2 type
+        if (!st.Bod && !st.Sod && st.Uoc && st.P != 0) {
+            console.log('Generating UoC2 rules...');
+
+            ms += `# EPL Rules for UoC2 Type\n`;
+            ms += `create schema TaskCreationEvent(userId string, description string, timestamp long);\n`;
+            ms += `create schema TaskExecutionEvent(userId string, taskId string, timestamp long);\n`;
+            ms += `create schema TaskClaimEvent(userId string, taskId string, timestamp long);\n\n`;
+
+            // Rule 1: Admin creates a task with C2 restriction
+            ms += `insert into C2CreationEvent\n`;
+            ms += `select e.userId as adminUser, e.description, e.timestamp as creationTime\n`;
+            ms += `from TaskCreationEvent as e where e.description = 'C2';\n\n`;
+
+            // Rule 2: User tries to execute a task when out of time/date
+            ms += `insert into C2ViolationEvent\n`;
+            ms += `select e.userId as violatingUser, e.taskId, e.timestamp as violationTime\n`;
+            ms += `from TaskExecutionEvent as e, C2CreationEvent as c\n`;
+            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}' and e.timestamp > c.creationTime;\n\n`;
+
+            // Rule 3: User tries to execute a task more times than allowed
+            ms += `insert into C2OverExecutionEvent\n`;
+            ms += `select e.userId as violatingUser, e.taskId, count(*) as executionCount, e.timestamp as violationTime\n`;
+            ms += `from TaskClaimEvent.win:time_batch(1 hour) as e\n`;
+            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}'\n`;
+            ms += `group by e.userId, e.taskId\n`;
+            ms += `having count(*) > 5;\n\n`;
+
+            // Rule 4: Block user if the above condition is met
+            ms += `insert into C2BlockEvent\n`;
+            ms += `select o.violatingUser, o.taskId, o.violationTime\n`;
+            ms += `from C2OverExecutionEvent as o;\n\n`;
+
+            ms += `# Output the detected C2 violations and blocks\n`;
+            ms += `select * from C2ViolationEvent;\n`;
+            ms += `select * from C2OverExecutionEvent;\n`;
+            ms += `select * from C2BlockEvent;\n\n`;
+
+            console.log('UoC2 rules added:', ms); // Debugging log
+        }
+
+        // UoC3 type
+        if (!st.Bod && !st.Sod && st.Uoc && st.User != "") {
+            console.log('Generating UoC3 rules...');
+            ms += `# EPL Rules for UoC3 Type\n`;
+            ms += `create schema TaskIdentityLinkEvent(userId string, groupId string, taskId string, timestamp long);\n\n`;
+
+            ms += `insert into UoC3ViolationEvent\n`;
+            ms += `select e.userId as violatingUser, e.groupId, e.taskId, e.timestamp as violationTime\n`;
+            ms += `from TaskIdentityLinkEvent as e\n`;
+            ms += `where e.taskId = '${st.SubTasks[0]}' and e.groupId != 'Advisor';\n\n`;
+
+            ms += `# Output the detected UoC3 violations\n`;
+            ms += `select * from UoC3ViolationEvent;\n\n`;
+        }
+
+        // SoD & UoC2 type
+        if (!st.Bod && st.Sod && st.Uoc && st.P != 0 && st.User != "") {
+            console.log('Generating SoD & UoC2 rules...');
+            ms += `# EPL Rules for SoD & UoC2 Combination\n`;
+            ms += `create schema TaskCreationEvent(userId string, description string, timestamp long);\n`;
+            ms += `create schema TaskClaimEvent(userId string, taskId string, timestamp long);\n\n`;
+
+            ms += `insert into SoDUoC2CreationEvent\n`;
+            ms += `select e.userId as adminUser, e.description, e.timestamp as creationTime\n`;
+            ms += `from TaskCreationEvent as e where e.description = 'C2';\n\n`;
+
+            ms += `insert into SoDUoC2ViolationEvent\n`;
+            ms += `select e.userId as violatingUser, e.taskId, e.timestamp as violationTime\n`;
+            ms += `from TaskClaimEvent as e, SoDUoC2CreationEvent as c\n`;
+            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}' and e.timestamp > c.creationTime;\n\n`;
+
+            ms += `insert into SoDUoC2OverExecutionEvent\n`;
+            ms += `select e.userId as violatingUser, e.taskId, count(*) as executionCount, e.timestamp as violationTime\n`;
+            ms += `from TaskClaimEvent.win:time_batch(1 hour) as e\n`;
+            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}'\n`;
+            ms += `group by e.userId, e.taskId\n`;
+            ms += `having count(*) > 3;\n\n`;
+
+            ms += `insert into SoDUoC2BlockEvent\n`;
+            ms += `select o.violatingUser, o.taskId, o.violationTime\n`;
+            ms += `from SoDUoC2OverExecutionEvent as o;\n\n`;
+
+            ms += `# Output the detected SoD & UoC2 violations and blocks\n`;
+            ms += `select * from SoDUoC2ViolationEvent;\n`;
+            ms += `select * from SoDUoC2OverExecutionEvent;\n`;
+            ms += `select * from SoDUoC2BlockEvent;\n\n`;
+        }
+    }
+
+    console.log('Final generated esperRules:', ms);
+
+    // Write to file
+    const filePath = path.join(__dirname, '..', 'esperRules', 'esperRules.txt');
+
+    fs.mkdir(path.dirname(filePath), { recursive: true }, (err) => {
+        if (err) {
+            console.log('Error creating directory:', err);
+            return res.status(500).send({ message: "Error creating directory for esperRules file." });
+        }
+
+        fs.writeFile(filePath, ms, function (err) {
+            if (err) {
+                console.log('Error writing file:', err);
+                return res.status(500).send({ message: "Error writing esperRules rules to file." });
+            } else {
+                console.log('Successfully wrote rules to file esperRules.txt');
+                res.send({ status: 'esperRules rules generated and file written successfully' });
+            }
+        });
+    });
+};
+
 // Sincronización de la base de datos
 exports.synDB = async function (req, res) {
     try {
@@ -193,7 +379,8 @@ exports.synDB = async function (req, res) {
       console.log("Some error occurred while synchronizing the Security tasks.", error);
       res.status(500).send({ message: "Some error occurred while synchronizing the Security tasks." });
     }
-  };
+};
+
 // Retrieve and return all security tasks from the database.
 exports.findAll = async function (req, res) {
     try {
