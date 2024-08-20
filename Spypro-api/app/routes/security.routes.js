@@ -8,6 +8,9 @@ module.exports = function(app) {
     //Create a modSecurity txt file
     app.post('/modsecurity', securities.modSecurity);
 
+    //Create a EsperRules txt file
+    app.post('/esperrules', securities.esperRules);
+
     //Automatic synchronization with mongoDB
     app.post('/syndb', securities.synDB);
 
