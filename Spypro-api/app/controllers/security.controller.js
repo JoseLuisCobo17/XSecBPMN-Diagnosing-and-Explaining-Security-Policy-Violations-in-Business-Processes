@@ -148,89 +148,8 @@ exports.modSecurity = function (req, res) {
         });
     });
 };
-
 exports.esperRules = function (req, res) {
     let ms = "";
-
-    if (!req.body.modSecurity) {
-        return res.status(400).send({ message: "No esperRules data provided" });
-    }
-
-    console.log('esperRules data received:', req.body.modSecurity);
-
-    for (let i = 0; i < req.body.modSecurity.length; i++) {
-        const st = req.body.modSecurity[i];
-        console.log('Processing task:', st);
-
-        // BoD type
-        if (st.Bod && !st.Sod && !st.Uoc) {
-        console.log('Generating BoD rules...');
-
-        ms += `# EPL Rules for Binding of Duty (BoD)\n`;
-        ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-        for (let j = 0; j < st.SubTasks.length - 1; j++) {
-            ms += `insert into BoDViolationEvent\n`;
-            ms += `select t1.userId as userId, t1.taskId as task1Id, t2.taskId as task2Id, t2.timestamp as violationTime\n`;
-            ms += `from pattern [\n`;
-            ms += `    every t1=Task(userId = '${st.User}', taskId = '${st.SubTasks[j]}') -> \n`;
-            ms += `    t2=Task(userId != t1.userId and taskId = '${st.SubTasks[j + 1]}')\n`;
-            ms += `    where timer:within(10 seconds)\n`;
-            ms += `];\n\n`;
-        }
-
-        ms += `# Output the detected BoD violations\n`;
-        ms += `select * from BoDViolationEvent;\n\n`;
-
-        // Logging with similar format to LOG.debug
-        let logMessage = `
-        ---------------------------------
-        - [BOD MONITOR] BoD rules generated:
-        ${ms.split('\n').map(line => `    ${line}`).join('\n')}
-        ---------------------------------`;
-
-        console.log('BoD rules added:', ms); // Original debugging log
-        console.log(logMessage); // Additional log in the style of LOG.debug
-    }
-
-        // SoD type
-        if (!st.Bod && st.Sod && !st.Uoc) {
-        console.log('Generating SoD rules...');
-
-        ms += `# EPL Rules for Separation of Duty (SoD)\n`;
-        ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-        for (let j = 0; j < st.SubTasks.length - 1; j++) {
-            ms += `insert into SoDViolationEvent\n`;
-            ms += `select t1.taskId as task1Id, t2.taskId as task2Id, t1.userId as user1Id, t2.userId as user2Id, t2.timestamp as violationTime\n`;
-            ms += `from pattern [\n`;
-            ms += `    every t1=Task(taskId = '${st.SubTasks[j]}') -> \n`;
-            ms += `    t2=Task(userId = t1.userId and taskId = '${st.SubTasks[j + 1]}')\n`;
-            ms += `    where timer:within(10 seconds)\n`;
-            ms += `];\n\n`;
-        }
-
-        ms += `# Output the detected SoD violations\n`;
-        ms += `select * from SoDViolationEvent;\n\n`;
-
-        // Logging with a similar format to LOG.debug
-        let task1Id = st.SubTasks[0];
-        let task2Id = st.SubTasks[1];
-        let user1Id = st.User;
-        let user2Id = st.User;  
-
-        let sb = new StringBuilder();
-        sb.append("---------------------------------\n");
-        sb.append("- [SOD MONITOR] Segregation of Duties enforced:\n");
-        sb.append("- Task 1 ID: ").append(task1Id).append("\n");
-        sb.append("- Task 2 ID: ").append(task2Id).append("\n");
-        sb.append("- User 1 ID: ").append(user1Id).append("\n");
-        sb.append("- User 2 ID: ").append(user2Id).append("\n");
-        sb.append("---------------------------------\n");
-
-        console.log('SoD rules added:', ms); // Original debugging log
-        console.log(sb.toString()); // Log en el estilo de LOG.debug
-    }
 
     // StringBuilder emulación en JavaScript
     class StringBuilder {
@@ -247,6 +166,86 @@ exports.esperRules = function (req, res) {
             return this._buffer.join("");
         }
     }
+
+    if (!req.body.modSecurity) {
+        return res.status(400).send({ message: "No esperRules data provided" });
+    }
+
+    console.log('esperRules data received:', req.body.modSecurity);
+
+    for (let i = 0; i < req.body.modSecurity.length; i++) {
+        const st = req.body.modSecurity[i];
+        console.log('Processing task:', st);
+
+        // BoD type
+        if (st.Bod && !st.Sod && !st.Uoc) {
+            console.log('Generating BoD rules...');
+
+            ms += `# EPL Rules for Binding of Duty (BoD)\n`;
+            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
+
+            for (let j = 0; j < st.SubTasks.length - 1; j++) {
+                ms += `insert into BoDViolationEvent\n`;
+                ms += `select t1.userId as userId, t1.taskId as task1Id, t2.taskId as task2Id, t2.timestamp as violationTime\n`;
+                ms += `from pattern [\n`;
+                ms += `    every t1=Task(userId = '${st.User}', taskId = '${st.SubTasks[j]}') -> \n`;
+                ms += `    t2=Task(userId != t1.userId and taskId = '${st.SubTasks[j + 1]}')\n`;
+                ms += `    where timer:within(10 seconds)\n`;
+                ms += `];\n\n`;
+            }
+
+            ms += `# Output the detected BoD violations\n`;
+            ms += `select * from BoDViolationEvent;\n\n`;
+
+            // Logging with similar format to LOG.debug
+            let logMessage = `
+            ---------------------------------
+            - [BOD MONITOR] BoD rules generated:
+            ${ms.split('\n').map(line => `    ${line}`).join('\n')}
+            ---------------------------------`;
+
+            console.log('BoD rules added:', ms); // Original debugging log
+            console.log(logMessage); // Additional log in the style of LOG.debug
+        }
+
+        // SoD type
+        if (!st.Bod && st.Sod && !st.Uoc) {
+            console.log('Generating SoD rules...');
+
+            ms += `# EPL Rules for Separation of Duty (SoD)\n`;
+            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
+
+            for (let j = 0; j < st.SubTasks.length - 1; j++) {
+                ms += `insert into SoDViolationEvent\n`;
+                ms += `select t1.taskId as task1Id, t2.taskId as task2Id, t1.userId as user1Id, t2.userId as user2Id, t2.timestamp as violationTime\n`;
+                ms += `from pattern [\n`;
+                ms += `    every t1=Task(taskId = '${st.SubTasks[j]}') -> \n`;
+                ms += `    t2=Task(userId = t1.userId and taskId = '${st.SubTasks[j + 1]}')\n`;
+                ms += `    where timer:within(10 seconds)\n`;
+                ms += `];\n\n`;
+            }
+
+            ms += `# Output the detected SoD violations\n`;
+            ms += `select * from SoDViolationEvent;\n\n`;
+
+            // Logging with a similar format to LOG.debug
+            let task1Id = st.SubTasks[0];
+            let task2Id = st.SubTasks[1];
+            let user1Id = st.User;
+            let user2Id = st.User;  
+
+            let sb = new StringBuilder();
+            sb.append("---------------------------------\n");
+            sb.append("- [SOD MONITOR] Segregation of Duties enforced:\n");
+            sb.append("- Task 1 ID: ").append(task1Id).append("\n");
+            sb.append("- Task 2 ID: ").append(task2Id).append("\n");
+            sb.append("- User 1 ID: ").append(user1Id).append("\n");
+            sb.append("- User 2 ID: ").append(user2Id).append("\n");
+            sb.append("---------------------------------\n");
+
+            console.log('SoD rules added:', ms); // Original debugging log
+            console.log(sb.toString()); // Log en el estilo de LOG.debug
+        }
 
         // UoC type - limiting number of times a task can be executed
         if (!st.Bod && !st.Sod && st.Uoc) {
@@ -279,7 +278,6 @@ exports.esperRules = function (req, res) {
             console.log('UoC rules added:', ms); // Original debugging log
             console.log(sb.toString()); // Log en el estilo de LOG.debug
         }
-
 
         // UoC2 type
         if (!st.Bod && !st.Sod && st.Uoc && st.P != 0) {
@@ -348,7 +346,6 @@ exports.esperRules = function (req, res) {
             console.log('UoC3 rules added:', ms); // Original debugging log
             console.log(sb.toString()); // Log en el estilo de LOG.debug
         }
-
 
         // SoD & UoC2 type
         if (!st.Bod && st.Sod && st.Uoc && st.P != 0 && st.User != "") {
