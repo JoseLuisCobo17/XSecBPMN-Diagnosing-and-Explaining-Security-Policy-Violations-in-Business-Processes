@@ -66,18 +66,18 @@ function BoDFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return false; // Valor predeterminado si businessObject no está definido
+      return false; 
     }
     const value = element.businessObject.Bod;
-    console.log('Current BoD value (getValue):', value); // Log para depuración
-    return value === true; // Asegurarse de que devuelve un booleano
+    console.log('Current BoD value (getValue):', value);
+    return value === true;
   };
 
   const setValue = value => {
     if (!element || !element.businessObject) {
-      return; // Salir si businessObject no está definido
+      return; 
     }
-    console.log('Setting BoD to (setValue):', value); // Log para depuración
+    console.log('Setting BoD to (setValue):', value); 
     modeling.updateProperties(element, {
       Bod: value
     });
@@ -90,7 +90,7 @@ function BoDFunction(props) {
     getValue=${getValue}
     setValue=${setValue}
     debounce=${debounce}
-    tooltip=${translate('Check available spells in the spellbook.')}
+    tooltip=${translate('Check BoD security')}
   />`;
 }
 
@@ -103,18 +103,18 @@ function SoDFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return false; // Valor predeterminado si businessObject no está definido
+      return false; 
     }
     const value = element.businessObject.Sod;
-    console.log('Current SoD value (getValue):', value); // Log para depuración
-    return value === true; // Asegurarse de que devuelve un booleano
+    console.log('Current SoD value (getValue):', value); 
+    return value === true; 
   };
 
   const setValue = value => {
     if (!element || !element.businessObject) {
-      return; // Salir si businessObject no está definido
+      return;
     }
-    console.log('Setting SoD to (setValue):', value); // Log para depuración
+    console.log('Setting SoD to (setValue):', value); 
     modeling.updateProperties(element, {
       Sod: value
     });
@@ -127,7 +127,7 @@ function SoDFunction(props) {
     getValue=${getValue}
     setValue=${setValue}
     debounce=${debounce}
-    tooltip=${translate('Check available spells in the spellbook.')}
+    tooltip=${translate('Check SoD security')}
   />`;
 }
 
@@ -140,20 +140,20 @@ function UoCFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return false; // Valor predeterminado si businessObject no está definido
+      return false; 
     }
-    const value = element.businessObject.Uoc; // Nota: UoC debe ser Uoc para coincidir con la base de datos
-    console.log('Current UoC value (getValue):', value); // Log para depuración
-    return value === true; // Asegurarse de que devuelve un booleano
+    const value = element.businessObject.Uoc; 
+    console.log('Current UoC value (getValue):', value);
+    return value === true; 
   };
 
   const setValue = value => {
     if (!element || !element.businessObject) {
-      return; // Salir si businessObject no está definido
+      return; 
     }
-    console.log('Setting UoC to (setValue):', value); // Log para depuración
+    console.log('Setting UoC to (setValue):', value); 
     modeling.updateProperties(element, {
-      Uoc: value // Asegúrate de que es "Uoc" aquí
+      Uoc: value 
     });
   };
 
@@ -164,7 +164,7 @@ function UoCFunction(props) {
     getValue=${getValue}
     setValue=${setValue}
     debounce=${debounce}
-    tooltip=${translate('Check available spells in the spellbook.')}
+    tooltip=${translate('Check UoC security')}
   />`;
 }
 
@@ -177,20 +177,20 @@ function NuFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; // Valor predeterminado si businessObject no está definido
+      return '';
     }
     const value = element.businessObject.Nu;
-    console.log('Current Nu value (getValue):', value); // Log para depuración
-    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+    console.log('Current Nu value (getValue):', value); 
+    return value !== undefined ? value : ''; 
   };
 
   const setValue = value => {
     if (!element || !element.businessObject) {
-      return; // Salir si businessObject no está definido
+      return;
     }
-    console.log('Setting Nu to (setValue):', value); // Log para depuración
+    console.log('Setting Nu to (setValue):', value); 
     modeling.updateProperties(element, {
-      Nu: Number(value) // Asegúrate de convertir a número
+      Nu: Number(value) 
     });
   };
 
@@ -214,20 +214,20 @@ function MthFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; // Valor predeterminado si businessObject no está definido
+      return ''; 
     }
     const value = element.businessObject.Mth;
-    console.log('Current Mth value (getValue):', value); // Log para depuración
-    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+    console.log('Current Mth value (getValue):', value); 
+    return value !== undefined ? value : ''; 
   };
 
   const setValue = value => {
     if (!element || !element.businessObject) {
-      return; // Salir si businessObject no está definido
+      return; 
     }
-    console.log('Setting Mth to (setValue):', value); // Log para depuración
+    console.log('Setting Mth to (setValue):', value); 
     modeling.updateProperties(element, {
-      Mth: Number(value) // Asegúrate de convertir a número
+      Mth: Number(value) 
     });
   };
 
@@ -251,20 +251,20 @@ function PFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; // Valor predeterminado si businessObject no está definido
+      return ''; 
     }
     const value = element.businessObject.P;
-    console.log('Current P value (getValue):', value); // Log para depuración
-    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+    console.log('Current P value (getValue):', value); 
+    return value !== undefined ? value : ''; 
   };
 
   const setValue = value => {
     if (!element || !element.businessObject) {
-      return; // Salir si businessObject no está definido
+      return; 
     }
-    console.log('Setting P to (setValue):', value); // Log para depuración
+    console.log('Setting P to (setValue):', value); 
     modeling.updateProperties(element, {
-      P: Number(value) // Asegúrate de convertir a número
+      P: Number(value) 
     });
   };
 
@@ -288,20 +288,20 @@ function UserFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; // Valor predeterminado si businessObject no está definido
+      return ''; 
     }
     const value = element.businessObject.User;
-    console.log('Current User value (getValue):', value); // Log para depuración
-    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+    console.log('Current User value (getValue):', value);
+    return value !== undefined ? value : ''; 
   };
 
   const setValue = value => {
     if (!element || !element.businessObject) {
-      return; // Salir si businessObject no está definido
+      return; 
     }
-    console.log('Setting User to (setValue):', value); // Log para depuración
+    console.log('Setting User to (setValue):', value); 
     modeling.updateProperties(element, {
-      User: value // Establece el valor de User
+      User: value 
     });
   };
 
@@ -325,20 +325,20 @@ function LogFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; // Valor predeterminado si businessObject no está definido
+      return ''; 
     }
     const value = element.businessObject.Log;
-    console.log('Current Log value (getValue):', value); // Log para depuración
-    return value !== undefined ? value : ''; // Devuelve el valor o una cadena vacía
+    console.log('Current Log value (getValue):', value); 
+    return value !== undefined ? value : ''; 
   };
 
   const setValue = value => {
     if (!element || !element.businessObject) {
-      return; // Salir si businessObject no está definido
+      return; 
     }
-    console.log('Setting Log to (setValue):', value); // Log para depuración
+    console.log('Setting Log to (setValue):', value); 
     modeling.updateProperties(element, {
-      Log: value // Establece el valor de Log
+      Log: value 
     });
   };
 
