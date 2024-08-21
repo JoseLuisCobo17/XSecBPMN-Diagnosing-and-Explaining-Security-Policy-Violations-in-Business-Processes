@@ -15,6 +15,9 @@ import resizeAllModule from '../lib/resize-all-rules';
 
 const axios = require('axios');
 
+const fs = require('fs');
+const path = require('path');
+
 var propertiesProviderModule = require('../provider/security');
 var securityModdleDescriptor = require('../descriptors/security.json');
 
@@ -145,7 +148,7 @@ function modSecurity() {
 
 function esperRules() {
   const args = {
-    data: { modSecurity: getSecurityTasks() }, // Cambiado de esperRules a modSecurity
+    data: { modSecurity: getSecurityTasks() }, 
     headers: { "Content-Type": "application/json" }
   };
   return axios.post("http://localhost:3000/esperrules", args.data, { headers: args.headers })
@@ -194,6 +197,104 @@ function saveJSON() {
   });
 }
 
+function exportToEsper() {
+  return new Promise((resolve, reject) => {
+    try {
+      const tasks = getSecurityTasks();
+      
+      let content = "### Esper Rules Export ###\n\n";
+      tasks.forEach(task => {
+        content += `Task: Task [userId=${task.User}, `;
+        content += `taskId=${task.id_bpmn}, `;
+        content += `sodSecurity=${task.Sod}, `;
+        content += `bodSecurity=${task.Bod}, `;
+        content += `uocSecurity=${task.Uoc}, `;
+        content += `timestamp=${Date.now()}, `; 
+        content += `nu=${task.Nu}, `;
+        content += `mth=${task.Mth}, `;
+        content += `p=${task.P}, `;
+        content += `log=${task.Log}, `;
+        content += `subTask=${task.SubTasks.join(', ')}]\n`;  
+      });
+
+      if (tasks.length === 0) {
+        content += "No tasks generated.\n";
+      }
+
+      console.log('Generated content for Esper:', content);
+      
+      resolve(content);  // Devolvemos el contenido en lugar de descargarlo automáticamente
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+$(function() {
+  // Rest of the code...
+
+  $('#js-download-esper').click(async function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+
+    try {
+      const content = await exportToEsper();
+      
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'esperTasks.txt';
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.log('Error al exportar a Esper:', err);
+    }
+  });
+
+  // Adjusted exportArtifacts function
+  var exportArtifacts = debounce(async function() {
+    try {
+      const { svg } = await bpmnModeler.saveSVG();
+      setEncoded(downloadSvgLink, 'diagram.svg', svg);
+    } catch (err) {
+      console.error('Error al guardar SVG: ', err);
+      setEncoded(downloadSvgLink, 'diagram.svg', null);
+    }
+  
+    try {
+      const { xml } = await bpmnModeler.saveXML({ format: true });
+      setEncoded(downloadLink, 'diagram.bpmn', xml);
+    } catch (err) {
+      console.log('Error al guardar XML: ', err);
+      setEncoded(downloadLink, 'diagram.bpmn', null);
+    }
+  
+    try {
+      const json = await saveJSON();
+      setEncoded(downloadJsonLink, 'diagram.json', json);
+    } catch (err) {
+      console.log('Error al guardar JSON: ', err);
+      setEncoded(downloadJsonLink, 'diagram.json', null);
+    }
+
+    // No descarga automática para Esper, solo actualiza el contenido
+    try {
+      const content = await exportToEsper();
+      setEncoded(downloadEsperLink, 'esperTasks.txt', content);
+    } catch (err) {
+      console.log('Error al preparar Esper:', err);
+      setEncoded(downloadEsperLink, 'esperTasks.txt', null);
+    }
+  }, 500);
+
+  // Other event handlers...
+});
+
 function updateModSecurityFile() {
   modSecurity()
   esperRules()
@@ -223,6 +324,7 @@ $(function() {
   var downloadLink = $('#js-download-diagram');
   var downloadSvgLink = $('#js-download-svg');
   var downloadJsonLink = $('#js-download-json');
+  var downloadEsperLink = $('#js-download-esper');
 
   let isExporting = false;
 
@@ -319,7 +421,15 @@ $(function() {
       console.log('Error al guardar JSON: ', err);
       setEncoded(downloadJsonLink, 'diagram.json', null);
     }
-  }, 500);
+  
+    try {
+      const fileName = await exportToEsper();
+      setEncoded(downloadEsperLink, fileName, fileName);
+    } catch (err) {
+      console.log('Error al guardar en Esper: ', err);
+      setEncoded(downloadEsperLink, 'diagram.txt', null);
+    }
+  }, 500);  
 
   bpmnModeler.on('commandStack.changed', () => {
     exportArtifacts(); // Actualiza archivos descargables

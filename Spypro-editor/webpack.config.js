@@ -22,6 +22,7 @@ module.exports = {
       "url": require.resolve("url"),
       "assert": require.resolve("assert"),
       "crypto": require.resolve("crypto-browserify"),
+      "path": require.resolve("path-browserify"),  // <-- Add this line
       "fs": false
     }
   },
