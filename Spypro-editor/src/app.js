@@ -130,6 +130,48 @@ function getSecurityTasks() {
   return res;
 }
 
+function getAllTasks() {
+  var elementRegistry = bpmnModeler.get('elementRegistry');
+  var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
+  var id_model = definitions.diagrams[0].id;
+
+  // Filtrar todas las tareas en lugar de solo ServiceTasks
+  var allTasks = elementRegistry.filter(e => e.type && e.type.startsWith('bpmn:'));
+
+  var res = [];
+  allTasks.forEach(function(element) {
+    var businessObject = element.businessObject;
+    var list = businessObject.outgoing;
+    var subTasks = [];
+    if (list) {
+      list.forEach(function(task) {
+        subTasks.push(task.targetRef.id);
+      });
+    }
+
+    // Recolectar la información relevante de cada tarea
+    var task = {
+      id_model: id_model,
+      id_bpmn: businessObject.id,
+      name: businessObject.name || "",  // Nombre de la tarea si existe
+      type: businessObject.$type || "",  // Tipo de tarea (por ejemplo, bpmn:UserTask)
+      Bod: businessObject.Bod || false,
+      Sod: businessObject.Sod || false,
+      Uoc: businessObject.Uoc || false,
+      Nu: businessObject.Nu || 0,
+      Mth: businessObject.Mth || 0,
+      P: businessObject.P || 0,
+      User: businessObject.User || "",
+      Log: businessObject.Log || "",
+      SubTasks: subTasks
+    };
+
+    res.push(task);
+  });
+
+  return res;
+}
+
 function modSecurity() {
   const args = {
     data: { modSecurity: getSecurityTasks() },
@@ -197,33 +239,77 @@ function saveJSON() {
   });
 }
 
+function getAllElements() {
+  var elementRegistry = bpmnModeler.get('elementRegistry');
+  var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
+  var id_model = definitions.diagrams[0].id;
+
+  // Obtener todos los elementos BPMN del diagrama
+  var allElements = elementRegistry.filter(e => e.type && e.type.startsWith('bpmn:'));
+
+  var res = [];
+  allElements.forEach(function(element) {
+    var businessObject = element.businessObject;
+    var list = businessObject.outgoing;
+    var subTasks = [];
+    if (list) {
+      list.forEach(function(task) {
+        subTasks.push(task.targetRef.id);
+      });
+    }
+
+    // Recolectar la información relevante de cada elemento
+    var task = {
+      id_model: id_model,
+      id_bpmn: businessObject.id,
+      name: businessObject.name || "",  // Nombre del elemento si existe
+      type: businessObject.$type || "",  // Tipo de elemento (por ejemplo, bpmn:UserTask)
+      Bod: businessObject.Bod || false,
+      Sod: businessObject.Sod || false,
+      Uoc: businessObject.Uoc || false,
+      Nu: businessObject.Nu || 0,
+      Mth: businessObject.Mth || 0,
+      P: businessObject.P || 0,
+      User: businessObject.User || "",
+      Log: businessObject.Log || "",
+      SubTasks: subTasks
+    };
+
+    res.push(task);
+  });
+
+  return res;
+}
+
 function exportToEsper() {
   return new Promise((resolve, reject) => {
     try {
-      const tasks = getSecurityTasks();
-      
+      const elements = getAllElements();  // Usar getAllElements en lugar de getSecurityTasks
+
       let content = "### Esper Rules Export ###\n\n";
-      tasks.forEach(task => {
-        content += `Task: Task [userId=${task.User}, `;
-        content += `taskId=${task.id_bpmn}, `;
-        content += `sodSecurity=${task.Sod}, `;
-        content += `bodSecurity=${task.Bod}, `;
-        content += `uocSecurity=${task.Uoc}, `;
+      elements.forEach(element => {
+        content += `Element: [type=${element.type}, `;
+        content += `name=${element.name}, `;  // Añadir el nombre del elemento
+        content += `id_bpmn=${element.id_bpmn}, `;
+        content += `sodSecurity=${element.Sod}, `;
+        content += `bodSecurity=${element.Bod}, `;
+        content += `uocSecurity=${element.Uoc}, `;
         content += `timestamp=${Date.now()}, `; 
-        content += `nu=${task.Nu}, `;
-        content += `mth=${task.Mth}, `;
-        content += `p=${task.P}, `;
-        content += `log=${task.Log}, `;
-        content += `subTask=${task.SubTasks.join(', ')}]\n`;  
+        content += `nu=${element.Nu}, `;
+        content += `mth=${element.Mth}, `;
+        content += `p=${element.P}, `;
+        content += `user=${element.User}, `;
+        content += `log=${element.Log}, `;
+        content += `subTask=${element.SubTasks.join(', ')}]\n`;  
       });
 
-      if (tasks.length === 0) {
-        content += "No tasks generated.\n";
+      if (elements.length === 0) {
+        content += "No elements generated.\n";
       }
 
       console.log('Generated content for Esper:', content);
       
-      resolve(content);  // Devolvemos el contenido en lugar de descargarlo automáticamente
+      resolve(content);  // Devolver el contenido en lugar de descargarlo automáticamente
     } catch (err) {
       reject(err);
     }
@@ -285,7 +371,7 @@ $(function() {
     // No descarga automática para Esper, solo actualiza el contenido
     try {
       const content = await exportToEsper();
-      setEncoded(downloadEsperLink, 'esperTasks.txt', content);
+      setEncoded(downloadEsperLink, 'esperTasks.txt', content);  // Cambia la extensión a .txt
     } catch (err) {
       console.log('Error al preparar Esper:', err);
       setEncoded(downloadEsperLink, 'esperTasks.txt', null);
