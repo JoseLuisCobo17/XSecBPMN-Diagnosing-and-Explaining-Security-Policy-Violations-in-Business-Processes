@@ -130,31 +130,30 @@ function getSecurityTasks() {
   return res;
 }
 
-function getAllTasks() {
+function getAllRelevantTasks() {
   var elementRegistry = bpmnModeler.get('elementRegistry');
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
 
-  // Filtrar todas las tareas en lugar de solo ServiceTasks
-  var allTasks = elementRegistry.filter(e => e.type && e.type.startsWith('bpmn:'));
+  // Obtener todos los elementos relevantes del diagrama BPMN
+  var relevantElements = elementRegistry.filter(e => 
+    e.type === 'bpmn:Task' || 
+    e.type === 'bpmn:ServiceTask' || 
+    e.type === 'bpmn:UserTask' || 
+    e.type === 'bpmn:ManualTask' ||
+    e.type === 'bpmn:StartEvent' || 
+    e.type === 'bpmn:EndEvent' || 
+    e.type.startsWith('bpmn:')
+  );
 
-  var res = [];
-  allTasks.forEach(function(element) {
-    var businessObject = element.businessObject;
-    var list = businessObject.outgoing;
-    var subTasks = [];
-    if (list) {
-      list.forEach(function(task) {
-        subTasks.push(task.targetRef.id);
-      });
-    }
-
-    // Recolectar la información relevante de cada tarea
-    var task = {
+  return relevantElements.map(e => {
+    var businessObject = e.businessObject;
+    var subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
+    return {
       id_model: id_model,
       id_bpmn: businessObject.id,
-      name: businessObject.name || "",  // Nombre de la tarea si existe
-      type: businessObject.$type || "",  // Tipo de tarea (por ejemplo, bpmn:UserTask)
+      name: businessObject.name || "",  
+      type: businessObject.$type || "",  
       Bod: businessObject.Bod || false,
       Sod: businessObject.Sod || false,
       Uoc: businessObject.Uoc || false,
@@ -165,11 +164,7 @@ function getAllTasks() {
       Log: businessObject.Log || "",
       SubTasks: subTasks
     };
-
-    res.push(task);
   });
-
-  return res;
 }
 
 function modSecurity() {
@@ -239,57 +234,15 @@ function saveJSON() {
   });
 }
 
-function getAllElements() {
-  var elementRegistry = bpmnModeler.get('elementRegistry');
-  var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
-  var id_model = definitions.diagrams[0].id;
-
-  // Obtener todos los elementos BPMN del diagrama
-  var allElements = elementRegistry.filter(e => e.type && e.type.startsWith('bpmn:'));
-
-  var res = [];
-  allElements.forEach(function(element) {
-    var businessObject = element.businessObject;
-    var list = businessObject.outgoing;
-    var subTasks = [];
-    if (list) {
-      list.forEach(function(task) {
-        subTasks.push(task.targetRef.id);
-      });
-    }
-
-    // Recolectar la información relevante de cada elemento
-    var task = {
-      id_model: id_model,
-      id_bpmn: businessObject.id,
-      name: businessObject.name || "",  // Nombre del elemento si existe
-      type: businessObject.$type || "",  // Tipo de elemento (por ejemplo, bpmn:UserTask)
-      Bod: businessObject.Bod || false,
-      Sod: businessObject.Sod || false,
-      Uoc: businessObject.Uoc || false,
-      Nu: businessObject.Nu || 0,
-      Mth: businessObject.Mth || 0,
-      P: businessObject.P || 0,
-      User: businessObject.User || "",
-      Log: businessObject.Log || "",
-      SubTasks: subTasks
-    };
-
-    res.push(task);
-  });
-
-  return res;
-}
-
 function exportToEsper() {
   return new Promise((resolve, reject) => {
     try {
-      const elements = getAllElements();  // Usar getAllElements en lugar de getSecurityTasks
+      const elements = getAllRelevantTasks();  // Usar getAllRelevantTasks en lugar de getSecurityTasks
 
       let content = "### Esper Rules Export ###\n\n";
       elements.forEach(element => {
         content += `Element: [type=${element.type}, `;
-        content += `name=${element.name}, `;  // Añadir el nombre del elemento
+        content += `name=${element.name}, `;  
         content += `id_bpmn=${element.id_bpmn}, `;
         content += `sodSecurity=${element.Sod}, `;
         content += `bodSecurity=${element.Bod}, `;
@@ -317,7 +270,6 @@ function exportToEsper() {
 }
 
 $(function() {
-  // Rest of the code...
 
   $('#js-download-esper').click(async function(e) {
     e.stopPropagation();
@@ -368,17 +320,14 @@ $(function() {
       setEncoded(downloadJsonLink, 'diagram.json', null);
     }
 
-    // No descarga automática para Esper, solo actualiza el contenido
     try {
       const content = await exportToEsper();
-      setEncoded(downloadEsperLink, 'esperTasks.txt', content);  // Cambia la extensión a .txt
+      setEncoded(downloadEsperLink, 'esperTasks.txt', content); 
     } catch (err) {
       console.log('Error al preparar Esper:', err);
       setEncoded(downloadEsperLink, 'esperTasks.txt', null);
     }
   }, 500);
-
-  // Other event handlers...
 });
 
 function updateModSecurityFile() {
