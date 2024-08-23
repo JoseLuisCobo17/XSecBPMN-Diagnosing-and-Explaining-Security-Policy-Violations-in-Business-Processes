@@ -13,8 +13,6 @@ import securityDrawModule from '../lib/security/draw';
 import securityPaletteModule from '../lib/security/palette';
 import resizeAllModule from '../lib/resize-all-rules';
 
-const axios = require('axios');
-
 const fs = require('fs');
 const path = require('path');
 
@@ -45,6 +43,16 @@ var bpmnModeler = new BpmnModeler({
 });
 
 container.removeClass('with-diagram');
+
+const {
+  getSecurityTasks,
+  getAllRelevantTasks,
+  modSecurity,
+  esperRules,
+  synDB,
+  saveJSON,
+  exportToEsper
+} = require('./taskHandlers');
 
 function createNewDiagram() {
   openDiagram(diagramXML);
@@ -94,181 +102,6 @@ function registerFileDrop(container, callback) {
   container.get(0).addEventListener('drop', handleFileSelect, false);
 }
 
-function getSecurityTasks() {
-  var elementRegistry = bpmnModeler.get('elementRegistry');
-  var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
-  var id_model = definitions.diagrams[0].id;
-  var serviceTasks = elementRegistry.filter(e => e.type === 'bpmn:ServiceTask');
-  var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
-
-  var res = [];
-  serviceTaskBusinessObjects.forEach(function(element) {
-    var list = element.outgoing;
-    var subTasks = [];
-    if (list) {
-      list.forEach(function(task) {
-        subTasks.push(task.targetRef.id);
-      });
-    }
-    var st = {
-      id_model: id_model,
-      id_bpmn: element.id,
-      Bod: element.Bod || false,
-      Sod: element.Sod || false,
-      Uoc: element.Uoc || false,
-      Nu: element.Nu || 0,
-      Mth: element.Mth || 0,
-      P: element.P || 0,
-      User: element.User || "",
-      Log: element.Log || "",
-      SubTasks: subTasks
-    };
-
-    res.push(st);
-  });
-
-  return res;
-}
-
-function getAllRelevantTasks() {
-  var elementRegistry = bpmnModeler.get('elementRegistry');
-  var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
-  var id_model = definitions.diagrams[0].id;
-
-  // Obtener todos los elementos relevantes del diagrama BPMN
-  var relevantElements = elementRegistry.filter(e => 
-    e.type === 'bpmn:Task' || 
-    e.type === 'bpmn:ServiceTask' || 
-    e.type === 'bpmn:UserTask' || 
-    e.type === 'bpmn:ManualTask' ||
-    e.type === 'bpmn:StartEvent' || 
-    e.type === 'bpmn:EndEvent' || 
-    e.type.startsWith('bpmn:')
-  );
-
-  return relevantElements.map(e => {
-    var businessObject = e.businessObject;
-    var subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
-    return {
-      id_model: id_model,
-      id_bpmn: businessObject.id,
-      name: businessObject.name || "",  
-      type: businessObject.$type || "",  
-      Bod: businessObject.Bod || false,
-      Sod: businessObject.Sod || false,
-      Uoc: businessObject.Uoc || false,
-      Nu: businessObject.Nu || 0,
-      Mth: businessObject.Mth || 0,
-      P: businessObject.P || 0,
-      User: businessObject.User || "",
-      Log: businessObject.Log || "",
-      SubTasks: subTasks
-    };
-  });
-}
-
-function modSecurity() {
-  const args = {
-    data: { modSecurity: getSecurityTasks() },
-    headers: { "Content-Type": "application/json" }
-  };
-  return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
-    .then(response => {
-      console.log('ModSecurity rules generated and posted successfully:', response.data);
-      return response.data;
-    })
-    .catch(error => {
-      console.error('Error posting ModSecurity rules:', error);
-      throw error;
-    });
-}
-
-function esperRules() {
-  const args = {
-    data: { modSecurity: getSecurityTasks() }, 
-    headers: { "Content-Type": "application/json" }
-  };
-  return axios.post("http://localhost:3000/esperrules", args.data, { headers: args.headers })
-    .then(response => {
-      console.log('EsperRules generated and posted successfully:', response.data);
-      return response.data;
-    })
-    .catch(error => {
-      console.error('Error posting EsperRules:', error);
-      throw error;
-    });
-}
-
-function synDB() {
-  const tasks = getSecurityTasks();
-  console.log('Tasks to be synchronized:', tasks);
-  axios.post("http://localhost:3000/syndb", { modSecurity: tasks }, {
-    headers: {
-      "Content-Type": "application/json"
-    }
-  }).then(function (response) {
-    console.log('Sync response:', response.data);
-  }).catch(function (error) {
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-      console.error('Response headers:', error.response.headers);
-    } else if (error.request) {
-      console.error('Request data:', error.request);
-    } else {
-      console.error('Error message:', error.message);
-    }
-    console.error('Config:', error.config);
-  });
-}
-
-function saveJSON() {
-  return new Promise((resolve, reject) => {
-    try {
-      const json = JSON.stringify(getSecurityTasks(), null, 2);
-      console.log('Generated JSON:', json);
-      resolve(json);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-function exportToEsper() {
-  return new Promise((resolve, reject) => {
-    try {
-      const elements = getAllRelevantTasks();  // Usar getAllRelevantTasks en lugar de getSecurityTasks
-
-      let content = "### Esper Rules Export ###\n\n";
-      elements.forEach(element => {
-        content += `Element: [type=${element.type}, `;
-        content += `name=${element.name}, `;  
-        content += `id_bpmn=${element.id_bpmn}, `;
-        content += `sodSecurity=${element.Sod}, `;
-        content += `bodSecurity=${element.Bod}, `;
-        content += `uocSecurity=${element.Uoc}, `;
-        content += `timestamp=${Date.now()}, `; 
-        content += `nu=${element.Nu}, `;
-        content += `mth=${element.Mth}, `;
-        content += `p=${element.P}, `;
-        content += `user=${element.User}, `;
-        content += `log=${element.Log}, `;
-        content += `subTask=${element.SubTasks.join(', ')}]\n`;  
-      });
-
-      if (elements.length === 0) {
-        content += "No elements generated.\n";
-      }
-
-      console.log('Generated content for Esper:', content);
-      
-      resolve(content);  // Devolver el contenido en lugar de descargarlo automáticamente
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
 $(function() {
 
   $('#js-download-esper').click(async function(e) {
@@ -276,7 +109,7 @@ $(function() {
     e.preventDefault();
 
     try {
-      const content = await exportToEsper();
+      const content = await exportToEsper(bpmnModeler);
       
       const blob = new Blob([content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -294,7 +127,6 @@ $(function() {
     }
   });
 
-  // Adjusted exportArtifacts function
   var exportArtifacts = debounce(async function() {
     try {
       const { svg } = await bpmnModeler.saveSVG();
@@ -313,7 +145,7 @@ $(function() {
     }
   
     try {
-      const json = await saveJSON();
+      const json = await saveJSON(bpmnModeler);
       setEncoded(downloadJsonLink, 'diagram.json', json);
     } catch (err) {
       console.log('Error al guardar JSON: ', err);
@@ -321,7 +153,7 @@ $(function() {
     }
 
     try {
-      const content = await exportToEsper();
+      const content = await exportToEsper(bpmnModeler);
       setEncoded(downloadEsperLink, 'esperTasks.txt', content); 
     } catch (err) {
       console.log('Error al preparar Esper:', err);
@@ -331,8 +163,8 @@ $(function() {
 });
 
 function updateModSecurityFile() {
-  modSecurity()
-  esperRules()
+  modSecurity(bpmnModeler)
+  esperRules(bpmnModeler)
     .then(() => {
       console.log('ModSecurity and esperRules file updated.');
     })
@@ -371,7 +203,7 @@ $(function() {
     isExporting = true;
     $(this).prop('disabled', true);
 
-    modSecurity()
+    modSecurity(bpmnModeler)
       .then(() => {
         alert('Exportado a modSecurity en la carpeta de Descargas');
       })
@@ -386,7 +218,7 @@ $(function() {
 
   $('#button2').click(function(){
     alert("Sincronizado con mongoDB");
-    synDB();
+    synDB(bpmnModeler);
   });
 
   $('#button3').click(function(){
@@ -397,7 +229,7 @@ $(function() {
     isExporting = true;
     $(this).prop('disabled', true);
 
-    esperRules()
+    esperRules(bpmnModeler)
       .then(() => {
         alert('Exportado a esperRules en la carpeta de esperRules');
       })
@@ -450,7 +282,7 @@ $(function() {
     }
   
     try {
-      const json = await saveJSON();
+      const json = await saveJSON(bpmnModeler);
       setEncoded(downloadJsonLink, 'diagram.json', json);
     } catch (err) {
       console.log('Error al guardar JSON: ', err);
@@ -458,7 +290,7 @@ $(function() {
     }
   
     try {
-      const fileName = await exportToEsper();
+      const fileName = await exportToEsper(bpmnModeler);
       setEncoded(downloadEsperLink, fileName, fileName);
     } catch (err) {
       console.log('Error al guardar en Esper: ', err);
@@ -467,7 +299,7 @@ $(function() {
   }, 500);  
 
   bpmnModeler.on('commandStack.changed', () => {
-    exportArtifacts(); // Actualiza archivos descargables
-    updateModSecurityFile(); // Actualiza el archivo modSecurity.txt
+    exportArtifacts(); 
+    updateModSecurityFile(); 
   });
 });
