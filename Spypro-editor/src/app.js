@@ -102,31 +102,73 @@ function registerFileDrop(container, callback) {
   container.get(0).addEventListener('drop', handleFileSelect, false);
 }
 
-$(function() {
+// Definición de setEncoded antes de cualquier uso
+function setEncoded(link, name, data) {
+    var encodedData = encodeURIComponent(data);
+    console.log('Data:', data);
+    console.log('Encoded Data:', encodedData);
 
-  $('#js-download-esper').click(async function(e) {
-    e.stopPropagation();
-    e.preventDefault();
+    if (data) {
+      link.addClass('active').attr({
+        'href': 'data:application/json;charset=UTF-8,' + encodedData,
+        'download': name
+      });
+    } else {
+      link.removeClass('active');
+    }
+}
+
+$(function() {
+  // Declaración de las variables
+  var downloadLink = $('#js-download-diagram');
+  var downloadSvgLink = $('#js-download-svg');
+  var downloadJsonLink = $('#js-download-json');
+  var downloadEsperLink = $('#js-download-esper');
+
+  let isDownloading = false; // Añadir un flag para prevenir múltiples ejecuciones simultáneas
+  let hasDownloaded = false; // Flag para verificar si ya se descargó una vez
+
+  // Limpia cualquier otro manejador de eventos previamente añadido
+  $('#js-download-esper').off('click').on('click', async function(e) {
+    e.preventDefault();   // Evita el comportamiento predeterminado
+    e.stopPropagation();  // Evita la propagación del evento de clic hacia los elementos padre
+    e.stopImmediatePropagation(); // Evita que otros manejadores del mismo evento se ejecuten
+
+    if (isDownloading || hasDownloaded) return; // Si ya está en proceso o ya se descargó, no hacer nada
+    isDownloading = true; // Indicar que la descarga está en proceso
+
+    console.log("Descarga iniciada");
+    console.log("Prueba");
 
     try {
-      const content = await exportToEsper(bpmnModeler);
-      
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'esperTasks.txt';
-      
-      document.body.appendChild(link);
-      link.click();
-      
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const content = await exportToEsper(bpmnModeler); // Solo exporta cuando se hace clic en el botón
+
+      if (!hasDownloaded) {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'esperTasks.txt';
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        hasDownloaded = true; // Indicar que la descarga fue exitosa
+      } else {
+        console.log("Ya descargado");
+      }
     } catch (err) {
       console.log('Error al exportar a Esper:', err);
+    } finally {
+      isDownloading = false; // Restablecer el flag
+      console.log("Descarga completada");
     }
   });
 
+  // Esta función solo debe manejar otros artefactos y no tocar la lógica de descarga
   var exportArtifacts = debounce(async function() {
     try {
       const { svg } = await bpmnModeler.saveSVG();
@@ -152,14 +194,14 @@ $(function() {
       setEncoded(downloadJsonLink, 'diagram.json', null);
     }
 
-    try {
-      const content = await exportToEsper(bpmnModeler);
-      setEncoded(downloadEsperLink, 'esperTasks.txt', content); 
-    } catch (err) {
-      console.log('Error al preparar Esper:', err);
-      setEncoded(downloadEsperLink, 'esperTasks.txt', null);
-    }
+    // Elimina cualquier intento de exportar a Esper aquí
   }, 500);
+
+  bpmnModeler.on('commandStack.changed', () => {
+    exportArtifacts(); 
+    updateModSecurityFile(); 
+  });
+
 });
 
 function updateModSecurityFile() {
@@ -249,57 +291,4 @@ $(function() {
     }
   });
 
-  function setEncoded(link, name, data) {
-    var encodedData = encodeURIComponent(data);
-    console.log('Data:', data);
-    console.log('Encoded Data:', encodedData);
-
-    if (data) {
-      link.addClass('active').attr({
-        'href': 'data:application/json;charset=UTF-8,' + encodedData,
-        'download': name
-      });
-    } else {
-      link.removeClass('active');
-    }
-  }
-
-  var exportArtifacts = debounce(async function() {
-    try {
-      const { svg } = await bpmnModeler.saveSVG();
-      setEncoded(downloadSvgLink, 'diagram.svg', svg);
-    } catch (err) {
-      console.error('Error al guardar SVG: ', err);
-      setEncoded(downloadSvgLink, 'diagram.svg', null);
-    }
-  
-    try {
-      const { xml } = await bpmnModeler.saveXML({ format: true });
-      setEncoded(downloadLink, 'diagram.bpmn', xml);
-    } catch (err) {
-      console.log('Error al guardar XML: ', err);
-      setEncoded(downloadLink, 'diagram.bpmn', null);
-    }
-  
-    try {
-      const json = await saveJSON(bpmnModeler);
-      setEncoded(downloadJsonLink, 'diagram.json', json);
-    } catch (err) {
-      console.log('Error al guardar JSON: ', err);
-      setEncoded(downloadJsonLink, 'diagram.json', null);
-    }
-  
-    try {
-      const fileName = await exportToEsper(bpmnModeler);
-      setEncoded(downloadEsperLink, fileName, fileName);
-    } catch (err) {
-      console.log('Error al guardar en Esper: ', err);
-      setEncoded(downloadEsperLink, 'diagram.txt', null);
-    }
-  }, 500);  
-
-  bpmnModeler.on('commandStack.changed', () => {
-    exportArtifacts(); 
-    updateModSecurityFile(); 
-  });
 });
