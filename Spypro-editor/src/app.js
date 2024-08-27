@@ -13,8 +13,6 @@ import securityDrawModule from '../lib/security/draw';
 import securityPaletteModule from '../lib/security/palette';
 import resizeAllModule from '../lib/resize-all-rules';
 
-const fs = require('fs');
-const path = require('path');
 
 var propertiesProviderModule = require('../provider/security');
 var securityModdleDescriptor = require('../descriptors/security.json');
