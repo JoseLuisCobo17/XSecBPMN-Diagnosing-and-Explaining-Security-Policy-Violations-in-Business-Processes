@@ -54,23 +54,30 @@ function getAllRelevantTasks(bpmnModeler) {
   return relevantElements.map(e => {
     var businessObject = e.businessObject;
     var subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
+
+    // Recuperar propiedades según el tipo de tarea
+    const isServiceTask = e.type === 'bpmn:ServiceTask';
+    const isTask = e.type === 'bpmn:Task';
+
     return {
       id_model: id_model,
       id_bpmn: businessObject.id,
       name: businessObject.name || "",  
       type: businessObject.$type || "",  
-      Bod: businessObject.Bod || false,
-      Sod: businessObject.Sod || false,
-      Uoc: businessObject.Uoc || false,
-      Nu: businessObject.Nu || 0,
-      Mth: businessObject.Mth || 0,
-      P: businessObject.P || 0,
-      User: businessObject.User || "",
+      Bod: isServiceTask ? (businessObject.Bod || false) : false,
+      Sod: isServiceTask ? (businessObject.Sod || false) : false,
+      Uoc: isServiceTask ? (businessObject.Uoc || false) : false,
+      Nu: isServiceTask ? (businessObject.Nu || 0) : 0,
+      Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
+      P: isServiceTask ? (businessObject.P || 0) : 0,
+      User: isServiceTask ? (businessObject.User || "") : "",
+      UserTask: isTask ? (businessObject.UserTask || "") : "",
       Log: businessObject.Log || "",
       SubTasks: subTasks
     };
   });
 }
+
 
 function modSecurity(bpmnModeler) {
   const args = {
@@ -156,7 +163,14 @@ function exportToEsper(bpmnModeler) {
         content += `nu=${element.Nu}, `;
         content += `mth=${element.Mth}, `;
         content += `p=${element.P}, `;
-        content += `user=${element.User}, `;
+
+        // Verificar si es una Task normal o ServiceTask para usar la propiedad correcta
+        if (element.type === 'bpmn:Task') {
+          content += `userTask=${element.UserTask || ''}, `;  // Usar UserTask para bpmn:Task
+        } else if (element.type === 'bpmn:ServiceTask') {
+          content += `user=${element.User || ''}, `;  // Usar User para bpmn:ServiceTask
+        }
+
         content += `log=${element.Log}, `;
         content += `subTask=${element.SubTasks.join(', ')}]\n`;
       });
@@ -173,6 +187,7 @@ function exportToEsper(bpmnModeler) {
     }
   });
 }
+
 
 module.exports = {
   getSecurityTasks,

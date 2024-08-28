@@ -71,8 +71,8 @@ function createUserGroup(element, translate) {
 
   // create a group called "User properties".
   const userGroup = {
-    id: 'user',
-    label: translate('User properties'),
+    id: 'User',
+    label: translate('UserTask properties'),
     entries: UserProps(element),
     tooltip: translate('Make sure you know what you are doing!')
   };

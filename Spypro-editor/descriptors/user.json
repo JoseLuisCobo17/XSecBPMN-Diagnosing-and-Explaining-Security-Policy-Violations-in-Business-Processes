@@ -1,7 +1,7 @@
 {
-    "name": "Security",
-    "prefix": "security",
-    "uri": "http://security",
+    "name": "UserExtension",
+    "prefix": "user",
+    "uri": "http://user",
     "xml": {
       "tagAlias": "lowerCase"
     },
@@ -15,7 +15,7 @@
         "properties": [
           
           {
-            "name": "User",
+            "name": "UserTask",
             "isAttr": true,
             "type": "String"
           }

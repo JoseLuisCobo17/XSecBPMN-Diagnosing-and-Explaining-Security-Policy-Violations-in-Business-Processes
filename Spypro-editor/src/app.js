@@ -13,9 +13,10 @@ import securityDrawModule from '../lib/security/draw';
 import securityPaletteModule from '../lib/security/palette';
 import resizeAllModule from '../lib/resize-all-rules';
 
-
 var propertiesProviderModule = require('../provider/security');
 var securityModdleDescriptor = require('../descriptors/security.json');
+
+var userModdleDescriptor = require('../descriptors/user.json');
 
 var container = $('#js-drop-zone');
 var canvas = $('#js-canvas');
@@ -36,7 +37,8 @@ var bpmnModeler = new BpmnModeler({
     resizeAllModule,
   ],
   moddleExtensions: {
-    security: securityModdleDescriptor
+    security: securityModdleDescriptor,
+    user: userModdleDescriptor
   }
 });
 
@@ -103,8 +105,6 @@ function registerFileDrop(container, callback) {
 // Definición de setEncoded antes de cualquier uso
 function setEncoded(link, name, data) {
     var encodedData = encodeURIComponent(data);
-    console.log('Data:', data);
-    console.log('Encoded Data:', encodedData);
 
     if (data) {
       link.addClass('active').attr({
@@ -205,9 +205,6 @@ $(function() {
 function updateModSecurityFile() {
   modSecurity(bpmnModeler)
   esperRules(bpmnModeler)
-    .then(() => {
-      console.log('ModSecurity and esperRules file updated.');
-    })
     .catch(() => {
       console.error('Error updating ModSecurity/esperRules file.');
     });
