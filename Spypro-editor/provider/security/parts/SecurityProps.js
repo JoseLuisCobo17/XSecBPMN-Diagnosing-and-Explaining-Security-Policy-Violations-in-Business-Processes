@@ -69,7 +69,6 @@ function BoDFunction(props) {
       return false; 
     }
     const value = element.businessObject.Bod;
-    console.log('Current BoD value (getValue):', value);
     return value === true;
   };
 
@@ -77,7 +76,6 @@ function BoDFunction(props) {
     if (!element || !element.businessObject) {
       return; 
     }
-    console.log('Setting BoD to (setValue):', value); 
     modeling.updateProperties(element, {
       Bod: value
     });
@@ -106,7 +104,6 @@ function SoDFunction(props) {
       return false; 
     }
     const value = element.businessObject.Sod;
-    console.log('Current SoD value (getValue):', value); 
     return value === true; 
   };
 
@@ -143,7 +140,6 @@ function UoCFunction(props) {
       return false; 
     }
     const value = element.businessObject.Uoc; 
-    console.log('Current UoC value (getValue):', value);
     return value === true; 
   };
 
@@ -180,7 +176,6 @@ function NuFunction(props) {
       return '';
     }
     const value = element.businessObject.Nu;
-    console.log('Current Nu value (getValue):', value); 
     return value !== undefined ? value : ''; 
   };
 
@@ -188,7 +183,6 @@ function NuFunction(props) {
     if (!element || !element.businessObject) {
       return;
     }
-    console.log('Setting Nu to (setValue):', value); 
     modeling.updateProperties(element, {
       Nu: Number(value) 
     });
@@ -254,7 +248,6 @@ function PFunction(props) {
       return ''; 
     }
     const value = element.businessObject.P;
-    console.log('Current P value (getValue):', value); 
     return value !== undefined ? value : ''; 
   };
 
@@ -262,7 +255,6 @@ function PFunction(props) {
     if (!element || !element.businessObject) {
       return; 
     }
-    console.log('Setting P to (setValue):', value); 
     modeling.updateProperties(element, {
       P: Number(value) 
     });
@@ -328,7 +320,6 @@ function LogFunction(props) {
       return ''; 
     }
     const value = element.businessObject.Log;
-    console.log('Current Log value (getValue):', value); 
     return value !== undefined ? value : ''; 
   };
 
