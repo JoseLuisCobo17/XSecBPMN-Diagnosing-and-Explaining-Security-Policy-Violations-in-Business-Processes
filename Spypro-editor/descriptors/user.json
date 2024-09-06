@@ -1,0 +1,25 @@
+{
+  "name": "UserExtension",
+  "prefix": "user",
+  "uri": "http://user",
+  "xml": {
+    "tagAlias": "lowerCase"
+  },
+  "associations": [],
+  "types": [
+    {
+      "name": "BewitchedStartEvent",
+      "extends": [
+        "bpmn:Task"
+      ],
+      "properties": [
+        {
+          "name": "UserTask",
+          "isAttr": true,
+          "type": "String",
+          "isMany": true
+        }
+      ]
+    }
+  ]
+}

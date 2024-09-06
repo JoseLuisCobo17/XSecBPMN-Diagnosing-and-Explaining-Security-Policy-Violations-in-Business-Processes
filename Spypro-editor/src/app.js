@@ -13,10 +13,10 @@ import securityDrawModule from '../lib/security/draw';
 import securityPaletteModule from '../lib/security/palette';
 import resizeAllModule from '../lib/resize-all-rules';
 
-const axios = require('axios');
-
 var propertiesProviderModule = require('../provider/security');
 var securityModdleDescriptor = require('../descriptors/security.json');
+
+var userModdleDescriptor = require('../descriptors/user.json');
 
 var container = $('#js-drop-zone');
 var canvas = $('#js-canvas');
@@ -37,11 +37,22 @@ var bpmnModeler = new BpmnModeler({
     resizeAllModule,
   ],
   moddleExtensions: {
-    security: securityModdleDescriptor
+    security: securityModdleDescriptor,
+    user: userModdleDescriptor
   }
 });
 
 container.removeClass('with-diagram');
+
+const {
+  getSecurityTasks,
+  getAllRelevantTasks,
+  modSecurity,
+  esperRules,
+  synDB,
+  saveJSON,
+  exportToEsper
+} = require('./taskHandlers');
 
 function createNewDiagram() {
   openDiagram(diagramXML);
@@ -91,115 +102,109 @@ function registerFileDrop(container, callback) {
   container.get(0).addEventListener('drop', handleFileSelect, false);
 }
 
-function getSecurityTasks() {
-  var elementRegistry = bpmnModeler.get('elementRegistry');
-  var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
-  var id_model = definitions.diagrams[0].id;
-  var serviceTasks = elementRegistry.filter(e => e.type === 'bpmn:ServiceTask');
-  var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
+// Definición de setEncoded antes de cualquier uso
+function setEncoded(link, name, data) {
+    var encodedData = encodeURIComponent(data);
 
-  var res = [];
-  serviceTaskBusinessObjects.forEach(function(element) {
-    var list = element.outgoing;
-    var subTasks = [];
-    if (list) {
-      list.forEach(function(task) {
-        subTasks.push(task.targetRef.id);
+    if (data) {
+      link.addClass('active').attr({
+        'href': 'data:application/json;charset=UTF-8,' + encodedData,
+        'download': name
       });
-    }
-    var st = {
-      id_model: id_model,
-      id_bpmn: element.id,
-      Bod: element.Bod || false,
-      Sod: element.Sod || false,
-      Uoc: element.Uoc || false,
-      Nu: element.Nu || 0,
-      Mth: element.Mth || 0,
-      P: element.P || 0,
-      User: element.User || "",
-      Log: element.Log || "",
-      SubTasks: subTasks
-    };
-
-    res.push(st);
-  });
-
-  return res;
-}
-
-function modSecurity() {
-  const args = {
-    data: { modSecurity: getSecurityTasks() },
-    headers: { "Content-Type": "application/json" }
-  };
-  return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
-    .then(response => {
-      console.log('ModSecurity rules generated and posted successfully:', response.data);
-      return response.data;
-    })
-    .catch(error => {
-      console.error('Error posting ModSecurity rules:', error);
-      throw error;
-    });
-}
-
-function esperRules() {
-  const args = {
-    data: { modSecurity: getSecurityTasks() }, // Cambiado de esperRules a modSecurity
-    headers: { "Content-Type": "application/json" }
-  };
-  return axios.post("http://localhost:3000/esperrules", args.data, { headers: args.headers })
-    .then(response => {
-      console.log('EsperRules generated and posted successfully:', response.data);
-      return response.data;
-    })
-    .catch(error => {
-      console.error('Error posting EsperRules:', error);
-      throw error;
-    });
-}
-
-function synDB() {
-  const tasks = getSecurityTasks();
-  console.log('Tasks to be synchronized:', tasks);
-  axios.post("http://localhost:3000/syndb", { modSecurity: tasks }, {
-    headers: {
-      "Content-Type": "application/json"
-    }
-  }).then(function (response) {
-    console.log('Sync response:', response.data);
-  }).catch(function (error) {
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-      console.error('Response headers:', error.response.headers);
-    } else if (error.request) {
-      console.error('Request data:', error.request);
     } else {
-      console.error('Error message:', error.message);
+      link.removeClass('active');
     }
-    console.error('Config:', error.config);
-  });
 }
 
-function saveJSON() {
-  return new Promise((resolve, reject) => {
+$(function() {
+  // Declaración de las variables
+  var downloadLink = $('#js-download-diagram');
+  var downloadSvgLink = $('#js-download-svg');
+  var downloadJsonLink = $('#js-download-json');
+  var downloadEsperLink = $('#js-download-esper');
+
+  let isDownloading = false; // Añadir un flag para prevenir múltiples ejecuciones simultáneas
+  let hasDownloaded = false; // Flag para verificar si ya se descargó una vez
+
+  // Limpia cualquier otro manejador de eventos previamente añadido
+  $('#js-download-esper').off('click').on('click', async function(e) {
+    e.preventDefault();   // Evita el comportamiento predeterminado
+    e.stopPropagation();  // Evita la propagación del evento de clic hacia los elementos padre
+    e.stopImmediatePropagation(); // Evita que otros manejadores del mismo evento se ejecuten
+
+    if (isDownloading || hasDownloaded) return; // Si ya está en proceso o ya se descargó, no hacer nada
+    isDownloading = true; // Indicar que la descarga está en proceso
+
+    console.log("Descarga iniciada");
+    console.log("Prueba");
+
     try {
-      const json = JSON.stringify(getSecurityTasks(), null, 2);
-      console.log('Generated JSON:', json);
-      resolve(json);
+      const content = await exportToEsper(bpmnModeler); // Solo exporta cuando se hace clic en el botón
+
+      if (!hasDownloaded) {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'esperTasks.txt';
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        hasDownloaded = true; // Indicar que la descarga fue exitosa
+      } else {
+        console.log("Ya descargado");
+      }
     } catch (err) {
-      reject(err);
+      console.log('Error al exportar a Esper:', err);
+    } finally {
+      isDownloading = false; // Restablecer el flag
+      console.log("Descarga completada");
     }
   });
-}
+
+  // Esta función solo debe manejar otros artefactos y no tocar la lógica de descarga
+  var exportArtifacts = debounce(async function() {
+    try {
+      const { svg } = await bpmnModeler.saveSVG();
+      setEncoded(downloadSvgLink, 'diagram.svg', svg);
+    } catch (err) {
+      console.error('Error al guardar SVG: ', err);
+      setEncoded(downloadSvgLink, 'diagram.svg', null);
+    }
+  
+    try {
+      const { xml } = await bpmnModeler.saveXML({ format: true });
+      setEncoded(downloadLink, 'diagram.bpmn', xml);
+    } catch (err) {
+      console.log('Error al guardar XML: ', err);
+      setEncoded(downloadLink, 'diagram.bpmn', null);
+    }
+  
+    try {
+      const json = await saveJSON(bpmnModeler);
+      setEncoded(downloadJsonLink, 'diagram.json', json);
+    } catch (err) {
+      console.log('Error al guardar JSON: ', err);
+      setEncoded(downloadJsonLink, 'diagram.json', null);
+    }
+
+    // Elimina cualquier intento de exportar a Esper aquí
+  }, 500);
+
+  bpmnModeler.on('commandStack.changed', () => {
+    exportArtifacts(); 
+    updateModSecurityFile(); 
+  });
+
+});
 
 function updateModSecurityFile() {
-  modSecurity()
-  esperRules()
-    .then(() => {
-      console.log('ModSecurity and esperRules file updated.');
-    })
+  modSecurity(bpmnModeler)
+  esperRules(bpmnModeler)
     .catch(() => {
       console.error('Error updating ModSecurity/esperRules file.');
     });
@@ -223,6 +228,7 @@ $(function() {
   var downloadLink = $('#js-download-diagram');
   var downloadSvgLink = $('#js-download-svg');
   var downloadJsonLink = $('#js-download-json');
+  var downloadEsperLink = $('#js-download-esper');
 
   let isExporting = false;
 
@@ -234,7 +240,7 @@ $(function() {
     isExporting = true;
     $(this).prop('disabled', true);
 
-    modSecurity()
+    modSecurity(bpmnModeler)
       .then(() => {
         alert('Exportado a modSecurity en la carpeta de Descargas');
       })
@@ -249,7 +255,7 @@ $(function() {
 
   $('#button2').click(function(){
     alert("Sincronizado con mongoDB");
-    synDB();
+    synDB(bpmnModeler);
   });
 
   $('#button3').click(function(){
@@ -260,7 +266,7 @@ $(function() {
     isExporting = true;
     $(this).prop('disabled', true);
 
-    esperRules()
+    esperRules(bpmnModeler)
       .then(() => {
         alert('Exportado a esperRules en la carpeta de esperRules');
       })
@@ -280,49 +286,4 @@ $(function() {
     }
   });
 
-  function setEncoded(link, name, data) {
-    var encodedData = encodeURIComponent(data);
-    console.log('Data:', data);
-    console.log('Encoded Data:', encodedData);
-
-    if (data) {
-      link.addClass('active').attr({
-        'href': 'data:application/json;charset=UTF-8,' + encodedData,
-        'download': name
-      });
-    } else {
-      link.removeClass('active');
-    }
-  }
-
-  var exportArtifacts = debounce(async function() {
-    try {
-      const { svg } = await bpmnModeler.saveSVG();
-      setEncoded(downloadSvgLink, 'diagram.svg', svg);
-    } catch (err) {
-      console.error('Error al guardar SVG: ', err);
-      setEncoded(downloadSvgLink, 'diagram.svg', null);
-    }
-  
-    try {
-      const { xml } = await bpmnModeler.saveXML({ format: true });
-      setEncoded(downloadLink, 'diagram.bpmn', xml);
-    } catch (err) {
-      console.log('Error al guardar XML: ', err);
-      setEncoded(downloadLink, 'diagram.bpmn', null);
-    }
-  
-    try {
-      const json = await saveJSON();
-      setEncoded(downloadJsonLink, 'diagram.json', json);
-    } catch (err) {
-      console.log('Error al guardar JSON: ', err);
-      setEncoded(downloadJsonLink, 'diagram.json', null);
-    }
-  }, 500);
-
-  bpmnModeler.on('commandStack.changed', () => {
-    exportArtifacts(); // Actualiza archivos descargables
-    updateModSecurityFile(); // Actualiza el archivo modSecurity.txt
-  });
 });

@@ -1,4 +1,5 @@
 import SecurityProps from './parts/SecurityProps';
+import UserProps from '../user/parts/UserProps';
 
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
@@ -38,6 +39,8 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
       // Add the "Security" group
       if (is(element, 'bpmn:ServiceTask')) {
         groups.push(createSecurityGroup(element, translate));
+      } else if (is(element, 'bpmn:Task')) { 
+        groups.push(createUserGroup(element, translate));
       }
 
       return groups;
@@ -61,4 +64,18 @@ function createSecurityGroup(element, translate) {
   };
 
   return securityGroup;
+}
+
+// Create the custom User group
+function createUserGroup(element, translate) {
+
+  // create a group called "User properties".
+  const userGroup = {
+    id: 'User',
+    label: translate('UserTask properties'),
+    entries: UserProps(element),
+    tooltip: translate('Make sure you know what you are doing!')
+  };
+
+  return userGroup;
 }
