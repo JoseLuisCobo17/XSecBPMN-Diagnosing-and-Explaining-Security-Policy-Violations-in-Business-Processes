@@ -8,7 +8,7 @@ export default function(element) {
       id: 'UserTask',
       element,
       component: UserFunction,
-      isEdited: isStringEntryEdited
+      isEdited: isListOfStringEntryEdited // Se pasa la función correcta
     }
   ];
 }
@@ -50,10 +50,19 @@ function UserFunction(props) {
   />`;
 }
 
-function isStringEntryEdited(element) {
+// Corregido: Acepta 'element' como parámetro
+function isListOfStringEntryEdited(element) {
   if (!element || !element.businessObject) {
     return false;
   }
-  const userTaskValue = element.businessObject.UserTask;  
-  return typeof userTaskValue !== 'undefined' && userTaskValue !== '';
+
+  const userTaskValues = element.businessObject.UserTask;
+
+  // Verificamos que UserTask es un array
+  if (!Array.isArray(userTaskValues)) {
+    return false;
+  }
+
+  // Retornamos true si al menos un elemento en la lista no es un string vacío
+  return userTaskValues.some(value => typeof value === 'string' && value !== '');
 }
