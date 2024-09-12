@@ -11,17 +11,26 @@ import {
   create as svgCreate
 } from 'tiny-svg';
 import SoD from '../lock';
+import BoD from '../lock'; // Importa la nueva imagen de BoD
 
-export default function SecurityRender(eventBus) {
+export default function SecurityRender(eventBus, renderType) { // Recibe renderType directamente
   BaseRenderer.call(this, eventBus, 1500);
 
+  // Verifica si el elemento es del tipo ServiceTask
   this.canRender = function(element) {
     return is(element, 'bpmn:ServiceTask');
   };
 
-
+  // Dibuja la forma dependiendo del tipo de renderizado (SoD o BoD)
   this.drawShape = function(parent, shape) {
-    var url = SoD.dataURL;
+    var url;
+
+    // Usa renderType para determinar si es 'SoD' o 'BoD'
+    if (renderType === 'BoD') {
+      url = BoD.dataURL; // Usa la imagen BoD
+    } else {
+      url = SoD.dataURL; // Usa la imagen SoD por defecto
+    }
 
     var lockGfx = svgCreate('image', {
       x: 0,
@@ -39,29 +48,5 @@ export default function SecurityRender(eventBus) {
 
 inherits(SecurityRender, BaseRenderer);
 
-SecurityRender.$inject = [ 'eventBus' ];
-
-/*function SecurityRenderer(eventBus) {
-  BaseRenderer.call(this, eventBus, 1500); // Call the super constructor
-}
-
-inherits(SecurityRenderer, BaseRenderer); // Set up inheritance
-
-SecurityRenderer.prototype.canRender = function(element) {
-  return is(element, 'bpmn:ServiceTask');
-};
-
-SecurityRenderer.prototype.drawShape = function(parent, shape) {
-  var lockGfx = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-  lockGfx.setAttribute('x', 0);
-  lockGfx.setAttribute('y', 0);
-  lockGfx.setAttribute('width', shape.width);
-  lockGfx.setAttribute('height', shape.height);
-  lockGfx.setAttribute('href', lockDataURL);
-
-  parent.appendChild(lockGfx);
-
-  return lockGfx;
-};
-
-module.exports = SecurityRenderer;*/
+// No necesitamos inyección de renderType
+SecurityRender.$inject = ['eventBus'];

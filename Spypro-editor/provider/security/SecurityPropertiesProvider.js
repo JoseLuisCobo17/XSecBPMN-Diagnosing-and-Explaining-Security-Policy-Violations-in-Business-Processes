@@ -5,7 +5,6 @@ import { is } from 'bpmn-js/lib/util/ModelUtil';
 
 const LOW_PRIORITY = 500;
 
-
 /**
  * A provider with a `#getGroups(element)` method
  * that exposes groups for a diagram element.
@@ -36,9 +35,11 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
      */
     return function(groups) {
 
-      // Add the "Security" group
-      if (is(element, 'bpmn:ServiceTask')) {
+      // Add the "Security" group based on the securityType
+      if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'SoD') {
         groups.push(createSoDGroup(element, translate));
+      } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'BoD') {
+        groups.push(createBoDGroup(element, translate)); // Añadimos BoD
       } else if (is(element, 'bpmn:Task')) { 
         groups.push(createUserGroup(element, translate));
       }
@@ -50,17 +51,31 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
   propertiesPanel.registerProvider(LOW_PRIORITY, this);
 }
 
-SecurityPropertiesProvider.$inject = [ 'propertiesPanel', 'translate' ];
+SecurityPropertiesProvider.$inject = ['propertiesPanel', 'translate'];
 
-// Create the custom Security group
+// Create the custom SoD group
 function createSoDGroup(element, translate) {
 
-  // create a group called "SoD properties".
+  // Create a group called "SoD properties".
   const securityGroup = {
-    id: 'security',
+    id: 'security-sod',
     label: translate('SoD properties'),
+    entries: SecurityProps(element), 
+    tooltip: translate('Ensure proper SoD management!')
+  };
+
+  return securityGroup;
+}
+
+// Create the custom BoD group
+function createBoDGroup(element, translate) {
+
+  // Create a group called "BoD properties".
+  const securityGroup = {
+    id: 'security-bod',
+    label: translate('BoD properties'),
     entries: SecurityProps(element),
-    tooltip: translate('Make sure you know what you are doing!')
+    tooltip: translate('Ensure proper BoD management!')
   };
 
   return securityGroup;
@@ -69,7 +84,7 @@ function createSoDGroup(element, translate) {
 // Create the custom User group
 function createUserGroup(element, translate) {
 
-  // create a group called "User properties".
+  // Create a group called "User properties".
   const userGroup = {
     id: 'User',
     label: translate('UserTask properties'),
