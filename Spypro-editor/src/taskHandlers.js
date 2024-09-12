@@ -55,18 +55,21 @@ function getAllRelevantTasks(bpmnModeler) {
     var businessObject = e.businessObject;
     var subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
 
-    // Recuperar propiedades según el tipo de tarea
+
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isTask = e.type === 'bpmn:Task';
+
+    
+    const securityType = businessObject.securityType || ''; 
 
     return {
       id_model: id_model,
       id_bpmn: businessObject.id,
       name: businessObject.name || "",  
       type: businessObject.$type || "",  
-      Bod: isServiceTask ? (businessObject.Bod || false) : false,
-      Sod: isServiceTask ? (businessObject.Sod || false) : false,
-      Uoc: isServiceTask ? (businessObject.Uoc || false) : false,
+      Bod: securityType === 'BoD', 
+      Sod: securityType === 'SoD', 
+      Uoc: securityType === 'UoC', 
       Nu: isServiceTask ? (businessObject.Nu || 0) : 0,
       Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
       P: isServiceTask ? (businessObject.P || 0) : 0,
@@ -154,8 +157,8 @@ function exportToEsper(bpmnModeler) {
       let content = "### Esper Rules Export ###\n\n";
       elements.forEach(element => {
         content += `Element: [type=${element.type}, `;
-        content += `name=${element.name}, `;
-        content += `id_bpmn=${element.id_bpmn}, `;
+        content += `name=${element.name || 'Unnamed'}, `;
+        content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
         content += `sodSecurity=${element.Sod}, `;
         content += `bodSecurity=${element.Bod}, `;
         content += `uocSecurity=${element.Uoc}, `;
@@ -164,15 +167,16 @@ function exportToEsper(bpmnModeler) {
         content += `mth=${element.Mth}, `;
         content += `p=${element.P}, `;
 
-        // Verificar si es una Task normal o ServiceTask para usar la propiedad correcta
+        // Diferenciar entre Task y ServiceTask
         if (element.type === 'bpmn:Task') {
-          content += `userTask=${element.UserTask || ''}, `;  // Usar UserTask para bpmn:Task
-        } else if (element.type === 'bpmn:ServiceTask') {
-          content += `user=${element.User || ''}, `;  // Usar User para bpmn:ServiceTask
+          content += `userTask=${element.UserTask || 'N/A'}, `; 
+          content += `user=${element.User || 'N/A'}, `;  
         }
 
-        content += `log=${element.Log}, `;
-        content += `subTask=${element.SubTasks.join(', ')}]\n`;
+        content += `log=${element.Log || 'N/A'}, `;
+
+        const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+        content += `subTask=${subTasks}]\n`;
       });
 
       if (elements.length === 0) {
@@ -187,7 +191,6 @@ function exportToEsper(bpmnModeler) {
     }
   });
 }
-
 
 module.exports = {
   getSecurityTasks,
