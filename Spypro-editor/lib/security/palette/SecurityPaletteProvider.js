@@ -1,12 +1,6 @@
-import SoD from '../lock';
-import BoD from '../lock'; 
+import { SoD, BoD, UoC } from '../lock'; // Asegúrate de importar UoC
 
-
-/**
- * A provider for quick service task production
- */
 export default function SecurityPaletteProvider(palette, create, elementFactory) {
-
   this._create = create;
   this._elementFactory = elementFactory;
 
@@ -24,18 +18,21 @@ SecurityPaletteProvider.prototype.getPaletteEntries = function() {
   var elementFactory = this._elementFactory,
       create = this._create;
 
-  // Función para crear una nueva ServiceTask
   function startCreate(event, type) {
     var serviceTaskShape = elementFactory.create(
       'shape', { type: 'bpmn:ServiceTask' }
     );
-
+  
+    // Asigna el tipo de seguridad al objeto de la tarea de servicio
     if (type === 'SoD') {
-      serviceTaskShape.businessObject.securityType = 'SoD'; // Añadir regla SoD
+      serviceTaskShape.businessObject.securityType = 'SoD';
     } else if (type === 'BoD') {
-      serviceTaskShape.businessObject.securityType = 'BoD'; // Añadir regla BoD si lo deseas
+      serviceTaskShape.businessObject.securityType = 'BoD';
+    } else if (type === 'UoC') {
+      serviceTaskShape.businessObject.securityType = 'UoC';
     }
-
+  
+    // Inicia la creación del elemento
     create.start(event, serviceTaskShape);
   }
 
@@ -43,19 +40,28 @@ SecurityPaletteProvider.prototype.getPaletteEntries = function() {
     'create-service-task-sod': {
       group: 'activity',
       title: 'Create a new SoD Security Task',
-      imageUrl: SoD.dataURL, // Usar la imagen de SoD
+      imageUrl: SoD.dataURL,
       action: {
-        dragstart: function(event) { startCreate(event, 'SoD'); }, // Inicia con SoD
+        dragstart: function(event) { startCreate(event, 'SoD'); },
         click: function(event) { startCreate(event, 'SoD'); }
       }
     },
     'create-service-task-bod': {
       group: 'activity',
       title: 'Create a new BoD Security Task',
-      imageUrl: BoD.dataURL, // Usar la imagen de BoD si lo deseas
+      imageUrl: BoD.dataURL,
       action: {
-        dragstart: function(event) { startCreate(event, 'BoD'); }, // Inicia con BoD
+        dragstart: function(event) { startCreate(event, 'BoD'); },
         click: function(event) { startCreate(event, 'BoD'); }
+      }
+    },
+    'create-service-task-uoc': { // Nueva entrada para UoC
+      group: 'activity',
+      title: 'Create a new UoC Security Task',
+      imageUrl: UoC.dataURL, // Asegúrate de tener la imagen correspondiente en lock.js
+      action: {
+        dragstart: function(event) { startCreate(event, 'UoC'); },
+        click: function(event) { startCreate(event, 'UoC'); }
       }
     }
   };

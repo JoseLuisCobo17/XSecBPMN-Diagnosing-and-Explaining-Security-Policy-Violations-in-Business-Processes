@@ -10,28 +10,29 @@ import {
   append as svgAppend,
   create as svgCreate
 } from 'tiny-svg';
-import SoD from '../lock';
-import BoD from '../lock'; // Importa la nueva imagen de BoD
+import { SoD, BoD, UoC } from '../lock'; // Asegúrate de importar UoC
 
-export default function SecurityRender(eventBus, renderType) { // Recibe renderType directamente
+export default function SecurityRender(eventBus, renderType) { 
   BaseRenderer.call(this, eventBus, 1500);
 
-  // Verifica si el elemento es del tipo ServiceTask
   this.canRender = function(element) {
     return is(element, 'bpmn:ServiceTask');
   };
 
-  // Dibuja la forma dependiendo del tipo de renderizado (SoD o BoD)
   this.drawShape = function(parent, shape) {
     var url;
-
-    // Usa renderType para determinar si es 'SoD' o 'BoD'
-    if (renderType === 'BoD') {
-      url = BoD.dataURL; // Usa la imagen BoD
+    
+    // Verifica el tipo de seguridad del elemento para decidir la imagen
+    var securityType = shape.businessObject.securityType;
+  
+    if (securityType === 'BoD') {
+      url = BoD.dataURL; // Imagen de BoD
+    } else if (securityType === 'UoC') {
+      url = UoC.dataURL; // Imagen de UoC
     } else {
-      url = SoD.dataURL; // Usa la imagen SoD por defecto
+      url = SoD.dataURL; // Imagen de SoD por defecto
     }
-
+  
     var lockGfx = svgCreate('image', {
       x: 0,
       y: 0,
@@ -39,14 +40,13 @@ export default function SecurityRender(eventBus, renderType) { // Recibe renderT
       height: shape.height,
       href: url
     });
-
+  
     svgAppend(parent, lockGfx);
-
+  
     return lockGfx;
-  };
+  };  
 }
 
 inherits(SecurityRender, BaseRenderer);
 
-// No necesitamos inyección de renderType
 SecurityRender.$inject = ['eventBus'];
