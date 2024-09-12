@@ -10,7 +10,7 @@ import {
   append as svgAppend,
   create as svgCreate
 } from 'tiny-svg';
-import Lock from '../lock';
+import SoD from '../lock';
 
 export default function SecurityRender(eventBus) {
   BaseRenderer.call(this, eventBus, 1500);
@@ -21,7 +21,7 @@ export default function SecurityRender(eventBus) {
 
 
   this.drawShape = function(parent, shape) {
-    var url = Lock.dataURL;
+    var url = SoD.dataURL;
 
     var lockGfx = svgCreate('image', {
       x: 0,

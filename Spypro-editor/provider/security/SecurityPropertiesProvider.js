@@ -38,7 +38,7 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
 
       // Add the "Security" group
       if (is(element, 'bpmn:ServiceTask')) {
-        groups.push(createSecurityGroup(element, translate));
+        groups.push(createSoDGroup(element, translate));
       } else if (is(element, 'bpmn:Task')) { 
         groups.push(createUserGroup(element, translate));
       }
@@ -53,12 +53,12 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
 SecurityPropertiesProvider.$inject = [ 'propertiesPanel', 'translate' ];
 
 // Create the custom Security group
-function createSecurityGroup(element, translate) {
+function createSoDGroup(element, translate) {
 
-  // create a group called "Security properties".
+  // create a group called "SoD properties".
   const securityGroup = {
     id: 'security',
-    label: translate('Security properties'),
+    label: translate('SoD properties'),
     entries: SecurityProps(element),
     tooltip: translate('Make sure you know what you are doing!')
   };

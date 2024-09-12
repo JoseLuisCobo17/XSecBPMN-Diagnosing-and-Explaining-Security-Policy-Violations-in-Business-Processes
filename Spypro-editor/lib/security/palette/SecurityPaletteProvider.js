@@ -1,4 +1,4 @@
-import Lock from '../lock';
+import SoD from '../lock';
 
 
 /**
@@ -35,7 +35,7 @@ SecurityPaletteProvider.prototype.getPaletteEntries = function() {
     'create-service-task': {
       group: 'activity',
       title: 'Create a new security CAT!',
-      imageUrl: Lock.dataURL,
+      imageUrl: SoD.dataURL,
       action: {
         dragstart: startCreate,
         click: startCreate
