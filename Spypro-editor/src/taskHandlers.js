@@ -4,10 +4,14 @@ function getSecurityTasks(bpmnModeler) {
   var elementRegistry = bpmnModeler.get('elementRegistry');
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
+
+  // Filtra solo las tareas relevantes
   var serviceTasks = elementRegistry.filter(e => e.type === 'bpmn:ServiceTask');
   var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
 
   var res = [];
+
+  // Procesa cada tarea de servicio para capturar sus propiedades
   serviceTaskBusinessObjects.forEach(function(element) {
     var list = element.outgoing;
     var subTasks = [];
@@ -16,12 +20,25 @@ function getSecurityTasks(bpmnModeler) {
         subTasks.push(task.targetRef.id);
       });
     }
+
+    // Debug: Mostrar todas las propiedades del elemento para ver dónde están Bod, Sod, Uoc
+    console.log('ServiceTask BusinessObject completo:', JSON.stringify(element, null, 2));
+
+    // Verifica el securityType y lo traduce a BoD, SoD y UoC
+    var isBod = element.securityType === "BoD";
+    var isSod = element.securityType === "SoD";
+    var isUoc = element.securityType === "UoC";
+
+    // Debug: Mostrar el securityType detectado
+    console.log('Security type detectado:', element.securityType);
+
+    // Verifica y asigna correctamente las propiedades de seguridad
     var st = {
       id_model: id_model,
       id_bpmn: element.id,
-      Bod: element.Bod || false,
-      Sod: element.Sod || false,
-      Uoc: element.Uoc || false,
+      Bod: isBod ? true : false,  // Asigna true si es BoD
+      Sod: isSod ? true : false,  // Asigna true si es SoD
+      Uoc: isUoc ? true : false,  // Asigna true si es UoC
       Nu: element.Nu || 0,
       Mth: element.Mth || 0,
       P: element.P || 0,
@@ -30,11 +47,18 @@ function getSecurityTasks(bpmnModeler) {
       SubTasks: subTasks
     };
 
+    // Debug: Mostrar el objeto de tarea de seguridad
+    console.log('Tarea de seguridad procesada:', JSON.stringify(st, null, 2));
+
     res.push(st);
   });
 
+  // Debug: Mostrar todas las tareas de seguridad que se van a enviar
+  console.log('Security Tasks para enviar:', JSON.stringify(res, null, 2));
+
   return res;
 }
+
 
 function getAllRelevantTasks(bpmnModeler) {
   var elementRegistry = bpmnModeler.get('elementRegistry');
@@ -99,10 +123,16 @@ function modSecurity(bpmnModeler) {
 }
 
 function esperRules(bpmnModeler) {
+  // Capturar tareas con propiedades de seguridad
+  const securityTasks = getSecurityTasks(bpmnModeler);
+  
+  // Definir los argumentos para la solicitud POST
   const args = {
-    data: { modSecurity: getSecurityTasks(bpmnModeler) }, 
+    data: { modSecurity: securityTasks }, 
     headers: { "Content-Type": "application/json" }
   };
+  
+  // Realizar la solicitud POST a la API de EsperRules
   return axios.post("http://localhost:3000/esperrules", args.data, { headers: args.headers })
     .then(response => {
       console.log('EsperRules generated and posted successfully:', response.data);
