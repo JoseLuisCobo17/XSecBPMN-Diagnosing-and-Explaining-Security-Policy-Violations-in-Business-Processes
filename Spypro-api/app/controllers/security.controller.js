@@ -162,21 +162,50 @@ exports.esperRules = function (req, res) {
 
         // Asegúrate de que las SubTasks y sus UserTask existan
         const subTasks = st.SubTasks || [];
-        const userTasks = subTasks.map(subTask => subTask.UserTask);  // Obtener los UserTask
 
-        console.log('userTasks:', userTasks);
+        // Obtener los UserTask que no sean null, vacíos o "Unknown"
+        const validUserTasks = subTasks.map(subTask => subTask.UserTask)
+                                       .filter(userTask => userTask && userTask.trim() !== "" && userTask !== "Unknown");
 
-        // Verificar si los UserTask son distintos
-        const areUserTasksDifferent = new Set(userTasks).size > 1;
+        console.log('Valid UserTasks:', validUserTasks);
+
+        // Verificar si los UserTasks válidos son distintos
+        const areUserTasksDifferent = new Set(validUserTasks).size > 1;
         console.log('areUserTasksDifferent:', areUserTasksDifferent);  // Verifica si se detectan tareas diferentes
 
-        const isBoD = st.Bod === true && areUserTasksDifferent;
+        // Si BoD es true y los UserTasks son los mismos (no son diferentes)
+        const isBoD = st.Bod === true && !areUserTasksDifferent;
         const isSoD = st.Sod === true;
         const isUoC = st.Uoc === true;
 
         console.log(`Processing task ${st.id_bpmn}: BoD=${isBoD}, SoD=${isSoD}, UoC=${isUoC}`);
 
-        // Aquí continuarías con la lógica de generación de reglas BoD, SoD y UoC
+        // Generar reglas BoD
+        if (isBoD) {
+            if (subTasks.length >= 2) {
+                const subTask1Id = subTasks[0].taskId;
+                const subTask2Id = subTasks[1].taskId;
+                const user = subTasks[1].UserTask;
+
+                // Agregar el mensaje de monitoreo en el formato solicitado
+                ms += "---------------------------------\n";
+                ms += "- [BOD MONITOR] Binding of Duty detected:\n";
+                ms += "- Parent Task ID: " + st.id_bpmn + "\n";
+                ms += "- SubTask 1 ID: " + subTask1Id + "\n";
+                ms += "- SubTask 2 ID: " + subTask2Id + "\n";
+                ms += "- User ID: " + user + "\n";
+                ms += "---------------------------------\n\n";
+            }
+        }
+
+        // Aquí puedes agregar la lógica para SoD y UoC si es necesario
+        if (isSoD) {
+            // Lógica para la regla de SoD (Separation of Duties)
+        }
+
+        if (isUoC) {
+            // Lógica para la regla de UoC (Usage of Control)
+        }
     }
 
     // Escribir las reglas a un archivo
@@ -198,6 +227,7 @@ exports.esperRules = function (req, res) {
         });
     });
 };
+
 
 // Sincronización de la base de datos
 exports.synDB = async function (req, res) {
