@@ -12,16 +12,52 @@ function getSecurityTasks(bpmnModeler) {
   var res = [];
 
   // Procesa cada tarea de servicio para capturar sus propiedades
-  serviceTaskBusinessObjects.forEach(function(element) {
+  serviceTaskBusinessObjects.forEach(function (element) {
     var list = element.outgoing;
     var subTasks = [];
-    if (list) {
-      list.forEach(function(task) {
-        subTasks.push(task.targetRef.id);
+
+    if (!list || list.length === 0) {
+      console.warn(`No hay conexiones salientes (outgoing) para la tarea: ${element.id}`);
+    } else {
+      console.log(`Conexiones salientes para la tarea ${element.id}:`, list);
+      list.forEach(function (task) {
+        if (task.targetRef) {
+          const subTaskElement = elementRegistry.get(task.targetRef.id);
+
+          if (subTaskElement && subTaskElement.businessObject) {
+            const targetType = subTaskElement.businessObject.$type;
+            console.log('Tipo de tarea objetivo (targetType):', targetType); // Depuración para ver el tipo
+
+            let userTask = "N/A";
+
+            // Actualizamos la lógica para verificar si el objeto contiene el UserTask
+            if (targetType === "bpmn:UserTask" || targetType === "bpmn:Task") {
+              const bo = subTaskElement.businessObject;
+              console.log('Encontrado Task:', bo); // Depuración completa de la sub-tarea
+              
+              // Intentamos acceder a diferentes propiedades donde puede estar el valor del usuario
+              userTask = bo.userTask || bo.UserTask || bo.assignee || bo.candidateUsers || bo.name || "Unknown";
+              console.log('UserTask detectado:', userTask); // Depuración para ver el valor de userTask
+            }
+
+            subTasks.push({
+              taskId: subTaskElement.id,
+              UserTask: userTask
+            });
+          } else {
+            console.warn(`El targetRef existe pero no tiene un businessObject para la tarea con id: ${task.targetRef.id}`);
+            subTasks.push({
+              taskId: task.targetRef.id,
+              UserTask: "N/A"
+            });
+          }
+        } else {
+          console.warn(`No se encontró targetRef para la tarea con id: ${task.id}`);
+        }
       });
     }
 
-    // Debug: Mostrar todas las propiedades del elemento para ver dónde están Bod, Sod, Uoc
+    // Mostrar todas las propiedades del elemento
     console.log('ServiceTask BusinessObject completo:', JSON.stringify(element, null, 2));
 
     // Verifica el securityType y lo traduce a BoD, SoD y UoC
@@ -29,36 +65,30 @@ function getSecurityTasks(bpmnModeler) {
     var isSod = element.securityType === "SoD";
     var isUoc = element.securityType === "UoC";
 
-    // Debug: Mostrar el securityType detectado
-    console.log('Security type detectado:', element.securityType);
-
     // Verifica y asigna correctamente las propiedades de seguridad
     var st = {
       id_model: id_model,
       id_bpmn: element.id,
-      Bod: isBod ? true : false,  // Asigna true si es BoD
-      Sod: isSod ? true : false,  // Asigna true si es SoD
-      Uoc: isUoc ? true : false,  // Asigna true si es UoC
+      Bod: isBod ? true : false,
+      Sod: isSod ? true : false,
+      Uoc: isUoc ? true : false,
       Nu: element.Nu || 0,
       Mth: element.Mth || 0,
       P: element.P || 0,
       User: element.User || "",
       Log: element.Log || "",
-      SubTasks: subTasks
+      SubTasks: subTasks.length > 0 ? subTasks : []  // Si no se encontraron subTasks, deja el arreglo vacío
     };
 
-    // Debug: Mostrar el objeto de tarea de seguridad
     console.log('Tarea de seguridad procesada:', JSON.stringify(st, null, 2));
 
     res.push(st);
   });
 
-  // Debug: Mostrar todas las tareas de seguridad que se van a enviar
   console.log('Security Tasks para enviar:', JSON.stringify(res, null, 2));
 
   return res;
 }
-
 
 function getAllRelevantTasks(bpmnModeler) {
   var elementRegistry = bpmnModeler.get('elementRegistry');
@@ -113,11 +143,9 @@ function modSecurity(bpmnModeler) {
   };
   return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
     .then(response => {
-      console.log('ModSecurity rules generated and posted successfully:', response.data);
       return response.data;
     })
     .catch(error => {
-      console.error('Error posting ModSecurity rules:', error);
       throw error;
     });
 }
@@ -135,11 +163,9 @@ function esperRules(bpmnModeler) {
   // Realizar la solicitud POST a la API de EsperRules
   return axios.post("http://localhost:3000/esperrules", args.data, { headers: args.headers })
     .then(response => {
-      console.log('EsperRules generated and posted successfully:', response.data);
       return response.data;
     })
     .catch(error => {
-      console.error('Error posting EsperRules:', error);
       throw error;
     });
 }

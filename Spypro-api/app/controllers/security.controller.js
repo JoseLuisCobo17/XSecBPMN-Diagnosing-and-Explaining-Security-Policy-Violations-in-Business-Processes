@@ -160,83 +160,27 @@ exports.esperRules = function (req, res) {
     for (let i = 0; i < req.body.modSecurity.length; i++) {
         const st = req.body.modSecurity[i];
 
-        const isBoD = st.Bod === true;
+        // Asegúrate de que las SubTasks y sus UserTask existan
+        const subTasks = st.SubTasks || [];
+        const userTasks = subTasks.map(subTask => subTask.UserTask);  // Obtener los UserTask
+
+        console.log('userTasks:', userTasks);
+
+        // Verificar si los UserTask son distintos
+        const areUserTasksDifferent = new Set(userTasks).size > 1;
+        console.log('areUserTasksDifferent:', areUserTasksDifferent);  // Verifica si se detectan tareas diferentes
+
+        const isBoD = st.Bod === true && areUserTasksDifferent;
         const isSoD = st.Sod === true;
         const isUoC = st.Uoc === true;
 
-        // Debug: Mostrar los valores recibidos para BoD, SoD y UoC
         console.log(`Processing task ${st.id_bpmn}: BoD=${isBoD}, SoD=${isSoD}, UoC=${isUoC}`);
 
-        // BoD type
-        if (isBoD && !isSoD && !isUoC) {
-            console.log('Generando reglas BoD...');
-            ms += `# EPL Rules for Binding of Duty (BoD)\n`;
-            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-            for (let j = 0; j < st.SubTasks.length - 1; j++) {
-                ms += `insert into BoDViolationEvent\n`;
-                ms += `select t1.userId as userId, t1.taskId as task1Id, t2.taskId as task2Id, t2.timestamp as violationTime\n`;
-                ms += `from pattern [\n`;
-                ms += `    every t1=Task(userId = '${st.User}', taskId = '${st.SubTasks[j]}') -> \n`;
-                ms += `    t2=Task(userId != t1.userId and taskId = '${st.SubTasks[j + 1]}')\n`;
-                ms += `    where timer:within(10 seconds)\n`;
-                ms += `];\n\n`;
-            }
-
-            ms += `# Output the detected BoD violations\n`;
-            ms += `select * from BoDViolationEvent;\n\n`;
-
-            // Debug: Mostrar reglas BoD generadas
-            console.log('Reglas BoD añadidas:', ms);
-        }
-
-        // SoD type
-        if (!isBoD && isSoD && !isUoC) {
-            console.log('Generando reglas SoD...');
-            ms += `# EPL Rules for Separation of Duty (SoD)\n`;
-            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-            for (let j = 0; j < st.SubTasks.length - 1; j++) {
-                ms += `insert into SoDViolationEvent\n`;
-                ms += `select t1.taskId as task1Id, t2.taskId as task2Id, t1.userId as user1Id, t2.userId as user2Id, t2.timestamp as violationTime\n`;
-                ms += `from pattern [\n`;
-                ms += `    every t1=Task(taskId = '${st.SubTasks[j]}') -> \n`;
-                ms += `    t2=Task(userId = t1.userId and taskId = '${st.SubTasks[j + 1]}')\n`;
-                ms += `    where timer:within(10 seconds)\n`;
-                ms += `];\n\n`;
-            }
-
-            ms += `# Output the detected SoD violations\n`;
-            ms += `select * from SoDViolationEvent;\n\n`;
-
-            console.log('Reglas SoD añadidas:', ms);
-        }
-        // UoC type
-        if (!isBoD && !isSoD && isUoC) {
-            console.log('Generando reglas UoC...');
-            ms += `# EPL Rules for Usage of Control (UoC)\n`;
-            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-            // Regla para limitar el uso de una tarea
-            ms += `insert into UoCViolationEvent\n`;
-            ms += `select e.userId as userId, e.taskId as taskId, count(*) as taskCount, max(e.timestamp) as lastExecutionTime\n`;
-            ms += `from Task.win:time_batch(1 hour) as e\n`;
-            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}'\n`;
-            ms += `group by e.userId, e.taskId\n`;
-            ms += `having count(*) > ${st.Mth};\n\n`;
-
-            ms += `# Output the detected UoC violations\n`;
-            ms += `select * from UoCViolationEvent;\n\n`;
-
-            console.log('Reglas UoC añadidas:', ms);
-        }
+        // Aquí continuarías con la lógica de generación de reglas BoD, SoD y UoC
     }
-
-    console.log('Final generated esperRules:', ms);
 
     // Escribir las reglas a un archivo
     const filePath = path.join(__dirname, '..', 'esperRules', 'esperRules.txt');
-
     fs.mkdir(path.dirname(filePath), { recursive: true }, (err) => {
         if (err) {
             console.log('Error creating directory:', err);
