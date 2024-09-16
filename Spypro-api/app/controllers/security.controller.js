@@ -175,7 +175,10 @@ exports.esperRules = function (req, res) {
 
         // Si BoD es true y los UserTasks son los mismos (no son diferentes)
         const isBoD = st.Bod === true && !areUserTasksDifferent;
-        const isSoD = st.Sod === true;
+
+        // Si SoD es true y los UserTasks son diferentes
+        const isSoD = st.Sod === true && areUserTasksDifferent && validUserTasks.length === subTasks.length;
+
         const isUoC = st.Uoc === true;
 
         console.log(`Processing task ${st.id_bpmn}: BoD=${isBoD}, SoD=${isSoD}, UoC=${isUoC}`);
@@ -198,11 +201,25 @@ exports.esperRules = function (req, res) {
             }
         }
 
-        // Aquí puedes agregar la lógica para SoD y UoC si es necesario
+        // Generar reglas SoD
         if (isSoD) {
-            // Lógica para la regla de SoD (Separation of Duties)
+            if (subTasks.length >= 2) {
+                const subTask1Id = subTasks[0].taskId;
+                const subTask2Id = subTasks[1].taskId;
+                const user1 = subTasks[0].UserTask;
+                const user2 = subTasks[1].UserTask;
+
+                // Agregar el mensaje de monitoreo en el formato solicitado
+                ms += "---------------------------------\n";
+                ms += "- [SOD MONITOR] Separation of Duties detected:\n";
+                ms += "- Parent Task ID: " + st.id_bpmn + "\n";
+                ms += "- SubTask 1 ID: " + subTask1Id + " - User ID: " + user1 + "\n";
+                ms += "- SubTask 2 ID: " + subTask2Id + " - User ID: " + user2 + "\n";
+                ms += "---------------------------------\n\n";
+            }
         }
 
+        // Aquí puedes agregar la lógica para UoC si es necesario
         if (isUoC) {
             // Lógica para la regla de UoC (Usage of Control)
         }
