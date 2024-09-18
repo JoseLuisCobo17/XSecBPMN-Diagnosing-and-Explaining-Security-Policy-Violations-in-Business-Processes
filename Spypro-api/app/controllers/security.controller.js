@@ -169,17 +169,12 @@ exports.esperRules = function (req, res) {
 
         console.log('Valid UserTasks:', validUserTasks);
 
-        // Verificar si los UserTasks válidos son distintos
         const areUserTasksDifferent = new Set(validUserTasks).size > 1;
         console.log('areUserTasksDifferent:', areUserTasksDifferent);  // Verifica si se detectan tareas diferentes
 
-        // Si BoD es true y los UserTasks son los mismos (no son diferentes)
         const isBoD = st.Bod === true && !areUserTasksDifferent;
-
-        // Si SoD es true y los UserTasks son diferentes
         const isSoD = st.Sod === true && areUserTasksDifferent && validUserTasks.length === subTasks.length;
-
-        const isUoC = st.Uoc === true;
+        const isUoC = st.Uoc === true && st.Mth >= 4 && validUserTasks.length > 0;  // Solo activa si Mth >= 4 y hay usuarios válidos
 
         console.log(`Processing task ${st.id_bpmn}: BoD=${isBoD}, SoD=${isSoD}, UoC=${isUoC}`);
 
@@ -219,9 +214,29 @@ exports.esperRules = function (req, res) {
             }
         }
 
-        // Aquí puedes agregar la lógica para UoC si es necesario
+        // Generar reglas UoC
         if (isUoC) {
-            // Lógica para la regla de UoC (Usage of Control)
+    
+
+            // Verificar si alguno de los usuarios ha excedido el número de ejecuciones permitido (st.Mth)
+            let ruleTriggered = false;
+            for (const [user, count] of Object.entries(userTaskCount)) {
+                if (count >= st.Mth) {
+                    const taskIds = subTasks.map(subTask => subTask.taskId).join(", ");
+                    ms += "---------------------------------\n";
+                    ms += "- [UOC MONITOR] Usage of Control detected:\n";
+                    ms += "- Parent Task ID: " + st.id_bpmn + "\n";
+                    ms += "- SubTasks IDs: " + taskIds + "\n";
+                    ms += "- User ID: " + user + "\n";
+                    ms += "- Maximum allowed executions (Mth >= 4): " + st.Mth + "\n";
+                    ms += "---------------------------------\n\n";
+                    ruleTriggered = true;
+                }
+            }
+
+            if (!ruleTriggered) {
+                console.log('No UoC violations detected.');
+            }
         }
     }
 
@@ -244,6 +259,7 @@ exports.esperRules = function (req, res) {
         });
     });
 };
+
 
 
 // Sincronización de la base de datos
