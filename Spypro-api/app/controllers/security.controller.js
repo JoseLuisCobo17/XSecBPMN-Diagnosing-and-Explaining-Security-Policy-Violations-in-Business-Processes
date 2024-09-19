@@ -4,6 +4,8 @@ const path = require('path');
 
 // Create and Save a new Security task
 exports.create = function (req, res) {
+    console.log('Received create request with body:', req.body);  // Depuración
+
     if (req.body.Bod === undefined || req.body.Sod === undefined || req.body.Uoc === undefined) {
         return res.status(400).send({ message: "Security task can not be empty" });
     }
@@ -12,14 +14,19 @@ exports.create = function (req, res) {
         id_model: req.body.id_model,
         id_bpmn: req.body.id_bpmn || "Untitled security task",
         Bod: req.body.Bod === true,
-        Sod: req.body.Sod === true, 
+        Sod: req.body.Sod === true,
         Uoc: req.body.Uoc === true,
         Nu: Number(req.body.Nu),
         Mth: Number(req.body.Mth),
         P: Number(req.body.P),
         User: req.body.User || '',
-        Log: req.body.Log || ''    
+        Log: req.body.Log || '',
+        NumberOfExecutions: req.body.NumberOfExecutions || 0,
+        AverageTimeEstimate: req.body.AverageTimeEstimate || 0,
+        Instance: req.body.Instance || ''
     });
+
+    console.log('Created Security object:', security);  // Verificación del objeto creado
 
     security.save(function (err, data) {
         if (err) {
@@ -151,236 +158,97 @@ exports.modSecurity = function (req, res) {
 exports.esperRules = function (req, res) {
     let ms = "";
 
-    // StringBuilder emulación en JavaScript
-    class StringBuilder {
-        constructor() {
-            this._buffer = [];
-        }
-
-        append(str) {
-            this._buffer.push(str);
-            return this;
-        }
-
-        toString() {
-            return this._buffer.join("");
-        }
-    }
-
     if (!req.body.modSecurity) {
         return res.status(400).send({ message: "No esperRules data provided" });
     }
 
-    console.log('esperRules data received:', req.body.modSecurity);
+    console.log('esperRules data received:', JSON.stringify(req.body.modSecurity, null, 2));
 
     for (let i = 0; i < req.body.modSecurity.length; i++) {
         const st = req.body.modSecurity[i];
-        console.log('Processing task:', st);
 
-        // BoD type
-        if (st.Bod && !st.Sod && !st.Uoc) {
-            console.log('Generating BoD rules...');
+        // Asegúrate de que las SubTasks y sus UserTask existan
+        const subTasks = st.SubTasks || [];
 
-            ms += `# EPL Rules for Binding of Duty (BoD)\n`;
-            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
+        // Obtener los UserTask que no sean null, vacíos o "Unknown"
+        const validUserTasks = subTasks.map(subTask => subTask.UserTask)
+                                       .filter(userTask => userTask && userTask.trim() !== "" && userTask !== "Unknown");
 
-            for (let j = 0; j < st.SubTasks.length - 1; j++) {
-                ms += `insert into BoDViolationEvent\n`;
-                ms += `select t1.userId as userId, t1.taskId as task1Id, t2.taskId as task2Id, t2.timestamp as violationTime\n`;
-                ms += `from pattern [\n`;
-                ms += `    every t1=Task(userId = '${st.User}', taskId = '${st.SubTasks[j]}') -> \n`;
-                ms += `    t2=Task(userId != t1.userId and taskId = '${st.SubTasks[j + 1]}')\n`;
-                ms += `    where timer:within(10 seconds)\n`;
-                ms += `];\n\n`;
+        console.log('Valid UserTasks:', validUserTasks);
+
+        const areUserTasksDifferent = new Set(validUserTasks).size > 1;
+        console.log('areUserTasksDifferent:', areUserTasksDifferent);  // Verifica si se detectan tareas diferentes
+
+        const isBoD = st.Bod === true && !areUserTasksDifferent;
+        const isSoD = st.Sod === true && areUserTasksDifferent && validUserTasks.length === subTasks.length;
+        const isUoC = st.Uoc === true && st.Mth >= 4 && validUserTasks.length > 0;  // Solo activa si Mth >= 4 y hay usuarios válidos
+
+        console.log(`Processing task ${st.id_bpmn}: BoD=${isBoD}, SoD=${isSoD}, UoC=${isUoC}`);
+
+        // Generar reglas BoD
+        if (isBoD) {
+            if (subTasks.length >= 2) {
+                const subTask1Id = subTasks[0].taskId;
+                const subTask2Id = subTasks[1].taskId;
+                const user = subTasks[1].UserTask;
+
+                // Agregar el mensaje de monitoreo en el formato solicitado
+                ms += "---------------------------------\n";
+                ms += "- [BOD MONITOR] Binding of Duty detected:\n";
+                ms += "- Parent Task ID: " + st.id_bpmn + "\n";
+                ms += "- SubTask 1 ID: " + subTask1Id + "\n";
+                ms += "- SubTask 2 ID: " + subTask2Id + "\n";
+                ms += "- User ID: " + user + "\n";
+                ms += "---------------------------------\n\n";
+            }
+        }
+
+        // Generar reglas SoD
+        if (isSoD) {
+            if (subTasks.length >= 2) {
+                const subTask1Id = subTasks[0].taskId;
+                const subTask2Id = subTasks[1].taskId;
+                const user1 = subTasks[0].UserTask;
+                const user2 = subTasks[1].UserTask;
+
+                // Agregar el mensaje de monitoreo en el formato solicitado
+                ms += "---------------------------------\n";
+                ms += "- [SOD MONITOR] Separation of Duties detected:\n";
+                ms += "- Parent Task ID: " + st.id_bpmn + "\n";
+                ms += "- SubTask 1 ID: " + subTask1Id + " - User ID: " + user1 + "\n";
+                ms += "- SubTask 2 ID: " + subTask2Id + " - User ID: " + user2 + "\n";
+                ms += "---------------------------------\n\n";
+            }
+        }
+
+        // Generar reglas UoC
+        if (isUoC) {
+    
+
+            // Verificar si alguno de los usuarios ha excedido el número de ejecuciones permitido (st.Mth)
+            let ruleTriggered = false;
+            for (const [user, count] of Object.entries(userTaskCount)) {
+                if (count >= st.Mth) {
+                    const taskIds = subTasks.map(subTask => subTask.taskId).join(", ");
+                    ms += "---------------------------------\n";
+                    ms += "- [UOC MONITOR] Usage of Control detected:\n";
+                    ms += "- Parent Task ID: " + st.id_bpmn + "\n";
+                    ms += "- SubTasks IDs: " + taskIds + "\n";
+                    ms += "- User ID: " + user + "\n";
+                    ms += "- Maximum allowed executions (Mth >= 4): " + st.Mth + "\n";
+                    ms += "---------------------------------\n\n";
+                    ruleTriggered = true;
+                }
             }
 
-            ms += `# Output the detected BoD violations\n`;
-            ms += `select * from BoDViolationEvent;\n\n`;
-
-            // Logging with similar format to LOG.debug
-            let logMessage = `
-            ---------------------------------
-            - [BOD MONITOR] BoD rules generated:
-            ${ms.split('\n').map(line => `    ${line}`).join('\n')}
-            ---------------------------------`;
-
-            console.log('BoD rules added:', ms); // Original debugging log
-            console.log(logMessage); // Additional log in the style of LOG.debug
-        }
-
-        // SoD type
-        if (!st.Bod && st.Sod && !st.Uoc) {
-            console.log('Generating SoD rules...');
-
-            ms += `# EPL Rules for Separation of Duty (SoD)\n`;
-            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-            for (let j = 0; j < st.SubTasks.length - 1; j++) {
-                ms += `insert into SoDViolationEvent\n`;
-                ms += `select t1.taskId as task1Id, t2.taskId as task2Id, t1.userId as user1Id, t2.userId as user2Id, t2.timestamp as violationTime\n`;
-                ms += `from pattern [\n`;
-                ms += `    every t1=Task(taskId = '${st.SubTasks[j]}') -> \n`;
-                ms += `    t2=Task(userId = t1.userId and taskId = '${st.SubTasks[j + 1]}')\n`;
-                ms += `    where timer:within(10 seconds)\n`;
-                ms += `];\n\n`;
+            if (!ruleTriggered) {
+                console.log('No UoC violations detected.');
             }
-
-            ms += `# Output the detected SoD violations\n`;
-            ms += `select * from SoDViolationEvent;\n\n`;
-
-            // Logging with a similar format to LOG.debug
-            let task1Id = st.SubTasks[0];
-            let task2Id = st.SubTasks[1];
-            let user1Id = st.User;
-            let user2Id = st.User;  
-
-            let sb = new StringBuilder();
-            sb.append("---------------------------------\n");
-            sb.append("- [SOD MONITOR] Segregation of Duties enforced:\n");
-            sb.append("- Task 1 ID: ").append(task1Id).append("\n");
-            sb.append("- Task 2 ID: ").append(task2Id).append("\n");
-            sb.append("- User 1 ID: ").append(user1Id).append("\n");
-            sb.append("- User 2 ID: ").append(user2Id).append("\n");
-            sb.append("---------------------------------\n");
-
-            console.log('SoD rules added:', ms); // Original debugging log
-            console.log(sb.toString()); // Log en el estilo de LOG.debug
-        }
-
-        // UoC type - limiting number of times a task can be executed
-        if (!st.Bod && !st.Sod && st.Uoc) {
-            console.log('Generating UoC rules...');
-
-            ms += `# EPL Rules for Usage of Control (UoC)\n`;
-            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-            ms += `insert into UoCViolationEvent\n`;
-            ms += `select e.userId as userId, e.taskId as taskId, count(*) as taskCount, max(e.timestamp) as lastExecutionTime\n`;
-            ms += `from Task.win:time_batch(1 hour) as e\n`;
-            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}'\n`;
-            ms += `group by e.userId, e.taskId\n`;
-            ms += `having count(*) > ${st.Mth};\n\n`;
-
-            ms += `# Output the detected UoC violations\n`;
-            ms += `select * from UoCViolationEvent;\n\n`;
-
-            // Logging with similar format to LOG.debug
-            let userId = st.User;
-            let taskCount = `${st.Mth}`;
-
-            let sb = new StringBuilder();
-            sb.append("---------------------------------\n");
-            sb.append("- [UOC MONITOR] Usage of Control violation detected:\n");
-            sb.append("- User ID: ").append(userId).append("\n");
-            sb.append("- Number of executions: ").append(taskCount).append("\n");
-            sb.append("---------------------------------\n");
-
-            console.log('UoC rules added:', ms); // Original debugging log
-            console.log(sb.toString()); // Log en el estilo de LOG.debug
-        }
-
-        // UoC2 type
-        if (!st.Bod && !st.Sod && st.Uoc && st.P != 0) {
-            console.log('Generating UoC2 rules...');
-
-            ms += `# EPL Rules for UoC2 Type\n`;
-            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-            ms += `insert into UoC2ViolationEvent\n`;
-            ms += `select e.userId as userId, e.taskId as taskId, max(e.timestamp) as violationTime\n`;
-            ms += `from Task.win:time_batch(1 hour) as e\n`;
-            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}'\n`;
-            ms += `group by e.userId, e.taskId\n`;
-            ms += `having count(*) > ${st.Mth};\n\n`;
-
-            ms += `# Output the detected UoC2 violations\n`;
-            ms += `select * from UoC2ViolationEvent;\n\n`;
-
-            // Logging with similar format to LOG.debug
-            let userId = st.User;
-            let taskId = st.SubTasks[0];
-            let violationTime = new Date().toISOString(); // Assuming current time
-
-            let sb = new StringBuilder();
-            sb.append("---------------------------------\n");
-            sb.append("- [UOC2 MONITOR] Usage of Control 2 violation detected:\n");
-            sb.append("- User ID: ").append(userId).append("\n");
-            sb.append("- Task ID: ").append(taskId).append("\n");
-            sb.append("- Violation Time: ").append(violationTime).append("\n");
-            sb.append("---------------------------------\n");
-
-            console.log('UoC2 rules added:', ms); // Original debugging log
-            console.log(sb.toString()); // Log en el estilo de LOG.debug
-        }
-
-        // UoC3 type
-        if (!st.Bod && !st.Sod && st.Uoc && st.User != "") {
-            console.log('Generating UoC3 rules...');
-
-            ms += `# EPL Rules for UoC3 Type\n`;
-            ms += `create schema Task(userId string, groupId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-            ms += `insert into UoC3ViolationEvent\n`;
-            ms += `select e.userId as userId, e.groupId as groupId, e.taskId as taskId, max(e.timestamp) as violationTime\n`;
-            ms += `from Task as e\n`;
-            ms += `where e.taskId = '${st.SubTasks[0]}' and e.groupId != 'Advisor';\n\n`;
-
-            ms += `# Output the detected UoC3 violations\n`;
-            ms += `select * from UoC3ViolationEvent;\n\n`;
-
-            // Logging with similar format to LOG.debug
-            let userId = st.User;
-            let groupId = 'Unknown'; // Assuming the group ID is 'Unknown' for non-advisor groups
-            let taskId = st.SubTasks[0];
-            let violationTime = new Date().toISOString(); // Assuming current time
-
-            let sb = new StringBuilder();
-            sb.append("---------------------------------\n");
-            sb.append("- [UOC3 MONITOR] Usage of Control 3 violation detected:\n");
-            sb.append("- User ID: ").append(userId).append("\n");
-            sb.append("- Group ID: ").append(groupId).append("\n");
-            sb.append("- Task ID: ").append(taskId).append("\n");
-            sb.append("- Violation Time: ").append(violationTime).append("\n");
-            sb.append("---------------------------------\n");
-
-            console.log('UoC3 rules added:', ms); // Original debugging log
-            console.log(sb.toString()); // Log en el estilo de LOG.debug
-        }
-
-        // SoD & UoC2 type
-        if (!st.Bod && st.Sod && st.Uoc && st.P != 0 && st.User != "") {
-            console.log('Generating SoD & UoC2 rules...');
-            ms += `# EPL Rules for SoD & UoC2 Combination\n`;
-            ms += `create schema Task(userId string, taskId string, timestamp long, Nu integer, Mth integer, P integer, Log string, SubTask string);\n\n`;
-
-            ms += `insert into SoDUoC2ViolationEvent\n`;
-            ms += `select e.userId as violatingUser, e.taskId, e.timestamp as violationTime\n`;
-            ms += `from Task as e\n`;
-            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}' and e.timestamp > current_timestamp - 3600;\n\n`;
-
-            ms += `insert into SoDUoC2OverExecutionEvent\n`;
-            ms += `select e.userId as violatingUser, e.taskId, count(*) as executionCount, e.timestamp as violationTime\n`;
-            ms += `from Task.win:time_batch(1 hour) as e\n`;
-            ms += `where e.taskId = '${st.SubTasks[0]}' and e.userId = '${st.User}'\n`;
-            ms += `group by e.userId, e.taskId\n`;
-            ms += `having count(*) > 3;\n\n`;
-
-            ms += `insert into SoDUoC2BlockEvent\n`;
-            ms += `select o.violatingUser, o.taskId, o.violationTime\n`;
-            ms += `from SoDUoC2OverExecutionEvent as o;\n\n`;
-
-            ms += `# Output the detected SoD & UoC2 violations and blocks\n`;
-            ms += `select * from SoDUoC2ViolationEvent;\n`;
-            ms += `select * from SoDUoC2OverExecutionEvent;\n`;
-            ms += `select * from SoDUoC2BlockEvent;\n\n`;
         }
     }
 
-    console.log('Final generated esperRules:', ms);
-
-    // Write to file
+    // Escribir las reglas a un archivo
     const filePath = path.join(__dirname, '..', 'esperRules', 'esperRules.txt');
-
     fs.mkdir(path.dirname(filePath), { recursive: true }, (err) => {
         if (err) {
             console.log('Error creating directory:', err);
@@ -398,6 +266,8 @@ exports.esperRules = function (req, res) {
         });
     });
 };
+
+
 
 // Sincronización de la base de datos
 exports.synDB = async function (req, res) {
@@ -509,6 +379,12 @@ exports.update = async function (req, res) {
         if (req.body.User !== undefined) security.User = req.body.User;
         if (req.body.Log !== undefined) security.Log = req.body.Log;
         if (req.body.SubTasks !== undefined) security.SubTasks = req.body.SubTasks;
+
+        // Nuevas propiedades añadidas
+        if (req.body.NumberOfExecutions !== undefined) security.NumberOfExecutions = req.body.NumberOfExecutions;
+        if (req.body.AverageTimeEstimate !== undefined) security.AverageTimeEstimate = req.body.AverageTimeEstimate;
+        if (req.body.Instance !== undefined) security.Instance = req.body.Instance;
+
         console.log('Updated security task:', security);
 
         const updatedSecurity = await security.save();

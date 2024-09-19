@@ -7,24 +7,6 @@ import { TextFieldEntry } from '@bpmn-io/properties-panel';
 export default function(element) {
   return [
     {
-      id: 'BoD',
-      element,
-      component: BoDFunction,
-      isEdited: isCheckboxEntryEdited
-    },
-    {
-      id: 'SoD',
-      element,
-      component: SoDFunction,
-      isEdited: isCheckboxEntryEdited
-    },
-    {
-      id: 'UoC',
-      element,
-      component: UoCFunction,
-      isEdited: isCheckboxEntryEdited
-    },
-    {
       id: 'Nu',
       element,
       component: NuFunction, 
@@ -55,113 +37,6 @@ export default function(element) {
       isEdited: isStringEntryEdited
     }
   ];
-}
-
-function BoDFunction(props) {
-  const { element, id } = props;
-
-  const modeling = useService('modeling');
-  const translate = useService('translate');
-  const debounce = useService('debounceInput');
-
-  const getValue = () => {
-    if (!element || !element.businessObject) {
-      return false; 
-    }
-    const value = element.businessObject.Bod;
-    return value === true;
-  };
-
-  const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
-    }
-    modeling.updateProperties(element, {
-      Bod: value
-    });
-  };
-
-  return html`<${CheckboxEntry}
-    id=${id}
-    element=${element}
-    label=${translate('BoD')}
-    getValue=${getValue}
-    setValue=${setValue}
-    debounce=${debounce}
-    tooltip=${translate('Check BoD security')}
-  />`;
-}
-
-function SoDFunction(props) {
-  const { element, id } = props;
-
-  const modeling = useService('modeling');
-  const translate = useService('translate');
-  const debounce = useService('debounceInput');
-
-  const getValue = () => {
-    if (!element || !element.businessObject) {
-      return false; 
-    }
-    const value = element.businessObject.Sod;
-    return value === true; 
-  };
-
-  const setValue = value => {
-    if (!element || !element.businessObject) {
-      return;
-    }
-    console.log('Setting SoD to (setValue):', value); 
-    modeling.updateProperties(element, {
-      Sod: value
-    });
-  };
-
-  return html`<${CheckboxEntry}
-    id=${id}
-    element=${element}
-    label=${translate('SoD')}
-    getValue=${getValue}
-    setValue=${setValue}
-    debounce=${debounce}
-    tooltip=${translate('Check SoD security')}
-  />`;
-}
-
-function UoCFunction(props) {
-  const { element, id } = props;
-
-  const modeling = useService('modeling');
-  const translate = useService('translate');
-  const debounce = useService('debounceInput');
-
-  const getValue = () => {
-    if (!element || !element.businessObject) {
-      return false; 
-    }
-    const value = element.businessObject.Uoc; 
-    return value === true; 
-  };
-
-  const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
-    }
-    console.log('Setting UoC to (setValue):', value); 
-    modeling.updateProperties(element, {
-      Uoc: value 
-    });
-  };
-
-  return html`<${CheckboxEntry}
-    id=${id}
-    element=${element}
-    label=${translate('UoC')}
-    getValue=${getValue}
-    setValue=${setValue}
-    debounce=${debounce}
-    tooltip=${translate('Check UoC security')}
-  />`;
 }
 
 function NuFunction(props) {
