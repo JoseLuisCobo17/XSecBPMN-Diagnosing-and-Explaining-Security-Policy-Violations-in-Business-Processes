@@ -9,10 +9,29 @@ export default function(element) {
       element,
       component: UserFunction,
       isEdited: isListOfStringEntryEdited // Se pasa la función correcta
+    },
+    {
+      id: 'NumberOfExecutions',
+      element,
+      component: NumberOfExecutionsFunction,
+      isEdited: isNumberEntryEdited
+    },
+    {
+      id: 'AverageTimeEstimate',
+      element,
+      component: AverageTimeEstimateFunction,
+      isEdited: isNumberEntryEdited
+    },
+    {
+      id: 'Instance',
+      element,
+      component: InstanceFunction,
+      isEdited: isListOfStringEntryEdited
     }
   ];
 }
 
+// UserTask
 function UserFunction(props) {
   const { element, id } = props;
 
@@ -33,7 +52,8 @@ function UserFunction(props) {
     if (!element || !element.businessObject) {
       return; 
     }
-    console.log('Setting UserTask to (setValue):', value); 
+
+    // Asegúrate de que la propiedad UserTask está presente en el businessObject
     modeling.updateProperties(element, {
       UserTask: value 
     });
@@ -50,7 +70,126 @@ function UserFunction(props) {
   />`;
 }
 
-// Corregido: Acepta 'element' como parámetro
+// NumberOfExecutions
+function NumberOfExecutionsFunction(props) {
+  const { element, id } = props;
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return ''; 
+    }
+    const value = element.businessObject.NumberOfExecutions;
+    console.log('Current NumberOfExecutions value (getValue):', value, 'BusinessObject:', element.businessObject);
+    return value !== undefined ? value : '';
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; 
+    }
+    console.log('Setting NumberOfExecutions to (setValue):', value);
+    console.log('Before updating:', element.businessObject);
+
+    // Actualización del businessObject
+    modeling.updateProperties(element, {
+      NumberOfExecutions: Number(value)
+    });
+
+    console.log('After updating:', element.businessObject);
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Number of executions')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter the number of different executions.')} 
+  />`;
+}
+
+// AverageTimeEstimate
+function AverageTimeEstimateFunction(props) {
+  const { element, id } = props;
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return ''; 
+    }
+    const value = element.businessObject.AverageTimeEstimate;
+    console.log('Current AverageTimeEstimate value (getValue):', value);
+    return value !== undefined ? value : '';
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; 
+    }
+
+    // Inicializar averageTimeEstimate si no existe
+    modeling.updateProperties(element, {
+      AverageTimeEstimate: Number(value)
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Average time estimate')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter the average time estimate.')} 
+  />`;
+}
+
+// Instance
+function InstanceFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return ''; 
+    }
+    const value = element.businessObject.Instance; 
+    console.log('Current Instance value (getValue):', value);
+    return value !== undefined ? value : ''; 
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; 
+    }
+
+    // Asegúrate de que la propiedad Instance está presente en el businessObject
+    modeling.updateProperties(element, {
+      Instance: value 
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Instance')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter a Instance name.')} 
+  />`;
+}
+
+// Funciones auxiliares
 function isListOfStringEntryEdited(element) {
   if (!element || !element.businessObject) {
     return false;
@@ -65,4 +204,13 @@ function isListOfStringEntryEdited(element) {
 
   // Retornamos true si al menos un elemento en la lista no es un string vacío
   return userTaskValues.some(value => typeof value === 'string' && value !== '');
+}
+
+function isNumberEntryEdited(element) {
+  console.log("element:" + element.businessObject)
+  if (!element || !element.businessObject) {
+    return 0;
+  }
+  const nuValue = element.businessObject.numberOfExecutions;
+  return (typeof nuValue !== 'undefined' && !isNaN(nuValue)) ? nuValue : 0;
 }

@@ -18,6 +18,22 @@
           "isAttr": true,
           "type": "String",
           "isMany": true
+        },
+        {
+          "name": "NumberOfExecutions",
+          "isAttr": true,
+          "type": "Integer",
+          "isMany": false
+        },
+        {
+          "name": "AverageTimeEstimate",
+          "isAttr": true,
+          "type": "Integer"
+        },
+        {
+          "name": "Instance",
+          "isAttr": true,
+          "type": "String"
         }
       ]
     }

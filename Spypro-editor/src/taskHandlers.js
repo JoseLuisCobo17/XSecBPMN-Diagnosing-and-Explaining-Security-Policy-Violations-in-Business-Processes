@@ -4,34 +4,107 @@ function getSecurityTasks(bpmnModeler) {
   var elementRegistry = bpmnModeler.get('elementRegistry');
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
+
+  // Filtra solo las tareas relevantes
   var serviceTasks = elementRegistry.filter(e => e.type === 'bpmn:ServiceTask');
   var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
 
   var res = [];
-  serviceTaskBusinessObjects.forEach(function(element) {
+
+  // Procesa cada tarea de servicio para capturar sus propiedades
+  serviceTaskBusinessObjects.forEach(function (element) {
     var list = element.outgoing;
     var subTasks = [];
-    if (list) {
-      list.forEach(function(task) {
-        subTasks.push(task.targetRef.id);
+
+    if (!list || list.length === 0) {
+      console.warn(`No hay conexiones salientes (outgoing) para la tarea: ${element.id}`);
+    } else {
+      console.log(`Conexiones salientes para la tarea ${element.id}:`, list);
+      list.forEach(function (task) {
+        if (task.targetRef) {
+          const subTaskElement = elementRegistry.get(task.targetRef.id);
+
+          if (subTaskElement && subTaskElement.businessObject) {
+            const targetType = subTaskElement.businessObject.$type;
+            console.log('Tipo de tarea objetivo (targetType):', targetType); // Depuración para ver el tipo
+
+            let userTask = "N/A";
+            let numberOfExecutions = "N/A";
+            let averageTimeEstimate = "N/A";
+            let instance = "N/A";
+
+            // Actualizamos la lógica para verificar si el objeto contiene el UserTask, NumberOfExecutions, AverageTimeEstimate e Instance
+            if (targetType === "bpmn:UserTask" || targetType === "bpmn:Task") {
+              const bo = subTaskElement.businessObject;
+              console.log('Encontrado Task:', bo); // Depuración completa de la sub-tarea
+              
+              // Intentamos acceder a las diferentes propiedades
+              userTask = bo.userTask || bo.UserTask || bo.assignee || bo.candidateUsers || bo.name || "Unknown";
+              numberOfExecutions = bo.numberOfExecutions || "N/A";
+              averageTimeEstimate = bo.averageTimeEstimate || "N/A";
+              instance = bo.instance || "N/A";
+
+              console.log('UserTask detectado:', userTask); // Depuración para ver el valor de userTask
+              console.log('NumberOfExecutions detectado:', numberOfExecutions); // Depuración para ver el valor de numberOfExecutions
+              console.log('AverageTimeEstimate detectado:', averageTimeEstimate); // Depuración para ver el valor de averageTimeEstimate
+              console.log('Instance detectado:', instance); // Depuración para ver el valor de instance
+            }
+
+            subTasks.push({
+              taskId: subTaskElement.id,
+              UserTask: userTask,
+              NumberOfExecutions: numberOfExecutions,
+              AverageTimeEstimate: averageTimeEstimate,
+              Instance: instance
+            });
+          } else {
+            console.warn(`El targetRef existe pero no tiene un businessObject para la tarea con id: ${task.targetRef.id}`);
+            subTasks.push({
+              taskId: task.targetRef.id,
+              UserTask: "N/A",
+              NumberOfExecutions: "N/A",
+              AverageTimeEstimate: "N/A",
+              Instance: "N/A"
+            });
+          }
+        } else {
+          console.warn(`No se encontró targetRef para la tarea con id: ${task.id}`);
+        }
       });
     }
+
+    // Mostrar todas las propiedades del elemento
+    console.log('ServiceTask BusinessObject completo:', JSON.stringify(element, null, 2));
+
+    // Verifica el securityType y lo traduce a BoD, SoD y UoC
+    var isBod = element.securityType === "BoD";
+    var isSod = element.securityType === "SoD";
+    var isUoc = element.securityType === "UoC";
+
+    // Verifica y asigna correctamente las propiedades de seguridad, incluyendo las nuevas propiedades
     var st = {
       id_model: id_model,
       id_bpmn: element.id,
-      Bod: element.Bod || false,
-      Sod: element.Sod || false,
-      Uoc: element.Uoc || false,
+      Bod: isBod ? true : false,
+      Sod: isSod ? true : false,
+      Uoc: isUoc ? true : false,
       Nu: element.Nu || 0,
       Mth: element.Mth || 0,
       P: element.P || 0,
       User: element.User || "",
       Log: element.Log || "",
-      SubTasks: subTasks
+      NumberOfExecutions: element.numberOfExecutions || "N/A",
+      AverageTimeEstimate: element.averageTimeEstimate || "N/A",
+      Instance: element.instance || "N/A",
+      SubTasks: subTasks.length > 0 ? subTasks : []  // Si no se encontraron subTasks, deja el arreglo vacío
     };
+
+    console.log('Tarea de seguridad procesada:', JSON.stringify(st, null, 2));
 
     res.push(st);
   });
+
+  console.log('Security Tasks para enviar:', JSON.stringify(res, null, 2));
 
   return res;
 }
@@ -55,18 +128,21 @@ function getAllRelevantTasks(bpmnModeler) {
     var businessObject = e.businessObject;
     var subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
 
-    // Recuperar propiedades según el tipo de tarea
+
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isTask = e.type === 'bpmn:Task';
+
+    
+    const securityType = businessObject.securityType || ''; 
 
     return {
       id_model: id_model,
       id_bpmn: businessObject.id,
       name: businessObject.name || "",  
       type: businessObject.$type || "",  
-      Bod: isServiceTask ? (businessObject.Bod || false) : false,
-      Sod: isServiceTask ? (businessObject.Sod || false) : false,
-      Uoc: isServiceTask ? (businessObject.Uoc || false) : false,
+      Bod: securityType === 'BoD', 
+      Sod: securityType === 'SoD', 
+      Uoc: securityType === 'UoC', 
       Nu: isServiceTask ? (businessObject.Nu || 0) : 0,
       Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
       P: isServiceTask ? (businessObject.P || 0) : 0,
@@ -86,27 +162,29 @@ function modSecurity(bpmnModeler) {
   };
   return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
     .then(response => {
-      console.log('ModSecurity rules generated and posted successfully:', response.data);
       return response.data;
     })
     .catch(error => {
-      console.error('Error posting ModSecurity rules:', error);
       throw error;
     });
 }
 
 function esperRules(bpmnModeler) {
+  // Capturar tareas con propiedades de seguridad
+  const securityTasks = getSecurityTasks(bpmnModeler);
+  
+  // Definir los argumentos para la solicitud POST
   const args = {
-    data: { modSecurity: getSecurityTasks(bpmnModeler) }, 
+    data: { modSecurity: securityTasks }, 
     headers: { "Content-Type": "application/json" }
   };
+  
+  // Realizar la solicitud POST a la API de EsperRules
   return axios.post("http://localhost:3000/esperrules", args.data, { headers: args.headers })
     .then(response => {
-      console.log('EsperRules generated and posted successfully:', response.data);
       return response.data;
     })
     .catch(error => {
-      console.error('Error posting EsperRules:', error);
       throw error;
     });
 }
@@ -154,8 +232,8 @@ function exportToEsper(bpmnModeler) {
       let content = "### Esper Rules Export ###\n\n";
       elements.forEach(element => {
         content += `Element: [type=${element.type}, `;
-        content += `name=${element.name}, `;
-        content += `id_bpmn=${element.id_bpmn}, `;
+        content += `name=${element.name || 'Unnamed'}, `;
+        content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
         content += `sodSecurity=${element.Sod}, `;
         content += `bodSecurity=${element.Bod}, `;
         content += `uocSecurity=${element.Uoc}, `;
@@ -164,15 +242,16 @@ function exportToEsper(bpmnModeler) {
         content += `mth=${element.Mth}, `;
         content += `p=${element.P}, `;
 
-        // Verificar si es una Task normal o ServiceTask para usar la propiedad correcta
+        // Diferenciar entre Task y ServiceTask
         if (element.type === 'bpmn:Task') {
-          content += `userTask=${element.UserTask || ''}, `;  // Usar UserTask para bpmn:Task
-        } else if (element.type === 'bpmn:ServiceTask') {
-          content += `user=${element.User || ''}, `;  // Usar User para bpmn:ServiceTask
+          content += `userTask=${element.UserTask || 'N/A'}, `; 
+          content += `user=${element.User || 'N/A'}, `;  
         }
 
-        content += `log=${element.Log}, `;
-        content += `subTask=${element.SubTasks.join(', ')}]\n`;
+        content += `log=${element.Log || 'N/A'}, `;
+
+        const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+        content += `subTask=${subTasks}]\n`;
       });
 
       if (elements.length === 0) {
@@ -187,7 +266,6 @@ function exportToEsper(bpmnModeler) {
     }
   });
 }
-
 
 module.exports = {
   getSecurityTasks,

@@ -10,19 +10,29 @@ import {
   append as svgAppend,
   create as svgCreate
 } from 'tiny-svg';
-import Lock from '../lock';
+import { SoD, BoD, UoC } from '../lock'; // Asegúrate de importar UoC
 
-export default function SecurityRender(eventBus) {
+export default function SecurityRender(eventBus, renderType) { 
   BaseRenderer.call(this, eventBus, 1500);
 
   this.canRender = function(element) {
     return is(element, 'bpmn:ServiceTask');
   };
 
-
   this.drawShape = function(parent, shape) {
-    var url = Lock.dataURL;
-
+    var url;
+    
+    // Verifica el tipo de seguridad del elemento para decidir la imagen
+    var securityType = shape.businessObject.securityType;
+  
+    if (securityType === 'BoD') {
+      url = BoD.dataURL; // Imagen de BoD
+    } else if (securityType === 'UoC') {
+      url = UoC.dataURL; // Imagen de UoC
+    } else {
+      url = SoD.dataURL; // Imagen de SoD por defecto
+    }
+  
     var lockGfx = svgCreate('image', {
       x: 0,
       y: 0,
@@ -30,38 +40,13 @@ export default function SecurityRender(eventBus) {
       height: shape.height,
       href: url
     });
-
+  
     svgAppend(parent, lockGfx);
-
+  
     return lockGfx;
-  };
+  };  
 }
 
 inherits(SecurityRender, BaseRenderer);
 
-SecurityRender.$inject = [ 'eventBus' ];
-
-/*function SecurityRenderer(eventBus) {
-  BaseRenderer.call(this, eventBus, 1500); // Call the super constructor
-}
-
-inherits(SecurityRenderer, BaseRenderer); // Set up inheritance
-
-SecurityRenderer.prototype.canRender = function(element) {
-  return is(element, 'bpmn:ServiceTask');
-};
-
-SecurityRenderer.prototype.drawShape = function(parent, shape) {
-  var lockGfx = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-  lockGfx.setAttribute('x', 0);
-  lockGfx.setAttribute('y', 0);
-  lockGfx.setAttribute('width', shape.width);
-  lockGfx.setAttribute('height', shape.height);
-  lockGfx.setAttribute('href', lockDataURL);
-
-  parent.appendChild(lockGfx);
-
-  return lockGfx;
-};
-
-module.exports = SecurityRenderer;*/
+SecurityRender.$inject = ['eventBus'];
