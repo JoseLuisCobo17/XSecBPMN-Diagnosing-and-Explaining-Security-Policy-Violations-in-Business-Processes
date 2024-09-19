@@ -16,7 +16,10 @@ var SecuritySchema = mongoose.Schema({
     Mth: Number,
     P: Number,
     User: String,
-    Log: String
+    Log: String,
+    NumberOfExecutions: { type: Number, default: 0 },  
+    AverageTimeEstimate: { type: Number, default: 0 }, 
+    Instance: { type: String, default: '' }  
 });
 
 module.exports = mongoose.model('Security', SecuritySchema);

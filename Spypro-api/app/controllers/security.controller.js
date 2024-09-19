@@ -4,6 +4,8 @@ const path = require('path');
 
 // Create and Save a new Security task
 exports.create = function (req, res) {
+    console.log('Received create request with body:', req.body);  // Depuración
+
     if (req.body.Bod === undefined || req.body.Sod === undefined || req.body.Uoc === undefined) {
         return res.status(400).send({ message: "Security task can not be empty" });
     }
@@ -12,14 +14,19 @@ exports.create = function (req, res) {
         id_model: req.body.id_model,
         id_bpmn: req.body.id_bpmn || "Untitled security task",
         Bod: req.body.Bod === true,
-        Sod: req.body.Sod === true, 
+        Sod: req.body.Sod === true,
         Uoc: req.body.Uoc === true,
         Nu: Number(req.body.Nu),
         Mth: Number(req.body.Mth),
         P: Number(req.body.P),
         User: req.body.User || '',
-        Log: req.body.Log || ''    
+        Log: req.body.Log || '',
+        NumberOfExecutions: req.body.NumberOfExecutions || 0,
+        AverageTimeEstimate: req.body.AverageTimeEstimate || 0,
+        Instance: req.body.Instance || ''
     });
+
+    console.log('Created Security object:', security);  // Verificación del objeto creado
 
     security.save(function (err, data) {
         if (err) {
@@ -372,6 +379,12 @@ exports.update = async function (req, res) {
         if (req.body.User !== undefined) security.User = req.body.User;
         if (req.body.Log !== undefined) security.Log = req.body.Log;
         if (req.body.SubTasks !== undefined) security.SubTasks = req.body.SubTasks;
+
+        // Nuevas propiedades añadidas
+        if (req.body.NumberOfExecutions !== undefined) security.NumberOfExecutions = req.body.NumberOfExecutions;
+        if (req.body.AverageTimeEstimate !== undefined) security.AverageTimeEstimate = req.body.AverageTimeEstimate;
+        if (req.body.Instance !== undefined) security.Instance = req.body.Instance;
+
         console.log('Updated security task:', security);
 
         const updatedSecurity = await security.save();

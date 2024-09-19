@@ -29,26 +29,42 @@ function getSecurityTasks(bpmnModeler) {
             console.log('Tipo de tarea objetivo (targetType):', targetType); // Depuración para ver el tipo
 
             let userTask = "N/A";
+            let numberOfExecutions = "N/A";
+            let averageTimeEstimate = "N/A";
+            let instance = "N/A";
 
-            // Actualizamos la lógica para verificar si el objeto contiene el UserTask
+            // Actualizamos la lógica para verificar si el objeto contiene el UserTask, NumberOfExecutions, AverageTimeEstimate e Instance
             if (targetType === "bpmn:UserTask" || targetType === "bpmn:Task") {
               const bo = subTaskElement.businessObject;
               console.log('Encontrado Task:', bo); // Depuración completa de la sub-tarea
               
-              // Intentamos acceder a diferentes propiedades donde puede estar el valor del usuario
+              // Intentamos acceder a las diferentes propiedades
               userTask = bo.userTask || bo.UserTask || bo.assignee || bo.candidateUsers || bo.name || "Unknown";
+              numberOfExecutions = bo.numberOfExecutions || "N/A";
+              averageTimeEstimate = bo.averageTimeEstimate || "N/A";
+              instance = bo.instance || "N/A";
+
               console.log('UserTask detectado:', userTask); // Depuración para ver el valor de userTask
+              console.log('NumberOfExecutions detectado:', numberOfExecutions); // Depuración para ver el valor de numberOfExecutions
+              console.log('AverageTimeEstimate detectado:', averageTimeEstimate); // Depuración para ver el valor de averageTimeEstimate
+              console.log('Instance detectado:', instance); // Depuración para ver el valor de instance
             }
 
             subTasks.push({
               taskId: subTaskElement.id,
-              UserTask: userTask
+              UserTask: userTask,
+              NumberOfExecutions: numberOfExecutions,
+              AverageTimeEstimate: averageTimeEstimate,
+              Instance: instance
             });
           } else {
             console.warn(`El targetRef existe pero no tiene un businessObject para la tarea con id: ${task.targetRef.id}`);
             subTasks.push({
               taskId: task.targetRef.id,
-              UserTask: "N/A"
+              UserTask: "N/A",
+              NumberOfExecutions: "N/A",
+              AverageTimeEstimate: "N/A",
+              Instance: "N/A"
             });
           }
         } else {
@@ -65,7 +81,7 @@ function getSecurityTasks(bpmnModeler) {
     var isSod = element.securityType === "SoD";
     var isUoc = element.securityType === "UoC";
 
-    // Verifica y asigna correctamente las propiedades de seguridad
+    // Verifica y asigna correctamente las propiedades de seguridad, incluyendo las nuevas propiedades
     var st = {
       id_model: id_model,
       id_bpmn: element.id,
@@ -77,6 +93,9 @@ function getSecurityTasks(bpmnModeler) {
       P: element.P || 0,
       User: element.User || "",
       Log: element.Log || "",
+      NumberOfExecutions: element.numberOfExecutions || "N/A",
+      AverageTimeEstimate: element.averageTimeEstimate || "N/A",
+      Instance: element.instance || "N/A",
       SubTasks: subTasks.length > 0 ? subTasks : []  // Si no se encontraron subTasks, deja el arreglo vacío
     };
 
