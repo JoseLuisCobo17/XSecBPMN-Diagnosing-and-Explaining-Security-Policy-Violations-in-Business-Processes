@@ -186,3 +186,29 @@ body:not(.presentation-mode) .bts-notifications {
   display: table-cell;
   vertical-align: middle;
 }
+
+.buttons {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.buttons li {
+  display: inline-block;
+  margin-right: 20px; /* Añade espacio entre los botones */
+}
+
+.buttons .link {
+  padding: 10px 15px; /* Ajusta el tamaño del botón */
+  font-size: 16px; /* Asegúrate de que el tamaño de la fuente sea consistente */
+  background-color: var(--token-simulation-silver-darken-94, #EFEFEF); /* Fondo igual que el botón */
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--token-simulation-grey-darken-30, #212121);
+}
+
+.buttons .link:hover {
+  color: var(--token-simulation-white, #FFFFFF);
+  background-color: var(--token-simulation-green-base-44, #10D070);
+}
