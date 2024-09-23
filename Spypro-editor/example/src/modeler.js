@@ -1,249 +1,326 @@
-/* global process */
-
-import TokenSimulationModule from '../..';
+import 'bpmn-js/dist/assets/diagram-js.css';
+import 'bpmn-js/dist/assets/bpmn-js.css';
+import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
+import '@bpmn-io/properties-panel/assets/properties-panel.css';
+import '../style.less';
 
 import BpmnModeler from 'bpmn-js/lib/Modeler';
+import { debounce } from 'min-dash';
+import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
+import fileDrop from 'file-drops';
+import fileOpen from 'file-open';
+import download from 'downloadjs';
+import exampleXML from '../resources/example.bpmn'; // Asegúrate de que este archivo esté en la ruta correcta
+import $ from 'jquery';
 
+import securityDrawModule from '../../lib/security/draw';
+import securityPaletteModule from '../../lib/security/palette';
+import resizeAllModule from '../../lib/resize-all-rules';
+import propertiesProviderModule from '../../provider/security';
+import securityModdleDescriptor from '../../descriptors/security.json';
+import userModdleDescriptor from '../../descriptors/user.json';
+
+import TokenSimulationModule from '../..';
 import AddExporter from '@bpmn-io/add-exporter';
 
-import {
-  BpmnPropertiesPanelModule,
-  BpmnPropertiesProviderModule
-} from 'bpmn-js-properties-panel';
+import { 
+  getSecurityTasks,
+  getAllRelevantTasks,
+  modSecurity,
+  esperRules,
+  synDB,
+  saveJSON,
+  exportToEsper
+} from './taskHandlers';
 
-import fileDrop from 'file-drops';
+$(function() {
+  // Inicialización del BpmnModeler
+  const bpmnModeler = new BpmnModeler({
+    container: '#canvas', // Asegúrate de que coincida con el ID en el HTML
+    propertiesPanel: {
+      parent: '#properties-panel'
+    },
+    additionalModules: [
+      BpmnPropertiesPanelModule,
+      BpmnPropertiesProviderModule,
+      TokenSimulationModule,
+      AddExporter,
+      securityDrawModule,
+      securityPaletteModule,
+      resizeAllModule,
+      propertiesProviderModule
+    ],
+    exporter: {
+      name: 'my-bpmn-exporter',
+      version: '1.0.0'
+    },
+    moddleExtensions: {
+      security: securityModdleDescriptor,
+      user: userModdleDescriptor
+    }
+  });
 
-import fileOpen from 'file-open';
-
-import download from 'downloadjs';
-
-import exampleXML from '../resources/example.bpmn';
-
-const url = new URL(window.location.href);
-
-const persistent = url.searchParams.has('p');
-const active = url.searchParams.has('e');
-const presentationMode = url.searchParams.has('pm');
-
-let fileName = 'diagram.bpmn';
-
-const initialDiagram = (() => {
-  try {
-    return persistent && localStorage['diagram-xml'] || exampleXML;
-  } catch (err) {
-    return exampleXML;
+  // Función para abrir un diagrama dado su XML
+  async function openDiagram(xml) {
+    console.log('Opening diagram...');
+    try {
+      await bpmnModeler.importXML(xml);
+      console.log('Diagram imported successfully.');
+      $('#canvas')
+        .removeClass('with-error')
+        .addClass('with-diagram');
+    } catch (err) {
+      console.error('Error during importXML:', err);
+      $('#canvas')
+        .removeClass('with-diagram')
+        .addClass('with-error');
+      $('#canvas .error pre').text(err.message);
+    }
   }
-})();
 
-function showMessage(cls, message) {
-  const messageEl = document.querySelector('.drop-message');
+  // Cargar el diagrama inicial al abrir la aplicación
+  async function createNewDiagram() {
+    openDiagram(exampleXML); // Asegúrate de que este XML esté correctamente referenciado
+  }
 
-  messageEl.textContent = message;
-  messageEl.className = `drop-message ${cls || ''}`;
+  // Registrar el drop de archivos para cargar diagramas
+  function registerFileDrop(container, callback) {
+    function handleFileSelect(e) {
+      e.stopPropagation();
+      e.preventDefault();
 
-  messageEl.style.display = 'block';
-}
+      var files = e.dataTransfer.files;
+      var file = files[0];
+      var reader = new FileReader();
 
-function hideMessage() {
-  const messageEl = document.querySelector('.drop-message');
+      reader.onload = function(e) {
+        var xml = e.target.result;
+        callback(xml);
+      };
 
-  messageEl.style.display = 'none';
-}
+      reader.readAsText(file);
+    }
 
-if (persistent) {
-  hideMessage();
-}
+    function handleDragOver(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
 
-const ExampleModule = {
-  __init__: [
-    [ 'eventBus', 'bpmnjs', 'toggleMode', function(eventBus, bpmnjs, toggleMode) {
+    container.get(0).addEventListener('dragover', handleDragOver, false);
+    container.get(0).addEventListener('drop', handleFileSelect, false);
+  }
 
-      if (persistent) {
-        eventBus.on('commandStack.changed', function() {
-          bpmnjs.saveXML().then(result => {
-            localStorage['diagram-xml'] = result.xml;
-          });
-        });
-      }
+  // Función para establecer enlaces de descarga
+  function setEncoded(link, name, data) {
+    var encodedData = encodeURIComponent(data);
 
-      if ('history' in window) {
-        eventBus.on('tokenSimulation.toggleMode', event => {
-
-          document.body.classList.toggle('token-simulation-active', event.active);
-
-          if (event.active) {
-            url.searchParams.set('e', '1');
-          } else {
-            url.searchParams.delete('e');
-          }
-
-          history.replaceState({}, document.title, url.toString());
-        });
-      }
-
-      eventBus.on('diagram.init', 500, () => {
-        toggleMode.toggleMode(active);
+    if (data) {
+      link.addClass('active').attr({
+        'href': 'data:application/json;charset=UTF-8,' + encodedData,
+        'download': name
       });
-    } ]
-  ]
-};
-
-const modeler = new BpmnModeler({
-  container: '#canvas',
-  additionalModules: [
-    BpmnPropertiesPanelModule,
-    BpmnPropertiesProviderModule,
-    TokenSimulationModule,
-    AddExporter,
-    ExampleModule
-  ],
-  propertiesPanel: {
-    parent: '#properties-panel'
-  },
-  exporter: {
-    name: 'bpmn-js-token-simulation',
-    version: process.env.TOKEN_SIMULATION_VERSION
-  },
-  keyboard: {
-    bindTo: document
+    } else {
+      link.removeClass('active');
+    }
   }
-});
 
-function openDiagram(diagram) {
-  return modeler.importXML(diagram)
-    .then(({ warnings }) => {
-      if (warnings.length) {
-        console.warn(warnings);
-      }
+  // Enlaces de descarga
+var downloadLink = $('#js-download-diagram');
+var downloadSvgLink = $('#js-download-svg');
+var downloadJsonLink = $('#js-download-json');
+var downloadEsperLink = $('#js-download-esper');
 
-      if (persistent) {
-        localStorage['diagram-xml'] = diagram;
-      }
+let isDownloading = false;
+let isExporting = false;
 
-      modeler.get('canvas').zoom('fit-viewport');
+// Función para manejar el estado del botón y controlar las exportaciones
+function handleExport(button, exportFunction, successMessage, errorMessage) {
+  if (isExporting) return;  // Prevenir exportaciones concurrentes
+
+  isExporting = true;
+  button.prop('disabled', true);
+
+  exportFunction()
+    .then(() => {
+      alert(successMessage);
     })
-    .catch(err => {
-      console.error(err);
+    .catch(() => {
+      alert(errorMessage);
+    })
+    .finally(() => {
+      isExporting = false;
+      button.prop('disabled', false);
     });
 }
 
-if (presentationMode) {
-  document.body.classList.add('presentation-mode');
-}
+// Manejador para la descarga de Esper
+$('#js-download-esper').off('click').on('click', async function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
 
-function openFile(files) {
+  if (isDownloading || hasDownloaded) return;
+  isDownloading = true;
 
-  // files = [ { name, contents }, ... ]
+  console.log("Descarga iniciada");
 
-  if (!files.length) {
-    return;
+  try {
+    const content = await exportToEsper(bpmnModeler);
+
+    if (!hasDownloaded) {
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'esperTasks.txt';
+
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      hasDownloaded = true;
+    } else {
+      console.log("Ya descargado");
+    }
+  } catch (err) {
+    console.log('Error al exportar a Esper:', err);
+  } finally {
+    isDownloading = false;
+    console.log("Descarga completada");
   }
+});
 
-  hideMessage();
-
-  fileName = files[0].name;
-
-  openDiagram(files[0].contents);
-}
-
-document.body.addEventListener('dragover', fileDrop('Open BPMN diagram', openFile), false);
-
+// Función para descargar el diagrama como XML (BPMN)
 function downloadDiagram() {
-  modeler.saveXML({ format: true }).then(({ xml }) => {
-    download(xml, fileName, 'application/xml');
+  bpmnModeler.saveXML({ format: true }).then(({ xml }) => {
+    download(xml, 'diagram.bpmn', 'application/xml');  // Usar downloadjs para la descarga de BPMN
+  }).catch(err => {
+    console.error('Error al guardar BPMN:', err);
   });
 }
 
+// Función para abrir un archivo BPMN
+function openFile(files) {
+  if (!files.length) return;
+  const file = files[0];
+  const reader = new FileReader();
+  
+  reader.onload = function(event) {
+    const xml = event.target.result;
+    openDiagram(xml);  // Cargar el archivo en el modeler
+  };
+  
+  reader.readAsText(file);
+}
+
+// Manejar eventos de teclas para descarga rápida y abrir archivo
 document.body.addEventListener('keydown', function(event) {
   if (event.code === 'KeyS' && (event.metaKey || event.ctrlKey)) {
     event.preventDefault();
-
     downloadDiagram();
   }
 
   if (event.code === 'KeyO' && (event.metaKey || event.ctrlKey)) {
     event.preventDefault();
-
     fileOpen().then(openFile);
   }
 });
 
+// Manejar el clic en el botón de descarga
 document.querySelector('#download-button').addEventListener('click', function(event) {
   downloadDiagram();
 });
 
 
-const propertiesPanel = document.querySelector('#properties-panel');
-
-const propertiesPanelResizer = document.querySelector('#properties-panel-resizer');
-
-let startX, startWidth;
-
-function toggleProperties(open) {
-
-  if (open) {
-    url.searchParams.set('pp', '1');
-  } else {
-    url.searchParams.delete('pp');
+// Función debounced para exportar artefactos
+var exportArtifacts = debounce(async function() {
+  try {
+    // Descargar como SVG
+    const { svg } = await bpmnModeler.saveSVG();
+    if (svg) {
+      download(svg, 'diagram.svg', 'image/svg+xml');  // Usar downloadjs para la descarga de SVG
+      console.log('SVG exportado correctamente.');
+    } else {
+      console.error('Error: SVG vacío.');
+    }
+  } catch (err) {
+    console.error('Error al guardar SVG:', err);
   }
 
-  history.replaceState({}, document.title, url.toString());
-
-  propertiesPanel.classList.toggle('open', open);
-}
-
-propertiesPanelResizer.addEventListener('click', function(event) {
-  toggleProperties(!propertiesPanel.classList.contains('open'));
-});
-
-propertiesPanelResizer.addEventListener('dragstart', function(event) {
-  const img = new Image();
-  img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-  event.dataTransfer.setDragImage(img, 1, 1);
-
-  startX = event.screenX;
-  startWidth = propertiesPanel.getBoundingClientRect().width;
-});
-
-propertiesPanelResizer.addEventListener('drag', function(event) {
-
-  if (!event.screenX) {
-    return;
+  try {
+    // Descargar como XML (BPMN)
+    const { xml } = await bpmnModeler.saveXML({ format: true });
+    if (xml) {
+      download(xml, 'diagram.bpmn', 'application/xml');  // Usar downloadjs para la descarga de BPMN
+      console.log('BPMN exportado correctamente.');
+    } else {
+      console.error('Error: XML vacío.');
+    }
+  } catch (err) {
+    console.log('Error al guardar XML:', err);
   }
 
-  const delta = event.screenX - startX;
+  try {
+    // Descargar como JSON
+    const json = await saveJSON(bpmnModeler);
+    if (json) {
+      download(json, 'diagram.json', 'application/json');  // Usar downloadjs para la descarga de JSON
+      console.log('JSON exportado correctamente.');
+    } else {
+      console.error('Error: JSON vacío.');
+    }
+  } catch (err) {
+    console.log('Error al guardar JSON:', err);
+  }
+}, 500);
 
-  const width = startWidth - delta;
-
-  const open = width > 200;
-
-  propertiesPanel.style.width = open ? `${width}px` : null;
-
-  toggleProperties(open);
+// Función para manejar la exportación de artefactos
+$('#js-download-diagram').click(function() {
+  exportArtifacts(); // Llamar directamente la función de exportación
 });
 
-const remoteDiagram = url.searchParams.get('diagram');
 
-if (remoteDiagram) {
-  fetch(remoteDiagram).then(
-    r => {
-      if (r.ok) {
-        return r.text();
-      }
+// Escuchar cambios en el modeler
+bpmnModeler.on('commandStack.changed', () => {
+  exportArtifacts();
+  updateModSecurityFile();
+});
 
-      throw new Error(`Status ${r.status}`);
-    }
-  ).then(
-    text => openDiagram(text)
-  ).catch(
-    err => {
-      showMessage('error', `Failed to open remote diagram: ${err.message}`);
-
-      openDiagram(initialDiagram);
-    }
-  );
-} else {
-  openDiagram(initialDiagram);
+function updateModSecurityFile() {
+  modSecurity(bpmnModeler)
+  esperRules(bpmnModeler)
+    .catch(() => {
+      console.error('Error updating ModSecurity/esperRules file.');
+    });
 }
 
-toggleProperties(url.searchParams.has('pp'));
+// Inicializar el diagrama al cargar la página
+createNewDiagram();
+
+// Registrar el evento para arrastrar archivos
+registerFileDrop($('#canvas'), openDiagram);
+
+// Manejadores para los botones
+$('#button1').click(function() {
+  handleExport($(this), () => modSecurity(bpmnModeler), 'Exportado a ModSecurity con éxito.', 'Error al exportar a ModSecurity');
+});
+
+$('#button2').click(function() {
+  handleExport($(this), () => synDB(bpmnModeler), 'Sincronizado con MongoDB con éxito.', 'Error en la sincronización con MongoDB');
+});
+
+$('#button3').click(function() {
+  handleExport($(this), () => esperRules(bpmnModeler), 'Exportado a Esper Rules con éxito.', 'Error al exportar a Esper Rules');
+});
+
+// Verificar compatibilidad del navegador
+if (!window.FileList || !window.FileReader) {
+  window.alert(
+    'Parece que usas un navegador antiguo que no soporta arrastrar y soltar. ' +
+    'Prueba usar Chrome, Firefox o Internet Explorer > 10.');
+}
+
+});
