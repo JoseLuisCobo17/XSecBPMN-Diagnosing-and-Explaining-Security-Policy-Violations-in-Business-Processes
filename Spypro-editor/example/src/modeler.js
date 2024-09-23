@@ -202,6 +202,33 @@ function downloadDiagram() {
   });
 }
 
+// Función para exportar el diagrama como SVG
+async function exportSvg() {
+  try {
+    const { svg } = await bpmnModeler.saveSVG();
+    
+    // Crear un enlace de descarga para el SVG
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = 'diagram.svg';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(url);
+
+    console.log('SVG descargado correctamente');
+  } catch (err) {
+    console.error('Error al exportar SVG:', err);
+  }
+}
+
+// Agregar el evento de clic para descargar el SVG
+$('#js-download-svg').click(function () {
+  exportSvg(); // Llamar a la función exportSvg cuando se haga clic en el botón de descarga
+});
+
 // Función para abrir un archivo BPMN
 function openFile(files) {
   if (!files.length) return;
@@ -234,46 +261,30 @@ document.querySelector('#download-button').addEventListener('click', function(ev
   downloadDiagram();
 });
 
-
-// Función debounced para exportar artefactos
-var exportArtifacts = debounce(async function() {
+// Función debounced para exportar artefactos (incluyendo SVG, XML y JSON)
+var exportArtifacts = debounce(async function () {
   try {
-    // Descargar como SVG
     const { svg } = await bpmnModeler.saveSVG();
-    if (svg) {
-      download(svg, 'diagram.svg', 'image/svg+xml');  // Usar downloadjs para la descarga de SVG
-      console.log('SVG exportado correctamente.');
-    } else {
-      console.error('Error: SVG vacío.');
-    }
+    setEncoded(downloadSvgLink, 'diagram.svg', svg);
   } catch (err) {
-    console.error('Error al guardar SVG:', err);
+    console.error('Error al guardar SVG: ', err);
+    setEncoded(downloadSvgLink, 'diagram.svg', null);
   }
 
   try {
-    // Descargar como XML (BPMN)
     const { xml } = await bpmnModeler.saveXML({ format: true });
-    if (xml) {
-      download(xml, 'diagram.bpmn', 'application/xml');  // Usar downloadjs para la descarga de BPMN
-      console.log('BPMN exportado correctamente.');
-    } else {
-      console.error('Error: XML vacío.');
-    }
+    setEncoded(downloadLink, 'diagram.bpmn', xml);
   } catch (err) {
-    console.log('Error al guardar XML:', err);
+    console.error('Error al guardar XML: ', err);
+    setEncoded(downloadLink, 'diagram.bpmn', null);
   }
 
   try {
-    // Descargar como JSON
     const json = await saveJSON(bpmnModeler);
-    if (json) {
-      download(json, 'diagram.json', 'application/json');  // Usar downloadjs para la descarga de JSON
-      console.log('JSON exportado correctamente.');
-    } else {
-      console.error('Error: JSON vacío.');
-    }
+    setEncoded(downloadJsonLink, 'diagram.json', json);
   } catch (err) {
-    console.log('Error al guardar JSON:', err);
+    console.error('Error al guardar JSON: ', err);
+    setEncoded(downloadJsonLink, 'diagram.json', null);
   }
 }, 500);
 
