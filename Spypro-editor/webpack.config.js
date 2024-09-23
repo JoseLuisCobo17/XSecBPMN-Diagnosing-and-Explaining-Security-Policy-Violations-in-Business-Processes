@@ -1,84 +1,46 @@
-const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+/* eslint-env node */
 
-module.exports = {
-  mode: 'development',
-  entry: './src/app.js',
-  output: {
-    filename: 'app.js',
-    path: path.resolve(__dirname, 'dist'),
-  },
-  resolve: {
-    alias: {
-      'process': 'process/browser',
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const { DefinePlugin } = require('webpack');
+
+
+module.exports = (env, argv) => {
+
+  const mode = argv.mode || 'development';
+
+  const devtool = mode === 'development' ? 'eval-source-map' : 'source-map';
+
+  return {
+    mode,
+    entry: {
+      viewer: './example/src/viewer.js',
+      modeler: './example/src/modeler.js'
     },
-    fallback: {
-      "http": require.resolve("stream-http"),
-      "https": require.resolve("https-browserify"),
-      "zlib": require.resolve("browserify-zlib"),
-      "buffer": require.resolve("buffer"),
-      "stream": require.resolve("stream-browserify"),
-      "timers": require.resolve("timers-browserify"),
-      "url": require.resolve("url"),
-      "assert": require.resolve("assert"),
-      "crypto": require.resolve("crypto-browserify"),
-      "path": require.resolve("path-browserify"),  // <-- Add this line
-      "fs": false
-    }
-  },
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env']
-          }
-        },
-      },
-      {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
-      },
-      {
-        test: /\.less$/,
-        use: [
-          'style-loader',
-          'css-loader',
-          'less-loader',
-        ],
-      },
-      {
-        test: /\.bpmn$/,
-        use: 'raw-loader'
-      },
-      {
-        test: /\.(png|jpg|gif)$/,
-        use: [
-          {
-            loader: 'url-loader',
-            options: {
-              limit: 8192, // 8kb
-              fallback: 'file-loader',
-              name: '[name].[ext]',
-              outputPath: 'images/'
-            }
-          }
+    output: {
+      filename: 'dist/[name].js',
+      path: __dirname + '/example'
+    },
+    module: {
+      rules: [
+        {
+          test: /\.bpmn$/,
+          type: 'asset/source'
+        }
+      ]
+    },
+    plugins: [
+      new CopyWebpackPlugin({
+        patterns: [
+          { from: './assets', to: 'dist/vendor/bpmn-js-token-simulation/assets' },
+          { from: 'bpmn-js/dist/assets', context: 'node_modules', to: 'dist/vendor/bpmn-js/assets' },
+          { from: '@bpmn-io/properties-panel/dist/assets', context: 'node_modules', to: 'dist/vendor/bpmn-js-properties-panel/assets' }
         ]
-      }
+      }),
+      new DefinePlugin({
+        'process.env.TOKEN_SIMULATION_VERSION': JSON.stringify(require('./package.json').version)
+      })
     ],
-  },
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: './src/index.html',
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-      'process.env.MY_ENV': JSON.stringify(process.env.MY_ENV),
-    }),
-  ],
-  devServer: {
-    static: path.resolve(__dirname, 'dist'),
-    hot: true,
-  }
+    devtool
+  };
+
 };
