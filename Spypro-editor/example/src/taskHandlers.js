@@ -212,11 +212,12 @@ function synDB(bpmnModeler) {
   });
 }
 
-function saveJSON(bpmnModeler) {
+// Función saveJSON
+async function saveJSON(bpmnModeler) {
   return new Promise((resolve, reject) => {
     try {
       const json = JSON.stringify(getSecurityTasks(bpmnModeler), null, 2);
-      console.log('Generated JSON:', json);
+      console.log('Generated JSON:', json); // Para depurar
       resolve(json);
     } catch (err) {
       reject(err);

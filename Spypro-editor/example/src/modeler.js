@@ -6,7 +6,7 @@ import '../style.less';
 
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from 'min-dash';
-import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
+import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel'; // Usa exportaciones nombradas
 import fileDrop from 'file-drops';
 import fileOpen from 'file-open';
 import download from 'downloadjs';
@@ -23,9 +23,7 @@ import userModdleDescriptor from '../../descriptors/user.json';
 import TokenSimulationModule from '../..';
 import AddExporter from '@bpmn-io/add-exporter';
 
-import { 
-  getSecurityTasks,
-  getAllRelevantTasks,
+import {
   modSecurity,
   esperRules,
   synDB,
@@ -36,19 +34,19 @@ import {
 $(function() {
   // Inicialización del BpmnModeler
   const bpmnModeler = new BpmnModeler({
-    container: '#canvas', // Asegúrate de que coincida con el ID en el HTML
+    container: '#canvas',
     propertiesPanel: {
       parent: '#properties-panel'
     },
     additionalModules: [
-      BpmnPropertiesPanelModule,
+      BpmnPropertiesPanelModule, // Importa correctamente este módulo
       BpmnPropertiesProviderModule,
+      propertiesProviderModule,
+      securityPaletteModule,
+      securityDrawModule,
+      resizeAllModule,
       TokenSimulationModule,
       AddExporter,
-      securityDrawModule,
-      securityPaletteModule,
-      resizeAllModule,
-      propertiesProviderModule
     ],
     exporter: {
       name: 'my-bpmn-exporter',
@@ -83,47 +81,81 @@ $(function() {
     openDiagram(exampleXML); // Asegúrate de que este XML esté correctamente referenciado
   }
 
-  // Registrar el drop de archivos para cargar diagramas
-  function registerFileDrop(container, callback) {
-    function handleFileSelect(e) {
-      e.stopPropagation();
-      e.preventDefault();
+// Función para registrar el arrastre y soltar archivos
+function registerFileDrop(container, callback) {
+  function handleFileSelect(e) {
+    e.stopPropagation();
+    e.preventDefault();
 
-      var files = e.dataTransfer.files;
-      var file = files[0];
-      var reader = new FileReader();
-
-      reader.onload = function(e) {
-        var xml = e.target.result;
-        callback(xml);
-      };
-
-      reader.readAsText(file);
+    var files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
+    
+    // Verificamos que realmente hay un archivo disponible
+    if (files.length === 0) {
+      console.error("No se encontró un archivo para procesar.");
+      return;
     }
 
-    function handleDragOver(e) {
-      e.stopPropagation();
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
+    var file = files[0]; // Obtenemos el primer archivo
+
+    // Verificamos que el archivo sea válido
+    if (!file || !(file instanceof File)) {
+      console.error("El archivo no es válido.");
+      return;
     }
 
-    container.get(0).addEventListener('dragover', handleDragOver, false);
-    container.get(0).addEventListener('drop', handleFileSelect, false);
+    var reader = new FileReader();
+
+    reader.onload = function(e) {
+      var xml = e.target.result;
+      callback(xml); // Procesamos el archivo XML con la función de callback
+    };
+
+    reader.onerror = function(e) {
+      console.error('Error al leer el archivo:', e);
+    };
+
+    // Leemos el archivo como texto (XML en este caso)
+    reader.readAsText(file);
   }
 
-  // Función para establecer enlaces de descarga
-  function setEncoded(link, name, data) {
-    var encodedData = encodeURIComponent(data);
-
-    if (data) {
-      link.addClass('active').attr({
-        'href': 'data:application/json;charset=UTF-8,' + encodedData,
-        'download': name
-      });
-    } else {
-      link.removeClass('active');
-    }
+  function handleDragOver(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy'; // Cambia el cursor para indicar que es posible soltar
   }
+
+  // Agregar eventos de "dragover" y "drop"
+  container.get(0).addEventListener('dragover', handleDragOver, false);
+  container.get(0).addEventListener('drop', handleFileSelect, false);
+
+  // También agregamos soporte para abrir el archivo mediante un input
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.bpmn, .xml'; // Especificamos los tipos de archivos permitidos
+  fileInput.style.display = 'none';
+  
+  fileInput.addEventListener('change', handleFileSelect, false);
+  container.get(0).appendChild(fileInput);
+}
+
+// Inicializar el diagrama al cargar la página
+createNewDiagram();
+
+// Registrar el evento para arrastrar archivos
+registerFileDrop($('#canvas'), openDiagram);
+  
+// Función para establecer enlaces de descarga
+function setEncoded(link, name, data) {
+  if (data) {
+    const encodedData = encodeURIComponent(data);
+    link.addClass('active').attr({
+      'href': 'data:application/json;charset=UTF-8,' + encodedData,
+      'download': name
+    });
+  } else {
+    link.removeClass('active');
+  }
+}
 
   // Enlaces de descarga
 var downloadLink = $('#js-download-diagram');
@@ -153,6 +185,8 @@ function handleExport(button, exportFunction, successMessage, errorMessage) {
       button.prop('disabled', false);
     });
 }
+
+let hasDownloaded = false; // Inicializar la variable
 
 // Manejador para la descarga de Esper
 $('#js-download-esper').off('click').on('click', async function(e) {
@@ -262,7 +296,8 @@ document.querySelector('#download-button').addEventListener('click', function(ev
 });
 
 // Función debounced para exportar artefactos (incluyendo SVG, XML y JSON)
-var exportArtifacts = debounce(async function () {
+var exportArtifacts = debounce(async function() {
+  // Exportar SVG
   try {
     const { svg } = await bpmnModeler.saveSVG();
     setEncoded(downloadSvgLink, 'diagram.svg', svg);
@@ -271,22 +306,40 @@ var exportArtifacts = debounce(async function () {
     setEncoded(downloadSvgLink, 'diagram.svg', null);
   }
 
+  // Exportar XML
   try {
     const { xml } = await bpmnModeler.saveXML({ format: true });
     setEncoded(downloadLink, 'diagram.bpmn', xml);
   } catch (err) {
-    console.error('Error al guardar XML: ', err);
+    console.log('Error al guardar XML: ', err);
     setEncoded(downloadLink, 'diagram.bpmn', null);
   }
 
+  // Exportar JSON
   try {
     const json = await saveJSON(bpmnModeler);
     setEncoded(downloadJsonLink, 'diagram.json', json);
   } catch (err) {
-    console.error('Error al guardar JSON: ', err);
+    console.log('Error al guardar JSON: ', err);
     setEncoded(downloadJsonLink, 'diagram.json', null);
   }
 }, 500);
+
+// Manejador del botón de descarga JSON
+$('#js-download-json').click(function() {
+  try {
+    exportArtifacts(); // Llamar la función para exportar JSON
+  } catch (err) {
+    console.log('Error al exportar artefactos:', err);
+  }
+});
+
+// Inicializar el diagrama al cargar la página
+createNewDiagram();
+
+// Registrar el evento para arrastrar archivos
+registerFileDrop($('#canvas'), openDiagram);
+
 
 // Función para manejar la exportación de artefactos
 $('#js-download-diagram').click(function() {

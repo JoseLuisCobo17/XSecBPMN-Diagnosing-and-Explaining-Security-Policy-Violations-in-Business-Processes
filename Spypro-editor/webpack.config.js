@@ -25,6 +25,16 @@ module.exports = (env, argv) => {
           type: 'asset/source'
         },
         {
+          test: /\.js$/,
+          exclude: /node_modules/, // Excluir la carpeta node_modules
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: ['@babel/preset-env']
+            }
+          }
+        },
+        {
           test: /\.json$/,
           type: 'json', // Soporte para archivos JSON
           parser: {
