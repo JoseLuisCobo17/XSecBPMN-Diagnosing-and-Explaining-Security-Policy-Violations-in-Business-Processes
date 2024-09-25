@@ -20,7 +20,7 @@ function getSecurityTasks(bpmnModeler) {
       console.warn(`No hay conexiones salientes (outgoing) para la tarea: ${element.id}`);
     } else {
       console.log(`Conexiones salientes para la tarea ${element.id}:`, list);
-      list.forEach(function (task) {
+      list.forEach(function(task) {
         if (task.targetRef) {
           const subTaskElement = elementRegistry.get(task.targetRef.id);
 
@@ -28,21 +28,21 @@ function getSecurityTasks(bpmnModeler) {
             const targetType = subTaskElement.businessObject.$type;
             console.log('Tipo de tarea objetivo (targetType):', targetType); // Depuración para ver el tipo
 
-            let userTask = "N/A";
-            let numberOfExecutions = "N/A";
-            let averageTimeEstimate = "N/A";
-            let instance = "N/A";
+            let userTask = 'N/A';
+            let numberOfExecutions = 'N/A';
+            let averageTimeEstimate = 'N/A';
+            let instance = 'N/A';
 
             // Actualizamos la lógica para verificar si el objeto contiene el UserTask, NumberOfExecutions, AverageTimeEstimate e Instance
-            if (targetType === "bpmn:UserTask" || targetType === "bpmn:Task") {
+            if (targetType === 'bpmn:UserTask' || targetType === 'bpmn:Task') {
               const bo = subTaskElement.businessObject;
               console.log('Encontrado Task:', bo); // Depuración completa de la sub-tarea
-              
+
               // Intentamos acceder a las diferentes propiedades
-              userTask = bo.userTask || bo.UserTask || bo.assignee || bo.candidateUsers || bo.name || "Unknown";
-              numberOfExecutions = bo.numberOfExecutions || "N/A";
-              averageTimeEstimate = bo.averageTimeEstimate || "N/A";
-              instance = bo.instance || "N/A";
+              userTask = bo.userTask || bo.UserTask || bo.assignee || bo.candidateUsers || bo.name || 'Unknown';
+              numberOfExecutions = bo.numberOfExecutions || 'N/A';
+              averageTimeEstimate = bo.averageTimeEstimate || 'N/A';
+              instance = bo.instance || 'N/A';
 
               console.log('UserTask detectado:', userTask); // Depuración para ver el valor de userTask
               console.log('NumberOfExecutions detectado:', numberOfExecutions); // Depuración para ver el valor de numberOfExecutions
@@ -61,10 +61,10 @@ function getSecurityTasks(bpmnModeler) {
             console.warn(`El targetRef existe pero no tiene un businessObject para la tarea con id: ${task.targetRef.id}`);
             subTasks.push({
               taskId: task.targetRef.id,
-              UserTask: "N/A",
-              NumberOfExecutions: "N/A",
-              AverageTimeEstimate: "N/A",
-              Instance: "N/A"
+              UserTask: 'N/A',
+              NumberOfExecutions: 'N/A',
+              AverageTimeEstimate: 'N/A',
+              Instance: 'N/A'
             });
           }
         } else {
@@ -77,9 +77,9 @@ function getSecurityTasks(bpmnModeler) {
     console.log('ServiceTask BusinessObject completo:', JSON.stringify(element, null, 2));
 
     // Verifica el securityType y lo traduce a BoD, SoD y UoC
-    var isBod = element.securityType === "BoD";
-    var isSod = element.securityType === "SoD";
-    var isUoc = element.securityType === "UoC";
+    var isBod = element.securityType === 'BoD';
+    var isSod = element.securityType === 'SoD';
+    var isUoc = element.securityType === 'UoC';
 
     // Verifica y asigna correctamente las propiedades de seguridad, incluyendo las nuevas propiedades
     var st = {
@@ -91,12 +91,12 @@ function getSecurityTasks(bpmnModeler) {
       Nu: element.Nu || 0,
       Mth: element.Mth || 0,
       P: element.P || 0,
-      User: element.User || "",
-      Log: element.Log || "",
-      NumberOfExecutions: element.numberOfExecutions || "N/A",
-      AverageTimeEstimate: element.averageTimeEstimate || "N/A",
-      Instance: element.instance || "N/A",
-      SubTasks: subTasks.length > 0 ? subTasks : []  // Si no se encontraron subTasks, deja el arreglo vacío
+      User: element.User || '',
+      Log: element.Log || '',
+      NumberOfExecutions: element.numberOfExecutions || 'N/A',
+      AverageTimeEstimate: element.averageTimeEstimate || 'N/A',
+      Instance: element.instance || 'N/A',
+      SubTasks: subTasks.length > 0 ? subTasks : []
     };
 
     console.log('Tarea de seguridad procesada:', JSON.stringify(st, null, 2));
@@ -114,13 +114,13 @@ function getAllRelevantTasks(bpmnModeler) {
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
 
-  var relevantElements = elementRegistry.filter(e => 
-    e.type === 'bpmn:Task' || 
-    e.type === 'bpmn:ServiceTask' || 
-    e.type === 'bpmn:UserTask' || 
+  var relevantElements = elementRegistry.filter(e =>
+    e.type === 'bpmn:Task' ||
+    e.type === 'bpmn:ServiceTask' ||
+    e.type === 'bpmn:UserTask' ||
     e.type === 'bpmn:ManualTask' ||
-    e.type === 'bpmn:StartEvent' || 
-    e.type === 'bpmn:EndEvent' || 
+    e.type === 'bpmn:StartEvent' ||
+    e.type === 'bpmn:EndEvent' ||
     e.type.startsWith('bpmn:')
   );
 
@@ -128,101 +128,43 @@ function getAllRelevantTasks(bpmnModeler) {
     var businessObject = e.businessObject;
     var subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
 
-
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isTask = e.type === 'bpmn:Task';
-
-    
-    const securityType = businessObject.securityType || ''; 
+    const securityType = businessObject.securityType || '';
 
     return {
       id_model: id_model,
       id_bpmn: businessObject.id,
-      name: businessObject.name || "",  
-      type: businessObject.$type || "",  
-      Bod: securityType === 'BoD', 
-      Sod: securityType === 'SoD', 
-      Uoc: securityType === 'UoC', 
+      name: businessObject.name || '',
+      type: businessObject.$type || '',
+      Bod: securityType === 'BoD',
+      Sod: securityType === 'SoD',
+      Uoc: securityType === 'UoC',
       Nu: isServiceTask ? (businessObject.Nu || 0) : 0,
       Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
       P: isServiceTask ? (businessObject.P || 0) : 0,
-      User: isServiceTask ? (businessObject.User || "") : "",
-      UserTask: isTask ? (businessObject.UserTask || "") : "",
-      Log: businessObject.Log || "",
+      User: isServiceTask ? (businessObject.User || '') : '',
+      UserTask: isTask ? (businessObject.UserTask || '') : '',
+      Log: businessObject.Log || '',
       SubTasks: subTasks
     };
   });
 }
 
-
-function modSecurity(bpmnModeler) {
-  const args = {
-    data: { modSecurity: getSecurityTasks(bpmnModeler) },
-    headers: { "Content-Type": "application/json" }
-  };
-  return axios.post("http://localhost:3000/modsecurity", args.data, { headers: args.headers })
-    .then(response => {
-      return response.data;
-    })
-    .catch(error => {
-      throw error;
-    });
-}
-
 function esperRules(bpmnModeler) {
-  // Capturar tareas con propiedades de seguridad
   const securityTasks = getSecurityTasks(bpmnModeler);
-  
-  // Definir los argumentos para la solicitud POST
   const args = {
-    data: { modSecurity: securityTasks }, 
-    headers: { "Content-Type": "application/json" }
+    data: { esperRules: securityTasks },
+    headers: { 'Content-Type': 'application/json' }
   };
-  
-  // Realizar la solicitud POST a la API de EsperRules
-  return axios.post("http://localhost:3000/esperrules", args.data, { headers: args.headers })
+
+  return axios.post('http://localhost:3000/esperrules', args.data, { headers: args.headers })
     .then(response => {
       return response.data;
     })
     .catch(error => {
       throw error;
     });
-}
-
-function synDB(bpmnModeler) {
-  const tasks = getSecurityTasks(bpmnModeler);
-  console.log('Tasks to be synchronized:', tasks);
-  axios.post("http://localhost:3000/syndb", { modSecurity: tasks }, {
-    headers: {
-      "Content-Type": "application/json"
-    }
-  }).then(function (response) {
-    console.log('Sync response:', response.data);
-  }).catch(function (error) {
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-      console.error('Response headers:', error.response.headers);
-    } else if (error.request) {
-      console.error('Request data:', error.request);
-    } else {
-      console.error('Error message:', error.message);
-    }
-    console.error('Config:', error.config);
-  });
-}
-
-// Función saveJSON
-async function saveJSON(bpmnModeler) {
-  return new Promise((resolve, reject) => {
-    try {
-      const json = JSON.stringify(getSecurityTasks(bpmnModeler), null, 2);
-      console.log('Generated JSON:', json); // Para depurar
-      resolve(json);
-    } catch (err) {
-      reject(err);
-    }
-  });
 }
 
 function exportToEsper(bpmnModeler) {
@@ -230,7 +172,7 @@ function exportToEsper(bpmnModeler) {
     try {
       const elements = getAllRelevantTasks(bpmnModeler);
 
-      let content = "### Esper Rules Export ###\n\n";
+      let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
         content += `Element: [type=${element.type}, `;
         content += `name=${element.name || 'Unnamed'}, `;
@@ -245,8 +187,8 @@ function exportToEsper(bpmnModeler) {
 
         // Diferenciar entre Task y ServiceTask
         if (element.type === 'bpmn:Task') {
-          content += `userTask=${element.UserTask || 'N/A'}, `; 
-          content += `user=${element.User || 'N/A'}, `;  
+          content += `userTask=${element.UserTask || 'N/A'}, `;
+          content += `user=${element.User || 'N/A'}, `;
         }
 
         content += `log=${element.Log || 'N/A'}, `;
@@ -256,7 +198,7 @@ function exportToEsper(bpmnModeler) {
       });
 
       if (elements.length === 0) {
-        content += "No elements generated.\n";
+        content += 'No elements generated.\n';
       }
 
       console.log('Generated content for Esper:', content);
@@ -271,9 +213,6 @@ function exportToEsper(bpmnModeler) {
 module.exports = {
   getSecurityTasks,
   getAllRelevantTasks,
-  modSecurity,
   esperRules,
-  synDB,
-  saveJSON,
   exportToEsper
 };

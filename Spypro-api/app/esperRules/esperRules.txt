@@ -1,0 +1,7 @@
+---------------------------------
+- [SOD MONITOR] Separation of Duties detected:
+- Parent Task ID: Activity_01aji06
+- SubTask 1 ID: Task_026c0id - User ID: alba
+- SubTask 2 ID: Task_0po6mda - User ID: jl
+---------------------------------
+

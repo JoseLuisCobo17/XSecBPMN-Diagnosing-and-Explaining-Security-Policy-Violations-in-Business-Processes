@@ -5,14 +5,8 @@ module.exports = function(app) {
     // Create a new Security task
     app.post('/securities', securities.create);
 
-    //Create a modSecurity txt file
-    app.post('/modsecurity', securities.modSecurity);
-
     //Create a EsperRules txt file
     app.post('/esperrules', securities.esperRules);
-
-    //Automatic synchronization with mongoDB
-    app.post('/syndb', securities.synDB);
 
     // Retrieve all Security tasks
     app.get('/securities', securities.findAll);
