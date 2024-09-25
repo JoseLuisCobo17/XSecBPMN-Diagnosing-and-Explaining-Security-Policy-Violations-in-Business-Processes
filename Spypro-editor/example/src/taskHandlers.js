@@ -270,40 +270,79 @@ function deployRules(bpmnModeler) {
     try {
       const elements = getAllRelevantTasks(bpmnModeler);
 
-      const jsonContent = [];
+      let eplStatements = "";
 
-      elements.forEach(element => {
-        if (element.Sod === true || element.Bod === true || element.Uoc === true) {
-          const elementData = {
-            type: element.type,
-            name: element.name || 'Unnamed',
-            id_bpmn: element.id_bpmn || 'Unknown',
-            sodSecurity: element.Sod || false,
-            bodSecurity: element.Bod || false,
-            uocSecurity: element.Uoc || false,
-            timestamp: Date.now(),
-            nu: element.Nu,
-            mth: element.Mth,
-            p: element.P,
-            userTask: element.type === 'bpmn:Task' ? element.UserTask || 'N/A' : undefined,
-            user: element.type === 'bpmn:Task' ? element.User || 'N/A' : undefined,
-            log: element.Log || 'N/A',
-            subTasks: element.SubTasks ? element.SubTasks : 'No SubTasks'
-          };
+      // BoD rules
+      const bodElements = elements.filter(element => element.Bod === true);
+      if (bodElements.length > 0) {
+        console.log("Creando expresión generalizada de BoD");
 
-          jsonContent.push(elementData);
-        }
-      });
+        const bodEPL = `"select parent.idBpmn as parentId, " 
+    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " 
+    "sub1.user as user1, sub2.user as user2 " 
+    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " 
+    "where parent.bodSecurity = true " 
+    "and sub1.user is not null and sub2.user is not null " 
+    "and sub1.user = sub2.user " 
+    "and sub1.idBpmn != sub2.idBpmn " 
+    "and sub1.idBpmn in (parent.subTasks) " 
+    "and sub2.idBpmn in (parent.subTasks)"
+    
+    --------------------------------------
+    `;
 
-      // Si no hay elementos relevantes
-      if (jsonContent.length === 0) {
-        jsonContent.push({ message: 'No relevant elements generated.' });
+        eplStatements += bodEPL;
       }
 
-      console.log('Generated content for Esper (JSON):', jsonContent);
+      // SoD rules
+      const sodElements = elements.filter(element => element.Sod === true);
+      if (sodElements.length > 0) {
+        console.log("Creando expresión generalizada de SoD");
 
-      // Convertir a JSON
-      resolve(JSON.stringify(jsonContent, null, 2));
+        const sodEPL = ` "select parent.idBpmn as parentId, " 
+    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " 
+    "sub1.user as user1, sub2.user as user2, " 
+    "parent.nu as nuValue, " 
+    "count(distinct sub1.user) as distinctUserCount " 
+    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " 
+    "where parent.sodSecurity = true " 
+    "and sub1.user = sub2.user " 
+    "and sub1.idBpmn != sub2.idBpmn " 
+    "and sub1.idBpmn in (parent.subTasks) " 
+    "and sub2.idBpmn in (parent.subTasks) " 
+    "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, sub1.user, sub2.user, parent.nu " 
+    "having count(distinct sub1.user) < parent.nu"
+    
+    --------------------------------------
+    `;
+
+        eplStatements += sodEPL;
+      }
+
+      // UoC rules
+      const uocElements = elements.filter(element => element.Uoc === true);
+      if (uocElements.length > 0) {
+        console.log("Creando expresión de UoC");
+
+        const uocEPL = `"select user as userId, count(*) as taskCount " 
+    "from Task#time(1 min) " 
+    "where uocSecurity = true and mth >= 4"
+    
+    --------------------------------------
+    `;
+
+        eplStatements += uocEPL;
+      }
+
+      // Si no se generaron reglas
+      if (eplStatements.trim() === "") {
+        eplStatements = "No relevant rules generated.";
+      }
+
+      console.log('Generated EPL Statements:', eplStatements);
+
+      // Resolver la promesa con las sentencias EPL generadas
+      resolve(eplStatements);
     } catch (err) {
       reject(err);
     }

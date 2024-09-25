@@ -24,7 +24,8 @@ import AddExporter from '@bpmn-io/add-exporter';
 
 import {
   esperRules,
-  exportToEsper
+  exportToEsper,
+  deployRules
 } from './taskHandlers';
 
 $(function() {
@@ -287,6 +288,42 @@ $(function() {
   bpmnModeler.on('commandStack.changed', () => {
     exportArtifacts();
   });
+
+  // Variable para evitar descargas múltiples simultáneas
+let isDownloading2 = false;
+
+// Manejador para la descarga de Deploy Rules cuando se presione el botón "Deploy Rules"
+$('#button2').off('click').on('click', async function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  if (isDownloading2) return;
+  isDownloading2 = true;
+
+  console.log('Descarga de Deploy Rules (JSON) iniciada');
+
+  try {
+    const content = await deployRules(bpmnModeler);
+
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'deployRules.json';
+
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.log('Error al exportar Deploy Rules (JSON):', err);
+  } finally {
+    isDownloading2 = false;
+    console.log('Descarga completada');
+  }
+});
 
   // Manejador para la descarga de Esper cuando se presione el botón "Esper Rules"
 $('#button3').off('click').on('click', async function(e) {
