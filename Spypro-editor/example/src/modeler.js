@@ -289,44 +289,37 @@ $(function() {
   });
 
   // Manejador para la descarga de Esper cuando se presione el botón "Esper Rules"
-  $('#button3').off('click').on('click', async function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+$('#button3').off('click').on('click', async function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
 
-    if (isDownloading || hasDownloaded) return;
-    isDownloading = true;
+  if (isDownloading) return;
+  isDownloading = true;
 
-    console.log('Descarga de Esper Rules (JSON) iniciada');
+  console.log('Descarga de Esper Rules (JSON) iniciada');
 
-    try {
-      const content = await esperRules(bpmnModeler);
+  try {
+    const content = await esperRules(bpmnModeler);
 
-      if (!hasDownloaded) {
-        const blob = new Blob([content], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'esperRules.json';
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'esperRules.json';
 
-        document.body.appendChild(link);
-        link.click();
+    document.body.appendChild(link);
+    link.click();
 
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        hasDownloaded = true;
-      } else {
-        console.log('Ya descargado');
-      }
-    } catch (err) {
-      console.log('Error al exportar Esper Rules (JSON):', err);
-    } finally {
-      isDownloading = false;
-      console.log('Descarga completada');
-    }
-  });
-
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.log('Error al exportar Esper Rules (JSON):', err);
+  } finally {
+    isDownloading = false;
+    console.log('Descarga completada');
+  }
+});
 
   // Verificar compatibilidad del navegador
   if (!window.FileList || !window.FileReader) {

@@ -151,7 +151,115 @@ function getAllRelevantTasks(bpmnModeler) {
   });
 }
 
+function getTaskById(bpmnModeler, taskId) {
+  const elementRegistry = bpmnModeler.get('elementRegistry');
+  const element = elementRegistry.get(taskId);
+  return element ? element.businessObject : null;
+}
+
 function esperRules(bpmnModeler) {
+  return new Promise((resolve, reject) => {
+    try {
+      const elements = getAllRelevantTasks(bpmnModeler);
+      const triggeredRules = [];
+
+      elements.forEach(element => {
+        const subTasks = element.SubTasks
+          ? element.SubTasks.map(id => getTaskById(bpmnModeler, id)).filter(st => st !== null)
+          : [];
+        console.log('SubTasks for element', element.id_bpmn, subTasks);
+
+        // Obtener los UserTask que no sean null, vacíos o "Unknown"
+        const validUserTasks = subTasks.map(subTask => subTask.UserTask)
+          .filter(userTask => userTask && userTask.trim() !== '' && userTask !== 'Unknown');
+
+        // Verificar si los usuarios de las subtareas son diferentes o iguales
+        const areUserTasksDifferent = new Set(validUserTasks).size >= element.Nu; // Comparar con el valor Nu
+
+        // Reglas BoD, SoD, y UoC
+        const isBoD = element.Bod === true && validUserTasks.length > 0 && !areUserTasksDifferent; // Se dispara si los usuarios son los mismos
+        const isSoD = element.Sod === true && areUserTasksDifferent && validUserTasks.length >= element.Nu; // Se dispara si los usuarios son diferentes
+        const isUoC = element.Uoc === true && element.Mth >= 4 && validUserTasks.length > 0;
+
+        // Crear el objeto para esta tarea
+        const triggeredRuleData = {
+          id_bpmn: element.id_bpmn || 'Unknown',
+          triggeredMessages: []
+        };
+
+        // Si SoD se dispara, generar el mensaje exacto
+        if (isSoD && subTasks.length >= 2) {
+          const subTask1Id = subTasks[0].id || subTasks[0];
+          const subTask2Id = subTasks[1].id || subTasks[1];
+          const user1 = subTasks[0].UserTask || "User1";
+          const user2 = subTasks[1].UserTask || "User2";
+
+          triggeredRuleData.triggeredMessages.push(
+            `[SOD MONITOR] Separation of Duties detected:\n` +
+            `- Parent Task ID: ${element.id_bpmn}\n` +
+            `- SubTask 1 ID: ${subTask1Id} - User ID: ${user1}\n` +
+            `- SubTask 2 ID: ${subTask2Id} - User ID: ${user2}\n`
+          );
+        }
+
+        // Si BoD se dispara, agregar texto correspondiente
+        if (isBoD && subTasks.length >= 2) {
+          const subTask1Id = subTasks[0].id || subTasks[0];
+          const subTask2Id = subTasks[1].id || subTasks[1];
+          const user = subTasks[0].UserTask || "No User Assigned"; // Aquí se usa el usuario de la primera subtarea
+
+          triggeredRuleData.triggeredMessages.push(
+            `[BOD MONITOR] Binding of Duty detected:\n` +
+            `- Parent Task ID: ${element.id_bpmn}\n` +
+            `- SubTask 1 ID: ${subTask1Id}\n` +
+            `- SubTask 2 ID: ${subTask2Id}\n` +
+            `- User ID: ${user}\n`
+          );
+        }
+
+        // Si UoC se dispara, agregar texto correspondiente
+        if (isUoC) {
+          const userTaskCount = validUserTasks.reduce((acc, userTask) => {
+            acc[userTask] = (acc[userTask] || 0) + 1;
+            return acc;
+          }, {});
+
+          for (const [user, count] of Object.entries(userTaskCount)) {
+            if (count >= element.Mth) {
+              const taskIds = subTasks.map(subTask => subTask.id || subTask).join(", ");
+              triggeredRuleData.triggeredMessages.push(
+                `[UOC MONITOR] Usage of Control detected:\n` +
+                `- Parent Task ID: ${element.id_bpmn}\n` +
+                `- SubTasks IDs: ${taskIds}\n` +
+                `- User ID: ${user}\n` +
+                `- Maximum allowed executions (Mth >= 4): ${element.Mth}\n`
+              );
+            }
+          }
+        }
+
+        // Solo agregar la tarea si alguna regla se disparó
+        if (triggeredRuleData.triggeredMessages.length > 0) {
+          triggeredRules.push(triggeredRuleData);
+        }
+      });
+
+      // Si no hay reglas que se disparen
+      if (triggeredRules.length === 0) {
+        triggeredRules.push({ message: 'No rules triggered.' });
+      }
+
+      console.log('Triggered Rules:', triggeredRules);
+
+      // Convertir a JSON y resolver la promesa
+      resolve(JSON.stringify(triggeredRules, null, 2));
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function deployRules(bpmnModeler) {
   return new Promise((resolve, reject) => {
     try {
       const elements = getAllRelevantTasks(bpmnModeler);
@@ -159,7 +267,6 @@ function esperRules(bpmnModeler) {
       const jsonContent = [];
 
       elements.forEach(element => {
-        // Solo incluir si alguno de sodSecurity, bodSecurity o uocSecurity es true
         if (element.Sod === true || element.Bod === true || element.Uoc === true) {
           const elementData = {
             type: element.type,
@@ -244,5 +351,6 @@ module.exports = {
   getSecurityTasks,
   getAllRelevantTasks,
   esperRules,
+  deployRules,
   exportToEsper
 };
