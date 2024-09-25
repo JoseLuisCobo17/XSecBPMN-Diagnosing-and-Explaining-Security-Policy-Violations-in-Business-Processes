@@ -173,12 +173,16 @@ function esperRules(bpmnModeler) {
         const validUserTasks = subTasks.map(subTask => subTask.UserTask)
           .filter(userTask => userTask && userTask.trim() !== '' && userTask !== 'Unknown');
 
-        // Verificar si los usuarios de las subtareas son diferentes o iguales
-        const areUserTasksDifferent = new Set(validUserTasks).size >= element.Nu; // Comparar con el valor Nu
+        // Calcular el número de usuarios únicos
+        const uniqueUserCount = new Set(validUserTasks).size;
 
-        // Reglas BoD, SoD, y UoC
-        const isBoD = element.Bod === true && validUserTasks.length > 0 && !areUserTasksDifferent; // Se dispara si los usuarios son los mismos
-        const isSoD = element.Sod === true && areUserTasksDifferent && validUserTasks.length >= element.Nu; // Se dispara si los usuarios son diferentes
+        // Determinar si los usuarios son los mismos o diferentes
+        const usersAreSame = uniqueUserCount === 1;
+        const usersAreDifferent = uniqueUserCount > 1;
+
+        // Reglas BoD, SoD, y UoC (Ajustadas para detectar violaciones)
+        const isBoDViolation = element.Bod === true && validUserTasks.length > 0 && usersAreDifferent;
+        const isSoDViolation = element.Sod === true && validUserTasks.length >= 2 && usersAreSame;
         const isUoC = element.Uoc === true && element.Mth >= 4 && validUserTasks.length > 0;
 
         // Crear el objeto para esta tarea
@@ -187,33 +191,35 @@ function esperRules(bpmnModeler) {
           triggeredMessages: []
         };
 
-        // Si SoD se dispara, generar el mensaje exacto
-        if (isSoD && subTasks.length >= 2) {
+        // Si se detecta una violación de BoD
+        if (isBoDViolation && subTasks.length >= 2) {
           const subTask1Id = subTasks[0].id || subTasks[0];
           const subTask2Id = subTasks[1].id || subTasks[1];
           const user1 = subTasks[0].UserTask || "User1";
           const user2 = subTasks[1].UserTask || "User2";
 
           triggeredRuleData.triggeredMessages.push(
-            `[SOD MONITOR] Separation of Duties detected:\n` +
+            `[BOD MONITOR] Binding of Duty violation detected:\n` +
             `- Parent Task ID: ${element.id_bpmn}\n` +
             `- SubTask 1 ID: ${subTask1Id} - User ID: ${user1}\n` +
-            `- SubTask 2 ID: ${subTask2Id} - User ID: ${user2}\n`
+            `- SubTask 2 ID: ${subTask2Id} - User ID: ${user2}\n` +
+            `- Expected: Same user should perform both tasks.\n`
           );
         }
 
-        // Si BoD se dispara, agregar texto correspondiente
-        if (isBoD && subTasks.length >= 2) {
+        // Si se detecta una violación de SoD
+        if (isSoDViolation && subTasks.length >= 2) {
           const subTask1Id = subTasks[0].id || subTasks[0];
           const subTask2Id = subTasks[1].id || subTasks[1];
-          const user = subTasks[0].UserTask || "No User Assigned"; // Aquí se usa el usuario de la primera subtarea
+          const user = subTasks[0].UserTask || "No User Assigned"; // Mismo usuario
 
           triggeredRuleData.triggeredMessages.push(
-            `[BOD MONITOR] Binding of Duty detected:\n` +
+            `[SOD MONITOR] Separation of Duties violation detected:\n` +
             `- Parent Task ID: ${element.id_bpmn}\n` +
             `- SubTask 1 ID: ${subTask1Id}\n` +
             `- SubTask 2 ID: ${subTask2Id}\n` +
-            `- User ID: ${user}\n`
+            `- User ID: ${user}\n` +
+            `- Expected: Different users should perform the tasks.\n`
           );
         }
 
