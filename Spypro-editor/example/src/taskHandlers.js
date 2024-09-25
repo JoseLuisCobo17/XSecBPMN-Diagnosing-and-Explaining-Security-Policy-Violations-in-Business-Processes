@@ -152,19 +152,49 @@ function getAllRelevantTasks(bpmnModeler) {
 }
 
 function esperRules(bpmnModeler) {
-  const securityTasks = getSecurityTasks(bpmnModeler);
-  const args = {
-    data: { esperRules: securityTasks },
-    headers: { 'Content-Type': 'application/json' }
-  };
+  return new Promise((resolve, reject) => {
+    try {
+      const elements = getAllRelevantTasks(bpmnModeler);
 
-  return axios.post('http://localhost:3000/esperrules', args.data, { headers: args.headers })
-    .then(response => {
-      return response.data;
-    })
-    .catch(error => {
-      throw error;
-    });
+      const jsonContent = [];
+
+      elements.forEach(element => {
+        // Solo incluir si alguno de sodSecurity, bodSecurity o uocSecurity es true
+        if (element.Sod === true || element.Bod === true || element.Uoc === true) {
+          const elementData = {
+            type: element.type,
+            name: element.name || 'Unnamed',
+            id_bpmn: element.id_bpmn || 'Unknown',
+            sodSecurity: element.Sod || false,
+            bodSecurity: element.Bod || false,
+            uocSecurity: element.Uoc || false,
+            timestamp: Date.now(),
+            nu: element.Nu,
+            mth: element.Mth,
+            p: element.P,
+            userTask: element.type === 'bpmn:Task' ? element.UserTask || 'N/A' : undefined,
+            user: element.type === 'bpmn:Task' ? element.User || 'N/A' : undefined,
+            log: element.Log || 'N/A',
+            subTasks: element.SubTasks ? element.SubTasks : 'No SubTasks'
+          };
+
+          jsonContent.push(elementData);
+        }
+      });
+
+      // Si no hay elementos relevantes
+      if (jsonContent.length === 0) {
+        jsonContent.push({ message: 'No relevant elements generated.' });
+      }
+
+      console.log('Generated content for Esper (JSON):', jsonContent);
+
+      // Convertir a JSON
+      resolve(JSON.stringify(jsonContent, null, 2));
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
 
 function exportToEsper(bpmnModeler) {
