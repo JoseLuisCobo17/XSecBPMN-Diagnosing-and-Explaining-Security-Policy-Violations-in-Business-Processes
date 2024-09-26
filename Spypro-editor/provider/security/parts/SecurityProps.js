@@ -1,5 +1,4 @@
 import { html } from 'htm/preact';
-import { CheckboxEntry } from '@bpmn-io/properties-panel';
 import { useService } from 'bpmn-js-properties-panel';
 import { TextFieldEntry } from '@bpmn-io/properties-panel';
 
@@ -51,15 +50,33 @@ function NuFunction(props) {
       return '';
     }
     const value = element.businessObject.Nu;
-    return value !== undefined ? value : ''; 
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
   const setValue = value => {
+    if (typeof value === 'undefined') {
+      return;
+    }
+
     if (!element || !element.businessObject) {
       return;
     }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        Nu: ''
+      });
+      return;
+    }
+
+    const newValue = parseFloat(value);
+
+    if (isNaN(newValue)) {
+      return;
+    }
+
     modeling.updateProperties(element, {
-      Nu: Number(value) 
+      Nu: newValue
     });
   };
 
@@ -83,20 +100,37 @@ function MthFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; 
+      return '';
     }
     const value = element.businessObject.Mth;
-    console.log('Current Mth value (getValue):', value); 
-    return value !== undefined ? value : ''; 
+    console.log('Current Mth value (getValue):', value);
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
   const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
+    if (typeof value === 'undefined') {
+      return;
     }
-    console.log('Setting Mth to (setValue):', value); 
+
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        Mth: ''
+      });
+      return;
+    }
+    const newValue = parseFloat(value);
+
+    if (isNaN(newValue)) {
+      return;
+    }
+
+    console.log('Setting Mth to (setValue):', newValue);
     modeling.updateProperties(element, {
-      Mth: Number(value) 
+      Mth: newValue
     });
   };
 
@@ -120,18 +154,34 @@ function PFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; 
+      return '';
     }
     const value = element.businessObject.P;
-    return value !== undefined ? value : ''; 
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
   const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
+    if (typeof value === 'undefined') {
+      return;
     }
+
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        P: ''
+      });
+      return;
+    }
+    const newValue = parseFloat(value);
+    if (isNaN(newValue)) {
+      return;
+    }
+
     modeling.updateProperties(element, {
-      P: Number(value) 
+      P: newValue
     });
   };
 
