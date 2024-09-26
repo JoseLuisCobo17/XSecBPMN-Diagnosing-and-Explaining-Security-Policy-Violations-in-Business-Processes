@@ -114,6 +114,7 @@ function getAllRelevantTasks(bpmnModeler) {
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
 
+  // Obtener todos los elementos relevantes, incluyendo los procesos.
   var relevantElements = elementRegistry.filter(e =>
     e.type === 'bpmn:Task' ||
     e.type === 'bpmn:ServiceTask' ||
@@ -121,6 +122,7 @@ function getAllRelevantTasks(bpmnModeler) {
     e.type === 'bpmn:ManualTask' ||
     e.type === 'bpmn:StartEvent' ||
     e.type === 'bpmn:EndEvent' ||
+    e.type === 'bpmn:Process' || // Añadir bpmn:Process
     e.type.startsWith('bpmn:')
   );
 
@@ -130,6 +132,7 @@ function getAllRelevantTasks(bpmnModeler) {
 
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isTask = e.type === 'bpmn:Task';
+    const isProcess = e.type === 'bpmn:Process';
     const securityType = businessObject.securityType || '';
 
     return {
@@ -146,7 +149,9 @@ function getAllRelevantTasks(bpmnModeler) {
       User: isServiceTask ? (businessObject.User || '') : '',
       UserTask: isTask ? (businessObject.UserTask || '') : '',
       Log: businessObject.Log || '',
-      SubTasks: subTasks
+      SubTasks: subTasks,
+      Instances: isProcess ? (businessObject.instance || 0) : 0,
+      Frequency: isProcess ? (businessObject.frequency || 0) : 0
     };
   });
 }
@@ -372,6 +377,9 @@ function exportToEsper(bpmnModeler) {
           content += `userTask=${element.UserTask || 'N/A'}, `;
           content += `user=${element.User || 'N/A'}, `;
         }
+
+        content += `instances=${element.Instances}, `;
+        content += `frequency=${element.Frequency}, `;
 
         content += `log=${element.Log || 'N/A'}, `;
 
