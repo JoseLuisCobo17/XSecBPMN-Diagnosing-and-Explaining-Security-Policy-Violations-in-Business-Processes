@@ -12,14 +12,14 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
 
   this.getGroups = function(element) {
     return function(groups) {
-
       if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'SoD') {
         groups.push(createSoDGroup(element, translate));
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'BoD') {
         groups.push(createBoDGroup(element, translate));
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'UoC') {
-        groups.push(createUoCGroup(element, translate)); // Añadir UoC
-      } else if (is(element, 'bpmn:Task')) {
+        groups.push(createUoCGroup(element, translate));
+      }
+      else if (is(element, 'bpmn:ManualTask') || is(element, 'bpmn:UserTask') || (is(element, 'bpmn:Task') && !is(element, 'bpmn:BusinessRuleTask') && !is(element, 'bpmn:ScriptTask') && !is(element, 'bpmn:ServiceTask') && !is(element, 'bpmn:SendTask') && !is(element, 'bpmn:ReceiveTask'))) {
         groups.push(createUserGroup(element, translate));
       } else if (is(element, 'bpmn:SequenceFlow')) {
         const sourceElement = element.businessObject.sourceRef;

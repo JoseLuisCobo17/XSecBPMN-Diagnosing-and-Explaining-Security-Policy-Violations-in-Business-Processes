@@ -1,5 +1,4 @@
 import { html } from 'htm/preact';
-import { CheckboxEntry } from '@bpmn-io/properties-panel';
 import { useService } from 'bpmn-js-properties-panel';
 import { TextFieldEntry } from '@bpmn-io/properties-panel';
 

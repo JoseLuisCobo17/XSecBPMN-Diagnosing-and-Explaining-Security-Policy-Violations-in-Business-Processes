@@ -10,6 +10,8 @@
     {
       "name": "BewitchedStartEvent",
       "extends": [
+        "bpmn:ManualTask",
+        "bpmn:UserTask",
         "bpmn:Task"
       ],
       "properties": [
@@ -26,7 +28,7 @@
           "isMany": false
         },
         {
-          "name": "AverageTimeEstimate",
+          "name": "maximumTime",
           "isAttr": true,
           "type": "Integer"
         },

@@ -17,9 +17,9 @@ export default function(element) {
       isEdited: isNumberEntryEdited
     },
     {
-      id: 'AverageTimeEstimate',
+      id: 'maximumTime',
       element,
-      component: AverageTimeEstimateFunction,
+      component: maximumTimeFunction,
       isEdited: isNumberEntryEdited
     },
     {
@@ -121,7 +121,7 @@ function NumberOfExecutionsFunction(props) {
   />`;
 }
 
-function AverageTimeEstimateFunction(props) {
+function maximumTimeFunction(props) {
   const { element, id } = props;
   const modeling = useService('modeling');
   const translate = useService('translate');
@@ -131,8 +131,8 @@ function AverageTimeEstimateFunction(props) {
     if (!element || !element.businessObject) {
       return '';
     }
-    const value = element.businessObject.AverageTimeEstimate;
-    console.log('Current AverageTimeEstimate value (getValue):', value);
+    const value = element.businessObject.maximumTime;
+    console.log('Current maximumTime value (getValue):', value);
     return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
@@ -147,7 +147,7 @@ function AverageTimeEstimateFunction(props) {
 
     if (value.trim() === '') {
       modeling.updateProperties(element, {
-        AverageTimeEstimate: ''
+        maximumTime: ''
       });
       return;
     }
@@ -158,21 +158,21 @@ function AverageTimeEstimateFunction(props) {
       return;
     }
 
-    console.log('Setting AverageTimeEstimate to (setValue):', newValue);
+    console.log('Setting maximumTime to (setValue):', newValue);
 
     modeling.updateProperties(element, {
-      AverageTimeEstimate: newValue
+      maximumTime: newValue
     });
   };
 
   return html`<${TextFieldEntry}
     id=${id}
     element=${element}
-    label=${translate('Average time estimate')}
+    label=${translate('Maximum time')}
     getValue=${getValue}
     setValue=${debounce(setValue)}
     debounce=${debounce}
-    tooltip=${translate('Enter the average time estimate.')} 
+    tooltip=${translate('Enter the maximum time.')} 
   />`;
 }
 
