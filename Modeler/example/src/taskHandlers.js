@@ -114,7 +114,7 @@ function getAllRelevantTasks(bpmnModeler) {
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
 
-  // Obtener todos los elementos relevantes, incluyendo los procesos.
+  // Obtener todos los elementos relevantes, incluyendo los procesos y secuencias de flujo.
   var relevantElements = elementRegistry.filter(e =>
     e.type === 'bpmn:Task' ||
     e.type === 'bpmn:ServiceTask' ||
@@ -122,7 +122,8 @@ function getAllRelevantTasks(bpmnModeler) {
     e.type === 'bpmn:ManualTask' ||
     e.type === 'bpmn:StartEvent' ||
     e.type === 'bpmn:EndEvent' ||
-    e.type === 'bpmn:Process' || // Añadir bpmn:Process
+    e.type === 'bpmn:Process' ||
+    e.type === 'bpmn:SequenceFlow' ||
     e.type.startsWith('bpmn:')
   );
 
@@ -133,7 +134,9 @@ function getAllRelevantTasks(bpmnModeler) {
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isTask = e.type === 'bpmn:Task';
     const isProcess = e.type === 'bpmn:Process';
+    const isSequenceFlow = e.type === 'bpmn:SequenceFlow';
     const securityType = businessObject.securityType || '';
+    const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
 
     return {
       id_model: id_model,
@@ -151,7 +154,8 @@ function getAllRelevantTasks(bpmnModeler) {
       Log: businessObject.Log || '',
       SubTasks: subTasks,
       Instances: isProcess ? (businessObject.instance || 0) : 0,
-      Frequency: isProcess ? (businessObject.frequency || 0) : 0
+      Frequency: isProcess ? (businessObject.frequency || 0) : 0,
+      PercentageOfBranches: percentageOfBranches
     };
   });
 }
@@ -380,6 +384,9 @@ function exportToEsper(bpmnModeler) {
 
         content += `instances=${element.Instances}, `;
         content += `frequency=${element.Frequency}, `;
+        if (element.type === 'bpmn:SequenceFlow') {
+          content += `percentageOfBranches=${element.PercentageOfBranches}, `;
+        }
 
         content += `log=${element.Log || 'N/A'}, `;
 
