@@ -81,7 +81,7 @@ const setValue = value => {
   return html`<${TextFieldEntry}
     id=${id}
     element=${element}
-    label=${translate('PercentageofBranchesFunction')}
+    label=${translate('Percentage of branche')}
     getValue=${getValue}
     setValue=${debounce(setValue)}
     debounce=${debounce}
