@@ -70,7 +70,6 @@ function UserFunction(props) {
   />`;
 }
 
-// NumberOfExecutions
 function NumberOfExecutionsFunction(props) {
   const { element, id } = props;
   const modeling = useService('modeling');
@@ -79,28 +78,38 @@ function NumberOfExecutionsFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; 
+      return '';
     }
     const value = element.businessObject.NumberOfExecutions;
-    console.log('Current NumberOfExecutions value (getValue):', value, 'BusinessObject:', element.businessObject);
-    return value !== undefined ? value : '';
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
   const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
+
+    if (typeof value === 'undefined') {
+      return;
     }
-    console.log('Setting NumberOfExecutions to (setValue):', value);
-    console.log('Before updating:', element.businessObject);
 
-    // Actualización del businessObject
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        NumberOfExecutions: ''
+      });
+      return;
+    }
+
+    const newValue = parseInt(value, 10);
+    if (isNaN(newValue)) {
+      return;
+    }
+
     modeling.updateProperties(element, {
-      NumberOfExecutions: Number(value)
+      NumberOfExecutions: newValue
     });
-
-    console.log('After updating:', element.businessObject);
   };
-
   return html`<${TextFieldEntry}
     id=${id}
     element=${element}
@@ -112,7 +121,6 @@ function NumberOfExecutionsFunction(props) {
   />`;
 }
 
-// AverageTimeEstimate
 function AverageTimeEstimateFunction(props) {
   const { element, id } = props;
   const modeling = useService('modeling');
@@ -121,21 +129,39 @@ function AverageTimeEstimateFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; 
+      return '';
     }
     const value = element.businessObject.AverageTimeEstimate;
     console.log('Current AverageTimeEstimate value (getValue):', value);
-    return value !== undefined ? value : '';
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
   const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
+    if (typeof value === 'undefined') {
+      return;
     }
 
-    // Inicializar averageTimeEstimate si no existe
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        AverageTimeEstimate: ''
+      });
+      return;
+    }
+
+    const newValue = parseFloat(value);
+
+    if (isNaN(newValue)) {
+      return;
+    }
+
+    console.log('Setting AverageTimeEstimate to (setValue):', newValue);
+
     modeling.updateProperties(element, {
-      AverageTimeEstimate: Number(value)
+      AverageTimeEstimate: newValue
     });
   };
 
@@ -149,6 +175,7 @@ function AverageTimeEstimateFunction(props) {
     tooltip=${translate('Enter the average time estimate.')} 
   />`;
 }
+
 
 // Instance
 function InstanceFunction(props) {

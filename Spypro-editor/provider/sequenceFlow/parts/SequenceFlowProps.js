@@ -27,73 +27,77 @@ function PercentageofBranchesFunction(props) {
     if (!element || !element.businessObject) {
       return '';
     }
-    const value = element.businessObject.percentageOfBranches; 
+    const value = element.businessObject.percentageOfBranches;
     console.log('Current percentageOfBranches value (getValue):', value);
-    return value !== undefined ? value : '';
+
+    // Si el valor es `NaN` o no es un número válido, retornar cadena vacía para permitir edición
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
+  };
+
+  const setValue = value => {
+    if (typeof value === 'undefined') {
+      return;
+    }
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        percentageOfBranches: ''
+      });
+      return;
+    }
+    const newPercentage = parseInt(value, 10);
+
+    if (isNaN(newPercentage)) {
+      return;
+    }
+    const sourceElement = element.businessObject.sourceRef;
+
+    if (sourceElement && is(sourceElement, 'bpmn:Gateway')) {
+      const outgoingFlows = sourceElement.outgoing || [];
+      let totalPercentage = 0;
+
+      outgoingFlows.forEach(flow => {
+        if (flow !== element.businessObject) {
+          totalPercentage += parseInt(flow.percentageOfBranches || 0, 10);
+        }
+      });
+
+      totalPercentage += newPercentage;
+
+      if (totalPercentage > 100) {
+        alert('La suma de todas las ramas del Gateway excede el 100%. Ajusta los valores.');
+        return;
+      }
+    }
+    modeling.updateProperties(element, {
+      percentageOfBranches: newPercentage
+    });
   };
   
-// En SequenceFlowProps.js, en la función setValue:
-const setValue = value => {
-  if (!element || !element.businessObject) {
-    return;
-  }
-
-  // Convertir el valor a un número entero para la validación
-  const newPercentage = parseInt(value, 10);
-
-  // Obtener el Gateway de origen
-  const sourceElement = element.businessObject.sourceRef;
-
-  // Verificar si el Gateway de origen es válido
-  if (sourceElement && is(sourceElement, 'bpmn:Gateway')) {
-    
-    // Obtener todas las ramas salientes del mismo Gateway
-    const outgoingFlows = sourceElement.outgoing || [];
-
-    // Calcular la suma de los percentageOfBranches de todas las ramas salientes
-    let totalPercentage = 0;
-
-    outgoingFlows.forEach(flow => {
-      // Ignorar la secuencia de flujo actual al sumar
-      if (flow !== element.businessObject) {
-        totalPercentage += parseInt(flow.percentageOfBranches || 0, 10);
-      }
-    });
-
-    // Añadir el nuevo valor a la suma total
-    totalPercentage += newPercentage;
-
-    // Verificar si la suma total es mayor que 100
-    if (totalPercentage > 100) {
-      // Mostrar un error o alerta
-      alert('La suma de todas las ramas del Gateway excede el 100%. Ajusta los valores.');
-      return; // No permitir el cambio si la suma excede 100
-    }
-  }
-
-  // Si la suma es válida, actualizar la propiedad
-  modeling.updateProperties(element, {
-    percentageOfBranches: newPercentage
-  });
-};
-
 
   return html`<${TextFieldEntry}
     id=${id}
     element=${element}
-    label=${translate('Percentage of branche')}
+    label=${translate('Percentage of Branches')}
     getValue=${getValue}
     setValue=${debounce(setValue)}
     debounce=${debounce}
-    tooltip=${translate('Enter a user percentage of branche.')} 
+    tooltip=${translate('Enter the percentage for this branch.')} 
   />`;
 }
 
 function isNumberEntryEdited(element) {
-  console.log("element:" + element.businessObject)
+  console.log("element:", element.businessObject);
+
   if (!element || !element.businessObject) {
-    return 0;
+    return '';
   }
+
   const nuValue = element.businessObject.numberOfExecutions;
-  return (typeof nuValue !== 'undefined' && !isNaN(nuValue)) ? nuValue : 0;
+
+  // Retornar el valor tal como está, permitiendo que sea 'NaN' o vacío
+  return nuValue;
 }
