@@ -1,5 +1,6 @@
 import SecurityProps from './parts/SecurityProps';
 import UserProps from '../user/parts/UserProps';
+import SequenceFlowProps from '../sequenceFlow/parts/SequenceFlowProps';
 
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
@@ -10,20 +11,22 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
   // API ////////
 
   this.getGroups = function(element) {
-
     return function(groups) {
 
-      // Añadir el grupo "Security" basado en securityType
       if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'SoD') {
         groups.push(createSoDGroup(element, translate));
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'BoD') {
         groups.push(createBoDGroup(element, translate));
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'UoC') {
         groups.push(createUoCGroup(element, translate)); // Añadir UoC
-      } else if (is(element, 'bpmn:Task')) { 
+      } else if (is(element, 'bpmn:Task')) {
         groups.push(createUserGroup(element, translate));
+      } else if (is(element, 'bpmn:SequenceFlow')) {
+        const sourceElement = element.businessObject.sourceRef;
+        if (sourceElement && is(sourceElement, 'bpmn:Gateway')) {
+          groups.push(createSequenceFlowGroup(element, translate));
+        }
       }
-
       return groups;
     };
   };
@@ -38,7 +41,7 @@ function createSoDGroup(element, translate) {
   const securityGroup = {
     id: 'security-sod',
     label: translate('SoD properties'),
-    entries: SecurityProps(element), 
+    entries: SecurityProps(element),
     tooltip: translate('Ensure proper SoD management!')
   };
 
@@ -79,4 +82,15 @@ function createUserGroup(element, translate) {
   };
 
   return userGroup;
+}
+
+function createSequenceFlowGroup(element, translate) {
+  const sequenceFlowGroup = {
+    id: 'sequenceFlow',
+    label: translate('SequenceFlow properties'),
+    entries: SequenceFlowProps(element),
+    tooltip: translate('Make sure you know what you are doing!')
+  };
+
+  return sequenceFlowGroup;
 }

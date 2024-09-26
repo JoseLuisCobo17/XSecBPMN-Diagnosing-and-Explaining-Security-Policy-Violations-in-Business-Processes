@@ -18,6 +18,7 @@ import resizeAllModule from '../../lib/resize-all-rules';
 import propertiesProviderModule from '../../provider/security';
 import securityModdleDescriptor from '../../descriptors/security.json';
 import userModdleDescriptor from '../../descriptors/user.json';
+import sequenceFlowExtension from '../../descriptors/sequenceFlow.json';
 
 import TokenSimulationModule from '../..';
 import AddExporter from '@bpmn-io/add-exporter';
@@ -35,7 +36,7 @@ $(function() {
       parent: '#properties-panel'
     },
     additionalModules: [
-      BpmnPropertiesPanelModule, // Importa correctamente este módulo
+      BpmnPropertiesPanelModule,
       BpmnPropertiesProviderModule,
       propertiesProviderModule,
       securityPaletteModule,
@@ -50,7 +51,8 @@ $(function() {
     },
     moddleExtensions: {
       security: securityModdleDescriptor,
-      user: userModdleDescriptor
+      user: userModdleDescriptor,
+      sequenceFlow: sequenceFlowExtension
     }
   });
 
