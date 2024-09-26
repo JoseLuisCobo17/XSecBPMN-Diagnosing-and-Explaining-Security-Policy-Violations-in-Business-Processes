@@ -138,6 +138,13 @@ function getAllRelevantTasks(bpmnModeler) {
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
 
+    // Extraer nuevas propiedades de la extensión User
+    const userTasks = businessObject.UserTask || [];
+    const numberOfExecutions = businessObject.NumberOfExecutions || 0;
+    const minimumTime = businessObject.minimumTime || 0;
+    const maximumTime = businessObject.maximumTime || 0;
+    const instance = businessObject.Instance || '';
+
     return {
       id_model: id_model,
       id_bpmn: businessObject.id,
@@ -150,12 +157,16 @@ function getAllRelevantTasks(bpmnModeler) {
       Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
       P: isServiceTask ? (businessObject.P || 0) : 0,
       User: isServiceTask ? (businessObject.User || '') : '',
-      UserTask: isTask ? (businessObject.UserTask || '') : '',
+      UserTask: isTask ? (userTasks.join(', ') || '') : '',
       Log: businessObject.Log || '',
       SubTasks: subTasks,
       Instances: isProcess ? (businessObject.instance || 0) : 0,
       Frequency: isProcess ? (businessObject.frequency || 0) : 0,
-      PercentageOfBranches: percentageOfBranches
+      PercentageOfBranches: percentageOfBranches,
+      NumberOfExecutions: numberOfExecutions,
+      MinimumTime: minimumTime,
+      MaximumTime: maximumTime,
+      UserInstance: instance
     };
   });
 }
@@ -376,10 +387,13 @@ function exportToEsper(bpmnModeler) {
         content += `mth=${element.Mth}, `;
         content += `p=${element.P}, `;
 
-        // Diferenciar entre Task y ServiceTask
-        if (element.type === 'bpmn:Task') {
+        if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
           content += `userTask=${element.UserTask || 'N/A'}, `;
           content += `user=${element.User || 'N/A'}, `;
+          content += `numberOfExecutions=${element.NumberOfExecutions}, `;
+          content += `minimumTime=${element.MinimumTime}, `;
+          content += `maximumTime=${element.MaximumTime}, `;
+          content += `userInstance=${element.UserInstance}, `;
         }
 
         content += `instances=${element.Instances}, `;
