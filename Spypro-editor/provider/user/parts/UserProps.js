@@ -8,12 +8,18 @@ export default function(element) {
       id: 'UserTask',
       element,
       component: UserFunction,
-      isEdited: isListOfStringEntryEdited // Se pasa la función correcta
+      isEdited: isListOfStringEntryEdited
     },
     {
       id: 'NumberOfExecutions',
       element,
       component: NumberOfExecutionsFunction,
+      isEdited: isNumberEntryEdited
+    },
+    {
+      id: 'minimumTime',
+      element,
+      component: minimumTimeFunction,
       isEdited: isNumberEntryEdited
     },
     {
@@ -158,6 +164,15 @@ function maximumTimeFunction(props) {
       return;
     }
 
+    // Obtener el valor actual de `minimumTime`
+    const minimumTime = parseFloat(element.businessObject.minimumTime);
+
+    // Verificar que `maximumTime` sea mayor que `minimumTime`
+    if (!isNaN(minimumTime) && newValue <= minimumTime) {
+      alert('Maximum time must be greater than Minimum time.');
+      return;
+    }
+
     console.log('Setting maximumTime to (setValue):', newValue);
 
     modeling.updateProperties(element, {
@@ -173,6 +188,70 @@ function maximumTimeFunction(props) {
     setValue=${debounce(setValue)}
     debounce=${debounce}
     tooltip=${translate('Enter the maximum time.')} 
+  />`;
+}
+
+function minimumTimeFunction(props) {
+  const { element, id } = props;
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return '';
+    }
+    const value = element.businessObject.minimumTime;
+    console.log('Current minimumTime value (getValue):', value);
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
+  };
+
+  const setValue = value => {
+    if (typeof value === 'undefined') {
+      return;
+    }
+
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        minimumTime: ''
+      });
+      return;
+    }
+
+    const newValue = parseFloat(value);
+
+    if (isNaN(newValue)) {
+      return;
+    }
+
+    // Obtener el valor actual de `maximumTime`
+    const maximumTime = parseFloat(element.businessObject.maximumTime);
+
+    // Verificar que `minimumTime` sea menor que `maximumTime`
+    if (!isNaN(maximumTime) && newValue >= maximumTime) {
+      alert('Minimum time must be less than Maximum time.');
+      return;
+    }
+
+    console.log('Setting minimumTime to (setValue):', newValue);
+
+    modeling.updateProperties(element, {
+      minimumTime: newValue
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Minimum time')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter the minimum time.')} 
   />`;
 }
 

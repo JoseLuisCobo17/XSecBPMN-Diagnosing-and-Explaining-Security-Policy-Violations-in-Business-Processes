@@ -28,6 +28,11 @@
           "isMany": false
         },
         {
+          "name": "minimumTime",
+          "isAttr": true,
+          "type": "Integer"
+        },
+        {
           "name": "maximumTime",
           "isAttr": true,
           "type": "Integer"
