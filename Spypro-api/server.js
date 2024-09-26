@@ -7,7 +7,8 @@ var app = express();
 
 // Lista de orígenes permitidos para CORS
 var allowedOrigins = [
-    'http://localhost:8080'
+    'http://localhost:8080',
+    'http://localhost:9000'
 ];
 
 // Configuración de CORS

@@ -8,7 +8,7 @@ export default function(element) {
       id: 'UserTask',
       element,
       component: UserFunction,
-      isEdited: isListOfStringEntryEdited // Se pasa la función correcta
+      isEdited: isListOfStringEntryEdited
     },
     {
       id: 'NumberOfExecutions',
@@ -17,9 +17,15 @@ export default function(element) {
       isEdited: isNumberEntryEdited
     },
     {
-      id: 'AverageTimeEstimate',
+      id: 'minimumTime',
       element,
-      component: AverageTimeEstimateFunction,
+      component: minimumTimeFunction,
+      isEdited: isNumberEntryEdited
+    },
+    {
+      id: 'maximumTime',
+      element,
+      component: maximumTimeFunction,
       isEdited: isNumberEntryEdited
     },
     {
@@ -70,7 +76,6 @@ function UserFunction(props) {
   />`;
 }
 
-// NumberOfExecutions
 function NumberOfExecutionsFunction(props) {
   const { element, id } = props;
   const modeling = useService('modeling');
@@ -79,28 +84,38 @@ function NumberOfExecutionsFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; 
+      return '';
     }
     const value = element.businessObject.NumberOfExecutions;
-    console.log('Current NumberOfExecutions value (getValue):', value, 'BusinessObject:', element.businessObject);
-    return value !== undefined ? value : '';
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
   const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
+
+    if (typeof value === 'undefined') {
+      return;
     }
-    console.log('Setting NumberOfExecutions to (setValue):', value);
-    console.log('Before updating:', element.businessObject);
 
-    // Actualización del businessObject
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        NumberOfExecutions: ''
+      });
+      return;
+    }
+
+    const newValue = parseInt(value, 10);
+    if (isNaN(newValue)) {
+      return;
+    }
+
     modeling.updateProperties(element, {
-      NumberOfExecutions: Number(value)
+      NumberOfExecutions: newValue
     });
-
-    console.log('After updating:', element.businessObject);
   };
-
   return html`<${TextFieldEntry}
     id=${id}
     element=${element}
@@ -112,8 +127,7 @@ function NumberOfExecutionsFunction(props) {
   />`;
 }
 
-// AverageTimeEstimate
-function AverageTimeEstimateFunction(props) {
+function maximumTimeFunction(props) {
   const { element, id } = props;
   const modeling = useService('modeling');
   const translate = useService('translate');
@@ -121,34 +135,126 @@ function AverageTimeEstimateFunction(props) {
 
   const getValue = () => {
     if (!element || !element.businessObject) {
-      return ''; 
+      return '';
     }
-    const value = element.businessObject.AverageTimeEstimate;
-    console.log('Current AverageTimeEstimate value (getValue):', value);
-    return value !== undefined ? value : '';
+    const value = element.businessObject.maximumTime;
+    console.log('Current maximumTime value (getValue):', value);
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
   const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
+    if (typeof value === 'undefined') {
+      return;
     }
 
-    // Inicializar averageTimeEstimate si no existe
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        maximumTime: ''
+      });
+      return;
+    }
+
+    const newValue = parseFloat(value);
+
+    if (isNaN(newValue)) {
+      return;
+    }
+
+    // Obtener el valor actual de `minimumTime`
+    const minimumTime = parseFloat(element.businessObject.minimumTime);
+
+    // Verificar que `maximumTime` sea mayor que `minimumTime`
+    if (!isNaN(minimumTime) && newValue <= minimumTime) {
+      alert('Maximum time must be greater than Minimum time.');
+      return;
+    }
+
+    console.log('Setting maximumTime to (setValue):', newValue);
+
     modeling.updateProperties(element, {
-      AverageTimeEstimate: Number(value)
+      maximumTime: newValue
     });
   };
 
   return html`<${TextFieldEntry}
     id=${id}
     element=${element}
-    label=${translate('Average time estimate')}
+    label=${translate('Maximum time')}
     getValue=${getValue}
     setValue=${debounce(setValue)}
     debounce=${debounce}
-    tooltip=${translate('Enter the average time estimate.')} 
+    tooltip=${translate('Enter the maximum time.')} 
   />`;
 }
+
+function minimumTimeFunction(props) {
+  const { element, id } = props;
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return '';
+    }
+    const value = element.businessObject.minimumTime;
+    console.log('Current minimumTime value (getValue):', value);
+    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
+  };
+
+  const setValue = value => {
+    if (typeof value === 'undefined') {
+      return;
+    }
+
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    if (value.trim() === '') {
+      modeling.updateProperties(element, {
+        minimumTime: ''
+      });
+      return;
+    }
+
+    const newValue = parseFloat(value);
+
+    if (isNaN(newValue)) {
+      return;
+    }
+
+    // Obtener el valor actual de `maximumTime`
+    const maximumTime = parseFloat(element.businessObject.maximumTime);
+
+    // Verificar que `minimumTime` sea menor que `maximumTime`
+    if (!isNaN(maximumTime) && newValue >= maximumTime) {
+      alert('Minimum time must be less than Maximum time.');
+      return;
+    }
+
+    console.log('Setting minimumTime to (setValue):', newValue);
+
+    modeling.updateProperties(element, {
+      minimumTime: newValue
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Minimum time')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter the minimum time.')} 
+  />`;
+}
+
 
 // Instance
 function InstanceFunction(props) {
