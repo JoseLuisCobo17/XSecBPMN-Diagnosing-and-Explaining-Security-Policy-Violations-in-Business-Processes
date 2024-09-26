@@ -1,0 +1,30 @@
+{
+    "name": "modelExtension",
+    "prefix": "model",
+    "uri": "http://model",
+    "xml": {
+      "tagAlias": "lowerCase"
+    },
+    "associations": [],
+    "types": [
+      {
+        "name": "model",
+        "extends": [
+          "bpmn:Process"
+        ],
+        "properties": [
+          {
+            "name": "instance",
+            "isAttr": true,
+            "type": "Integer"
+          },
+          {
+            "name": "frequency",
+            "isAttr": true,
+            "type": "Integer"
+          }
+        ]
+      }
+    ]
+  }
+  

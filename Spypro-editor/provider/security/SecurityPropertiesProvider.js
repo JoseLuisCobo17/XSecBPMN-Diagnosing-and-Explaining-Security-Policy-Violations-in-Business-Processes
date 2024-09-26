@@ -1,6 +1,7 @@
 import SecurityProps from './parts/SecurityProps';
 import UserProps from '../user/parts/UserProps';
 import SequenceFlowProps from '../sequenceFlow/parts/SequenceFlowProps';
+import ModelProps from '../model/parts/ModelProps';
 
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
@@ -26,6 +27,8 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
         if (sourceElement && is(sourceElement, 'bpmn:Gateway')) {
           groups.push(createSequenceFlowGroup(element, translate));
         }
+      } else if (is(element, 'bpmn:Process')) {
+        groups.push(createModelGroup(element, translate));
       }
       return groups;
     };
@@ -93,4 +96,15 @@ function createSequenceFlowGroup(element, translate) {
   };
 
   return sequenceFlowGroup;
+}
+
+function createModelGroup(element, translate) {
+  const modelGroup = {
+    id: 'model',
+    label: translate('Model properties'),
+    entries: ModelProps(element),
+    tooltip: translate('Make sure you know what you are doing!')
+  };
+
+  return modelGroup;
 }
