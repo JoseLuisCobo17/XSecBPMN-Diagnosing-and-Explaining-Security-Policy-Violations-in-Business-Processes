@@ -79,6 +79,7 @@
     "mocha": "^10.7.3",
     "mocha-test-container-support": "^0.2.0",
     "npm-run-all2": "^6.2.2",
+    "path-browserify": "^1.0.1",
     "puppeteer": "^23.2.1",
     "rollup": "^4.21.1",
     "rollup-plugin-string": "^3.0.0",
@@ -99,7 +100,6 @@
     "jquery": "^3.7.1",
     "min-dash": "^4.0.0",
     "min-dom": "^4.2.1",
-    "path-browserify": "^1.0.1",
     "randomcolor": "^0.6.2",
     "stream-browserify": "^3.0.0",
     "tiny-svg": "^4.1.2"
