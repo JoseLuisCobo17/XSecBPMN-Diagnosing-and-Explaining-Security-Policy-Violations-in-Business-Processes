@@ -151,44 +151,42 @@ $(function() {
   let isDownloading = false;
   let hasDownloaded = false;
 
-  // Manejador para la descarga de Esper
-  $('#js-download-esper').off('click').on('click', async function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+  // Manejador para guardar Esper en la carpeta del proyecto
+$('#js-download-esper').off('click').on('click', async function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
 
-    if (isDownloading || hasDownloaded) return;
-    isDownloading = true;
+  if (isDownloading || hasDownloaded) return;
+  isDownloading = true;
 
-    console.log('Descarga iniciada');
+  console.log('Guardado iniciado');
 
-    try {
-      const content = await exportToEsper(bpmnModeler);
+  try {
+    const content = await exportToEsper(bpmnModeler);
 
-      if (!hasDownloaded) {
-        const blob = new Blob([ content ], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'esperTasks.txt';
+    if (!hasDownloaded) {
+      // Configura la solicitud POST para guardar el archivo
+      await fetch('http://localhost:3000/save-esper-file', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content, filename: 'esperTasks.txt' }),
+      });
 
-        document.body.appendChild(link);
-        link.click();
-
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        hasDownloaded = true;
-      } else {
-        console.log('Ya descargado');
-      }
-    } catch (err) {
-      console.log('Error al exportar a Esper:', err);
-    } finally {
-      isDownloading = false;
-      console.log('Descarga completada');
+      console.log('Archivo guardado en la carpeta del proyecto');
+      hasDownloaded = true;
+    } else {
+      console.log('Ya guardado');
     }
-  });
+  } catch (err) {
+    console.log('Error al exportar a Esper:', err);
+  } finally {
+    isDownloading = false;
+    console.log('Guardado completado');
+  }
+});
 
   // Función para descargar el diagrama como XML (BPMN)
   function downloadDiagram() {

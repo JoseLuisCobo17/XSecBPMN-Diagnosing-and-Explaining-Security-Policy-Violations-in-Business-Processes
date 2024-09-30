@@ -5,14 +5,17 @@ module.exports = function(app) {
     // Create a new Security task
     app.post('/securities', securities.create);
 
-    //Create a EsperRules txt file
+    // Create a EsperRules txt file
     app.post('/esperrules', securities.esperRules);
+
+    // Save the Esper file to the project directory
+    app.post('/save-esper-file', securities.saveEsperFile);
 
     // Retrieve all Security tasks
     app.get('/securities', securities.findAll);
 
     // Retrieve and return the security tasks belonging to a specific model from the database
-    app.get('/securities/model/:id_model', securities.findModel)
+    app.get('/securities/model/:id_model', securities.findModel);
 
     // Retrieve a single Security task with securityId
     app.get('/securities/:securityId', securities.findOne);
@@ -22,4 +25,4 @@ module.exports = function(app) {
 
     // Delete a Security with securityId
     app.delete('/securities/:securityId', securities.delete);
-}
+};

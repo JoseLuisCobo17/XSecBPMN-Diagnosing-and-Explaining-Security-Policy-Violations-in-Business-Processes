@@ -154,6 +154,32 @@ exports.esperRules = function (req, res) {
     });
 };
 
+// Ruta donde se guardará el archivo
+const FILES_DIRECTORY = '/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/src/main/java/com/cor/cep/files/';
+
+exports.saveEsperFile = (req, res) => {
+    const { content, filename } = req.body;
+
+    if (!content || !filename) {
+        return res.status(400).send({ message: 'El contenido o el nombre del archivo faltan' });
+    }
+
+    // Ruta completa del archivo
+    const filePath = path.join(FILES_DIRECTORY, filename);
+
+    // Guardar el archivo
+    fs.writeFile(filePath, content, 'utf8', (err) => {
+        if (err) {
+            console.error('Error al guardar el archivo:', err);
+            return res.status(500).send({ message: 'Error al guardar el archivo' });
+        }
+
+        console.log('Archivo guardado exitosamente en:', filePath);
+        res.status(200).send({ message: 'Archivo guardado exitosamente' });
+    });
+};
+
+
 exports.findAll = async function (req, res) {
     try {
         const securities = await Security.find();
