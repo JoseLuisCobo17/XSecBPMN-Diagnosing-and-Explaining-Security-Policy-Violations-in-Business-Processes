@@ -18,7 +18,10 @@ To run demo:
 
 2. Navigate to the root directory of the project (where the pom.xml is)
 
-3. 'mvn clean install' (this will compile and build the project)
+3. Modify the "RandomTaskEventGenerator.java" to trigger a specific rule.
 
-4. 'mvn exec:java' (this will start running the demo)
+4. 'mvn clean install' (this will compile and build the project)
+
+5. Now, you can choose to run RandomTaskEventGenerator with: 'mvn exec:java -Dexec.args="random 1000"' or use TaskProcessor with: 'mvn exec:java -Dexec.mainClass="com.cor.cep.StartDemo" -Dexec.args="file"'
+
 	

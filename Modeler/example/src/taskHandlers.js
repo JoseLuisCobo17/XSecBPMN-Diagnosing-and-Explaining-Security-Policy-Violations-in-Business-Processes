@@ -132,14 +132,15 @@ function getAllRelevantTasks(bpmnModeler) {
     var subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
 
     const isServiceTask = e.type === 'bpmn:ServiceTask';
-    const isTask = e.type === 'bpmn:Task';
+    const isUserTask = e.type === 'bpmn:UserTask';
+    const isTask = e.type === 'bpmn:Task' || isUserTask; // Ajuste para incluir bpmn:UserTask
     const isProcess = e.type === 'bpmn:Process';
     const isSequenceFlow = e.type === 'bpmn:SequenceFlow';
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
 
-    // Extraer nuevas propiedades de la extensión User
-    const userTasks = businessObject.UserTask || [];
+    // Asegurar que userTasks sea un arreglo
+    const userTasks = Array.isArray(businessObject.UserTask) ? businessObject.UserTask : [businessObject.UserTask || ''];
     const numberOfExecutions = businessObject.NumberOfExecutions || 0;
     const minimumTime = businessObject.minimumTime || 0;
     const maximumTime = businessObject.maximumTime || 0;
@@ -157,7 +158,7 @@ function getAllRelevantTasks(bpmnModeler) {
       Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
       P: isServiceTask ? (businessObject.P || 0) : 0,
       User: isServiceTask ? (businessObject.User || '') : '',
-      UserTask: isTask ? (userTasks.join(', ') || '') : '',
+      UserTask: (isTask || isUserTask) ? (userTasks.join(', ') || '') : '', // Ajuste aquí
       Log: businessObject.Log || '',
       SubTasks: subTasks,
       Instances: isProcess ? (businessObject.instance || 0) : 0,
@@ -168,6 +169,59 @@ function getAllRelevantTasks(bpmnModeler) {
       MaximumTime: maximumTime,
       UserInstance: instance
     };
+  });
+}
+
+function exportToEsper(bpmnModeler) {
+  return new Promise((resolve, reject) => {
+    try {
+      const elements = getAllRelevantTasks(bpmnModeler);
+
+      let content = '### Esper Rules Export ###\n\n';
+      elements.forEach(element => {
+        content += `Element: [type=${element.type}, `;
+        content += `name=${element.name || 'Unnamed'}, `;
+        content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+        content += `sodSecurity=${element.Sod}, `;
+        content += `bodSecurity=${element.Bod}, `;
+        content += `uocSecurity=${element.Uoc}, `;
+        content += `timestamp=${Date.now()}, `;
+        content += `nu=${element.Nu}, `;
+        content += `mth=${element.Mth}, `;
+        content += `p=${element.P}, `;
+
+        // Diferenciar entre Task, UserTask, ManualTask
+        if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
+          content += `userTask=${element.UserTask || 'N/A'}, `;
+          content += `user=${element.User || 'N/A'}, `;
+          content += `numberOfExecutions=${element.NumberOfExecutions}, `;
+          content += `minimumTime=${element.MinimumTime}, `;
+          content += `maximumTime=${element.MaximumTime}, `;
+          content += `userInstance=${element.UserInstance}, `;
+        }
+
+        content += `instances=${element.Instances}, `;
+        content += `frequency=${element.Frequency}, `;
+        if (element.type === 'bpmn:SequenceFlow') {
+          content += `percentageOfBranches=${element.PercentageOfBranches}, `;
+        }
+
+        content += `log=${element.Log || 'N/A'}, `;
+
+        const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+        content += `subTask=${subTasks}]\n`;
+      });
+
+      if (elements.length === 0) {
+        content += 'No elements generated.\n';
+      }
+
+      console.log('Generated content for Esper:', content);
+
+      resolve(content);
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -363,58 +417,6 @@ function deployRules(bpmnModeler) {
 
       // Resolver la promesa con las sentencias EPL generadas
       resolve(eplStatements);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
-
-function exportToEsper(bpmnModeler) {
-  return new Promise((resolve, reject) => {
-    try {
-      const elements = getAllRelevantTasks(bpmnModeler);
-
-      let content = '### Esper Rules Export ###\n\n';
-      elements.forEach(element => {
-        content += `Element: [type=${element.type}, `;
-        content += `name=${element.name || 'Unnamed'}, `;
-        content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
-        content += `sodSecurity=${element.Sod}, `;
-        content += `bodSecurity=${element.Bod}, `;
-        content += `uocSecurity=${element.Uoc}, `;
-        content += `timestamp=${Date.now()}, `;
-        content += `nu=${element.Nu}, `;
-        content += `mth=${element.Mth}, `;
-        content += `p=${element.P}, `;
-
-        if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
-          content += `userTask=${element.UserTask || 'N/A'}, `;
-          content += `user=${element.User || 'N/A'}, `;
-          content += `numberOfExecutions=${element.NumberOfExecutions}, `;
-          content += `minimumTime=${element.MinimumTime}, `;
-          content += `maximumTime=${element.MaximumTime}, `;
-          content += `userInstance=${element.UserInstance}, `;
-        }
-
-        content += `instances=${element.Instances}, `;
-        content += `frequency=${element.Frequency}, `;
-        if (element.type === 'bpmn:SequenceFlow') {
-          content += `percentageOfBranches=${element.PercentageOfBranches}, `;
-        }
-
-        content += `log=${element.Log || 'N/A'}, `;
-
-        const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
-        content += `subTask=${subTasks}]\n`;
-      });
-
-      if (elements.length === 0) {
-        content += 'No elements generated.\n';
-      }
-
-      console.log('Generated content for Esper:', content);
-
-      resolve(content);
     } catch (err) {
       reject(err);
     }

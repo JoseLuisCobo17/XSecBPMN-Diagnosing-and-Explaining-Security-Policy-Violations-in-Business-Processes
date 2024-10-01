@@ -113,18 +113,20 @@ public class TaskEventHandler implements InitializingBean {
             // SoD rules
             LOG.debug("Creating Generalized SoD Check Expression");
             String sodEPL = "select parent.idBpmn as parentId, " +
-                            "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-                            "sub1.user as user1, sub2.user as user2, " +
-                            "parent.nu as nuValue, " +
-                            "count(distinct sub1.user) as distinctUserCount " +
-                            "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-                            "where parent.sodSecurity = true " +              // Parent task has SoD enabled
-                            "and sub1.user = sub2.user " +                    // Same user for different sub-tasks
-                            "and sub1.idBpmn != sub2.idBpmn " +               // Different sub-tasks
-                            "and sub1.idBpmn in (parent.subTasks) " +         // sub1 is a sub-task of parent
-                            "and sub2.idBpmn in (parent.subTasks) " +         // sub2 is a sub-task of parent
-                            "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, sub1.user, sub2.user, parent.nu " +
-                            "having count(distinct sub1.user) < parent.nu";   // Check if 'nu' is greater than distinct user count
+                "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+                "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
+                "parent.nu as nuValue, " +
+                "count(distinct user) as distinctUserCount " +
+                "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+                "unidirectional " +  // To ensure we evaluate sub1 and sub2 in one direction only
+                "where parent.sodSecurity = true " +  // Parent task has SoD enabled
+                "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
+                "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
+                "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
+                // Check for intersection between userTasks1 and userTasks2
+                "and (select count(*) from sub1.userTasks as u1, sub2.userTasks as u2 where u1 = u2) > 0 " + 
+                "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, parent.nu, sub1.userTasks, sub2.userTasks " +
+                "having count(distinct (select u from sub1.userTasks as u union sub2.userTasks)) < parent.nu";  // Check if 'nu' is greater than distinct user count
 
             EPCompiled compiledSod = compiler.compile(sodEPL, args);
             EPDeployment deploymentSod = epRuntime.getDeploymentService().deploy(compiledSod);

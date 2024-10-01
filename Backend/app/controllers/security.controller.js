@@ -179,6 +179,55 @@ exports.saveEsperFile = (req, res) => {
     });
 };
 
+const { spawn } = require('child_process');
+
+exports.runMavenCommand = (req, res) => {
+  const { filename } = req.body;
+  const filePath = path.join('/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/src/main/java/com/cor/cep/files/', filename);
+
+  console.log(`Archivo guardado en: ${filePath}`);
+
+  const mavenProcess = spawn('mvn', [
+    'exec:java',
+    `-Dexec.mainClass=com.cor.cep.StartDemo`,
+    `-Dexec.args=file`
+  ], {
+    cwd: '/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/',
+  });
+
+  // Captura la salida estándar
+  mavenProcess.stdout.on('data', (data) => {
+    console.log(`${data.toString()}`);
+  });
+
+  // Captura los errores reales (si ocurren)
+  mavenProcess.stderr.on('data', (data) => {
+    const errorString = data.toString();
+    
+    // Filtra la salida para evitar tratar todo como error si es solo log
+    if (errorString.includes('ERROR') || errorString.includes('Exception')) {
+      console.error(`Error real: ${errorString}`);
+    } else {
+      console.log(`${errorString}`);
+    }
+  });
+
+  // Maneja la finalización del proceso
+  mavenProcess.on('close', (code) => {
+    if (code !== 0) {
+      console.error(`Proceso Maven finalizó con código ${code}`);
+      return res.status(500).send({ message: `Proceso Maven finalizó con código ${code}` });
+    }
+    console.log('Comando Maven ejecutado correctamente');
+    res.status(200).send({ message: 'Comando Maven ejecutado correctamente' });
+  });
+
+  // Manejar posibles errores durante la ejecución
+  mavenProcess.on('error', (err) => {
+    console.error('Error al ejecutar el comando Maven:', err);
+    res.status(500).send({ message: 'Error al ejecutar el comando Maven', error: err.message });
+  });
+};
 
 exports.findAll = async function (req, res) {
     try {

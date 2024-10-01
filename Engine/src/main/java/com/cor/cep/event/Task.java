@@ -16,10 +16,12 @@ public class Task {
     private Integer p;
     private String user;
     private String log;
-    private List<String> subTasks;  // Cambiado a una lista de subtareas
+    private List<String> subTasks;  
+    private List<String> userTasks; // Nueva propiedad para userTasks
 
+    // Constructor con la nueva propiedad userTasks
     public Task(String type, String name, String idBpmn, boolean sodSecurity, boolean bodSecurity, boolean uocSecurity, 
-                long timestamp, Integer nu, Integer mth, Integer p, String user, String log, List<String> subTasks) {
+                long timestamp, Integer nu, Integer mth, Integer p, String user, String log, List<String> subTasks, List<String> userTasks) {
         this.type = type;
         this.name = name;
         this.idBpmn = idBpmn;
@@ -33,9 +35,20 @@ public class Task {
         this.user = user;
         this.log = log;
         this.subTasks = subTasks;
+        this.userTasks = userTasks;
     }
 
-    // Getters y Setters
+    // Getters y Setters para la nueva propiedad userTasks
+
+    public List<String> getUserTasks() {
+        return userTasks;
+    }
+
+    public void setUserTasks(List<String> userTasks) {
+        this.userTasks = userTasks;
+    }
+
+    // Getters y Setters existentes
 
     public String getType() {
         return type;
@@ -145,6 +158,7 @@ public class Task {
     public String toString() {
         return "Task [type=" + type + ", name=" + name + ", idBpmn=" + idBpmn + ", sodSecurity=" + sodSecurity 
             + ", bodSecurity=" + bodSecurity + ", uocSecurity=" + uocSecurity + ", timestamp=" + timestamp 
-            + ", nu=" + nu + ", mth=" + mth + ", p=" + p + ", user=" + user + ", log=" + log + ", subTasks=" + subTasks + "]";
+            + ", nu=" + nu + ", mth=" + mth + ", p=" + p + ", user=" + user + ", log=" + log 
+            + ", subTasks=" + subTasks + ", userTasks=" + userTasks + "]";
     }
 }

@@ -22,8 +22,9 @@ public class StartDemo {
         String mode = "random"; // default mode
 
         if (args.length >= 1) {
-            mode = args[0].toLowerCase();
-        }
+            LOG.info("Argumento recibido para mode: '{}'", args[0].trim()); // Usar trim() para eliminar espacios adicionales
+            mode = args[0].trim().toLowerCase();
+        }        
 
         if (args.length >= 2) {
             try {
