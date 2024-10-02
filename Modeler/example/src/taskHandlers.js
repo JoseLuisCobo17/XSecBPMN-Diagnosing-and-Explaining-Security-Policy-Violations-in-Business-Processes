@@ -223,6 +223,14 @@ function exportToEsper(bpmnModeler) {
           content += `maximumTime=${element.MaximumTime}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
+        }
+        // Si el elemento es un bpmn:Process, solo incluir propiedades específicas
+        else if (element.type === 'bpmn:Process') {
+          content += `Element: [type=${element.type}, `;
+          content += `name=${element.name || 'Unnamed'}, `;
+          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+          content += `instances=${element.Instances}, `;
+          content += `frequency=${element.Frequency}]\n`;
         } else {
           // Para otros tipos de elementos, se mantiene la lógica existente
           content += `Element: [type=${element.type}, `;
