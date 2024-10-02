@@ -157,60 +157,52 @@ $('#js-download-esper').off('click').on('click', async function(e) {
   e.stopPropagation();
   e.stopImmediatePropagation();
 
-  if (isDownloading || hasDownloaded) return;
-  isDownloading = true;
-
   console.log('Guardado iniciado');
 
   try {
     // Exportar el contenido a Esper
     const content = await exportToEsper(bpmnModeler);
 
-    if (!hasDownloaded) {
-      // Configura la solicitud POST para guardar el archivo
-      const saveResponse = await fetch('http://localhost:3000/save-esper-file', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content, filename: 'esperTasks.txt' }),
-      });
+    // Configura la solicitud POST para guardar el archivo
+    const saveResponse = await fetch('http://localhost:3000/save-esper-file', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content, filename: 'esperTasks.txt' }),
+    });
 
-      if (!saveResponse.ok) {
-        throw new Error(`Error al guardar el archivo: ${saveResponse.statusText}`);
-      }
-
-      console.log('Archivo guardado en la carpeta del proyecto');
-
-      // Luego de guardar, hacer la solicitud para ejecutar el comando Maven
-      const mavenResponse = await fetch('http://localhost:3000/run-maven', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ filename: 'esperTasks.txt' }),
-      });
-
-      if (!mavenResponse.ok) {
-        throw new Error(`Error al ejecutar el comando Maven: ${mavenResponse.statusText}`);
-      }
-
-      // Mostrar la respuesta del comando Maven
-      const mavenData = await mavenResponse.json();
-      console.log('Salida del comando Maven:', mavenData.output);
-      console.log('Errores del comando Maven:', mavenData.errors);
-
-      hasDownloaded = true;
-    } else {
-      console.log('El archivo ya ha sido guardado.');
+    if (!saveResponse.ok) {
+      throw new Error(`Error al guardar el archivo: ${saveResponse.statusText}`);
     }
+
+    console.log('Archivo guardado en la carpeta del proyecto');
+
+    // Luego de guardar, hacer la solicitud para ejecutar el comando Maven
+    const mavenResponse = await fetch('http://localhost:3000/run-maven', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ filename: 'esperTasks.txt' }),
+    });
+
+    if (!mavenResponse.ok) {
+      throw new Error(`Error al ejecutar el comando Maven: ${mavenResponse.statusText}`);
+    }
+
+    // Mostrar la respuesta del comando Maven
+    const mavenData = await mavenResponse.json();
+    console.log('Salida del comando Maven:', mavenData.output);
+    console.log('Errores del comando Maven:', mavenData.errors);
+
   } catch (err) {
     console.error('Error al exportar a Esper:', err);
   } finally {
-    isDownloading = false;
     console.log('Proceso de guardado completado');
   }
 });
+
 
   // Función para descargar el diagrama como XML (BPMN)
   function downloadDiagram() {
