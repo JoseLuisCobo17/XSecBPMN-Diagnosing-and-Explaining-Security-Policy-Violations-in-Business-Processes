@@ -129,7 +129,16 @@ function getAllRelevantTasks(bpmnModeler) {
 
   return relevantElements.map(e => {
     var businessObject = e.businessObject;
-    var subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
+
+    // Detectar sub-tareas para secuencias de flujo
+    var subTasks = [];
+    if (e.type === 'bpmn:SequenceFlow') {
+      subTasks = (businessObject.targetRef && businessObject.targetRef.$type.includes('Task')) ?
+        [businessObject.targetRef.id] : [];
+    } else {
+      // Para otros elementos que no sean SequenceFlow
+      subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
+    }
 
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isUserTask = e.type === 'bpmn:UserTask';
@@ -204,7 +213,6 @@ function exportToEsper(bpmnModeler) {
         content += `frequency=${element.Frequency}, `;
 
         if (element.type === 'bpmn:SequenceFlow') {
-
           content += `percentageOfBranches=${element.PercentageOfBranches || 'N/A'}, `;
         }
 
@@ -226,6 +234,7 @@ function exportToEsper(bpmnModeler) {
     }
   });
 }
+
 
 
 function getTaskById(bpmnModeler, taskId) {
