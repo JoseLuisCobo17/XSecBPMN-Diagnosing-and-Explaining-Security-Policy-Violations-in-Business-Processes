@@ -1,0 +1,11 @@
+### Esper Rules Export ###
+
+Element: [type=bpmn:Process, name=Unnamed, id_bpmn=Process_1, sodSecurity=false, bodSecurity=false, uocSecurity=false, timestamp=1727776009441, nu=0, mth=0, p=0, instances=0, frequency=0, log=N/A, subTask=]
+Element: [type=bpmn:StartEvent, name=ATM Transaction Needed, id_bpmn=StartEvent_0offpno, sodSecurity=false, bodSecurity=false, uocSecurity=false, timestamp=1727776009441, nu=0, mth=0, p=0, instances=0, frequency=0, log=N/A, subTask=Task_026c0id]
+Element: [type=bpmn:UserTask, name=Insert Card, id_bpmn=Task_026c0id, sodSecurity=false, bodSecurity=false, uocSecurity=false, timestamp=1727776009441, nu=0, mth=0, p=0, userTask=jl, user=N/A, numberOfExecutions=0, minimumTime=0, maximumTime=0, userInstance=, instances=0, frequency=0, log=N/A, subTask=Task_0po6mda]
+Element: [type=bpmn:UserTask, name=Select Interaction, id_bpmn=Task_0po6mda, sodSecurity=false, bodSecurity=false, uocSecurity=false, timestamp=1727776009441, nu=0, mth=0, p=0, userTask=jl, user=N/A, numberOfExecutions=0, minimumTime=0, maximumTime=0, userInstance=, instances=0, frequency=0, log=N/A, subTask=]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=SequenceFlow_1xib75z, sodSecurity=false, bodSecurity=false, uocSecurity=false, timestamp=1727776009441, nu=0, mth=0, p=0, instances=0, frequency=0, percentageOfBranches=0, log=N/A, subTask=]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=SequenceFlow_130hgg8, sodSecurity=false, bodSecurity=false, uocSecurity=false, timestamp=1727776009441, nu=0, mth=0, p=0, instances=0, frequency=0, percentageOfBranches=0, log=N/A, subTask=]
+Element: [type=bpmn:ServiceTask, name=Unnamed, id_bpmn=Activity_01nsfp6, sodSecurity=true, bodSecurity=false, uocSecurity=false, timestamp=1727776009441, nu=2, mth=0, p=0, instances=0, frequency=0, log=N/A, subTask=Task_026c0id, Task_0po6mda]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=Flow_0a8ovil, sodSecurity=false, bodSecurity=false, uocSecurity=false, timestamp=1727776009442, nu=0, mth=0, p=0, instances=0, frequency=0, percentageOfBranches=0, log=N/A, subTask=]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=Flow_088o5xb, sodSecurity=false, bodSecurity=false, uocSecurity=false, timestamp=1727776009442, nu=0, mth=0, p=0, instances=0, frequency=0, percentageOfBranches=0, log=N/A, subTask=]
