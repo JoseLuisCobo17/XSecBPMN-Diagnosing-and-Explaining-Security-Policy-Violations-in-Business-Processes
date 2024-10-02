@@ -201,7 +201,7 @@ function exportToEsper(bpmnModeler) {
 
         // Diferenciar entre Task, UserTask, ManualTask
         if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
-          content += `userTask=${element.UserTask || 'N/A'}, `;
+          content += `userTask="${element.UserTask || 'N/A'}", `;
           content += `user=${element.User || 'N/A'}, `;
           content += `numberOfExecutions=${element.NumberOfExecutions}, `;
           content += `minimumTime=${element.MinimumTime}, `;
@@ -219,7 +219,7 @@ function exportToEsper(bpmnModeler) {
         content += `log=${element.Log || 'N/A'}, `;
 
         const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
-        content += `subTask=${subTasks}]\n`;
+        content += `subTask="${subTasks}"]\n`;
       });
 
       if (elements.length === 0) {
