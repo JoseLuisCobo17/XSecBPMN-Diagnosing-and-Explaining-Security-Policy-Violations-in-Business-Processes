@@ -211,6 +211,18 @@ function exportToEsper(bpmnModeler) {
           content += `mth=${element.Mth}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
+        }
+        // Si el elemento es un bpmn:Task o bpmn:UserTask, solo incluir propiedades específicas
+        else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask') {
+          content += `Element: [type=${element.type}, `;
+          content += `name=${element.name || 'Unnamed'}, `;
+          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+          content += `userTask="${element.UserTask || 'N/A'}", `;
+          content += `numberOfExecutions=${element.NumberOfExecutions}, `;
+          content += `minimumTime=${element.MinimumTime}, `;
+          content += `maximumTime=${element.MaximumTime}, `;
+          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+          content += `subTask="${subTasks}"]\n`;
         } else {
           // Para otros tipos de elementos, se mantiene la lógica existente
           content += `Element: [type=${element.type}, `;
@@ -223,16 +235,6 @@ function exportToEsper(bpmnModeler) {
           content += `nu=${element.Nu}, `;
           content += `mth=${element.Mth}, `;
           content += `p=${element.P}, `;
-
-          // Diferenciar entre Task, UserTask, ManualTask
-          if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
-            content += `userTask="${element.UserTask || 'N/A'}", `;
-            content += `user=${element.User || 'N/A'}, `;
-            content += `numberOfExecutions=${element.NumberOfExecutions}, `;
-            content += `minimumTime=${element.MinimumTime}, `;
-            content += `maximumTime=${element.MaximumTime}, `;
-            content += `userInstance=${element.UserInstance}, `;
-          }
 
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
