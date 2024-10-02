@@ -58,25 +58,45 @@ function PercentageofBranchesFunction(props) {
     if (sourceElement && is(sourceElement, 'bpmn:Gateway')) {
       const outgoingFlows = sourceElement.outgoing || [];
       let totalPercentage = 0;
+      let filledBranchesCount = 0;
+      let sequenceFlowCount = 0;
 
       outgoingFlows.forEach(flow => {
-        if (flow !== element.businessObject) {
-          totalPercentage += parseInt(flow.percentageOfBranches || 0, 10);
+        if (is(flow, 'bpmn:SequenceFlow')) {
+          sequenceFlowCount++;
+          const branchPercentage = parseInt(flow.percentageOfBranches || 0, 10);
+          totalPercentage += branchPercentage;
+
+          // Cuenta ramas con un porcentaje válido y diferente de cero
+          if (branchPercentage > 0 && !isNaN(branchPercentage)) {
+            filledBranchesCount++;
+          }
         }
       });
 
+      // Añadir la rama actual al total de porcentajes y ramas completadas
       totalPercentage += newPercentage;
+      if (newPercentage > 0) {
+        filledBranchesCount++;
+      }
 
+      // Verifica si el total excede el 100%
       if (totalPercentage > 100) {
         alert('La suma de todas las ramas del Gateway excede el 100%. Ajusta los valores.');
         return;
       }
+
+      // Verifica si se han rellenado todas las ramas y el total no es 100
+      if (filledBranchesCount === sequenceFlowCount && totalPercentage !== 100) {
+        alert('Todas las ramas están completadas pero el valor total no es 100%. Ajusta los valores.');
+        return;
+      }
     }
+
     modeling.updateProperties(element, {
       percentageOfBranches: newPercentage
     });
   };
-  
 
   return html`<${TextFieldEntry}
     id=${id}
