@@ -202,8 +202,10 @@ function exportToEsper(bpmnModeler) {
 
         content += `instances=${element.Instances}, `;
         content += `frequency=${element.Frequency}, `;
+
         if (element.type === 'bpmn:SequenceFlow') {
-          content += `percentageOfBranches=${element.PercentageOfBranches}, `;
+
+          content += `percentageOfBranches=${element.PercentageOfBranches || 'N/A'}, `;
         }
 
         content += `log=${element.Log || 'N/A'}, `;
@@ -224,6 +226,7 @@ function exportToEsper(bpmnModeler) {
     }
   });
 }
+
 
 function getTaskById(bpmnModeler, taskId) {
   const elementRegistry = bpmnModeler.get('elementRegistry');
