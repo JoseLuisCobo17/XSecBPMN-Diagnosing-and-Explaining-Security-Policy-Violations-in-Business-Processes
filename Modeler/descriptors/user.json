@@ -36,11 +36,6 @@
           "name": "maximumTime",
           "isAttr": true,
           "type": "Integer"
-        },
-        {
-          "name": "Instance",
-          "isAttr": true,
-          "type": "String"
         }
       ]
     }
