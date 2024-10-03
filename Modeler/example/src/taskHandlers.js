@@ -140,6 +140,21 @@ function getAllRelevantTasks(bpmnModeler) {
       subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
     }
 
+    // Detectar super-tareas para secuencias de flujo
+    var superElement = [];
+    if (e.type !== 'bpmn:SequenceFlow' && businessObject.incoming) {
+      // Para cada flujo entrante, obtener el sourceRef
+      superElement = businessObject.incoming.map(flow => {
+        if (flow.sourceRef) {
+          return flow.sourceRef.id;
+        }
+        return null;
+      }).filter(id => id !== null);
+    } else if (e.type === 'bpmn:SequenceFlow' && businessObject.sourceRef) {
+      // Si es un SequenceFlow, el superElement es simplemente el sourceRef
+      superElement = [businessObject.sourceRef.id];
+    }
+
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isUserTask = e.type === 'bpmn:UserTask';
     const isTask = e.type === 'bpmn:Task' || isUserTask; // Ajuste para incluir bpmn:UserTask
@@ -170,6 +185,7 @@ function getAllRelevantTasks(bpmnModeler) {
       UserTask: (isTask || isUserTask) ? (userTasks.join(', ') || '') : '', // Ajuste aquí
       Log: businessObject.Log || '',
       SubTasks: subTasks,
+      superElement: superElement,
       Instances: isProcess ? (businessObject.instance || 0) : 0,
       Frequency: isProcess ? (businessObject.frequency || 0) : 0,
       PercentageOfBranches: percentageOfBranches,
@@ -197,7 +213,10 @@ function exportToEsper(bpmnModeler) {
             content += `percentageOfBranches=${element.PercentageOfBranches}, `;
           }
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
-          content += `subTask="${subTasks}"]\n`;
+          content += `subTask="${subTasks}", `;
+          // Usar superElement en lugar de SuperTasks
+          const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
+          content += `superElement="${superElement}"]\n`;
         }
         // Si el elemento es un bpmn:ServiceTask, solo incluir propiedades específicas
         else if (element.type === 'bpmn:ServiceTask') {
