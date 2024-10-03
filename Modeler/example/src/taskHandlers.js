@@ -231,23 +231,12 @@ function exportToEsper(bpmnModeler) {
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}]\n`;
-        } else {
-          // Para otros tipos de elementos, se mantiene la lógica existente
+        } 
+        // Para otros tipos de elementos
+        else {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
-          content += `sodSecurity=${element.Sod}, `;
-          content += `bodSecurity=${element.Bod}, `;
-          content += `uocSecurity=${element.Uoc}, `;
-          content += `timestamp=${Date.now()}, `;
-          content += `nu=${element.Nu}, `;
-          content += `mth=${element.Mth}, `;
-          content += `p=${element.P}, `;
-
-          content += `instances=${element.Instances}, `;
-          content += `frequency=${element.Frequency}, `;
-          content += `log=${element.Log || 'N/A'}, `;
-
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         }
