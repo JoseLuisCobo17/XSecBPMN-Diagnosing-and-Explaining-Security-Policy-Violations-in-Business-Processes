@@ -140,6 +140,12 @@ function getAllRelevantTasks(bpmnModeler) {
       subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
     }
 
+    // Detectar el subElement exclusivo para SequenceFlow (targetRef)
+    var subElement = '';
+    if (e.type === 'bpmn:SequenceFlow' && businessObject.targetRef) {
+      subElement = businessObject.targetRef.id;
+    }
+
     // Detectar super-tareas para secuencias de flujo
     var superElement = [];
     if (e.type !== 'bpmn:SequenceFlow' && businessObject.incoming) {
@@ -185,7 +191,8 @@ function getAllRelevantTasks(bpmnModeler) {
       UserTask: (isTask || isUserTask) ? (userTasks.join(', ') || '') : '', // Ajuste aquí
       Log: businessObject.Log || '',
       SubTasks: subTasks,
-      superElement: superElement,
+      subElement: subElement, // Nueva propiedad subElement
+      superElement: superElement, 
       Instances: isProcess ? (businessObject.instance || 0) : 0,
       Frequency: isProcess ? (businessObject.frequency || 0) : 0,
       PercentageOfBranches: percentageOfBranches,
@@ -212,11 +219,9 @@ function exportToEsper(bpmnModeler) {
           if (element.PercentageOfBranches && element.PercentageOfBranches !== 'N/A') {
             content += `percentageOfBranches=${element.PercentageOfBranches}, `;
           }
-          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
-          content += `subTask="${subTasks}", `;
-          // Usar superElement en lugar de SuperTasks
           const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
-          content += `superElement="${superElement}"]\n`;
+          content += `superElement="${superElement}", `;
+          content += `subElement="${element.subElement || 'No Sub Element'}"]\n`;
         }
         // Si el elemento es un bpmn:ServiceTask, solo incluir propiedades específicas
         else if (element.type === 'bpmn:ServiceTask') {
@@ -264,8 +269,6 @@ function exportToEsper(bpmnModeler) {
       if (elements.length === 0) {
         content += 'No elements generated.\n';
       }
-
-      console.log('Generated content for Esper:', content);
 
       resolve(content);
     } catch (err) {
