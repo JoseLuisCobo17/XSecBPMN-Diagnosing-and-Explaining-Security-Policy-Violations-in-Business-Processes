@@ -237,7 +237,7 @@ function exportToEsper(bpmnModeler) {
           content += `subTask="${subTasks}"]\n`;
         }
         // Si el elemento es un bpmn:Task o bpmn:UserTask, solo incluir propiedades específicas
-        else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask') {
+        else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
