@@ -129,7 +129,37 @@ function getAllRelevantTasks(bpmnModeler) {
 
   return relevantElements.map(e => {
     var businessObject = e.businessObject;
-    var subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
+
+    // Detectar sub-tareas para secuencias de flujo
+    var subTasks = [];
+    if (e.type === 'bpmn:SequenceFlow') {
+      subTasks = (businessObject.targetRef && businessObject.targetRef.$type.includes('Task')) ?
+        [businessObject.targetRef.id] : [];
+    } else {
+      // Para otros elementos que no sean SequenceFlow
+      subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
+    }
+
+    // Detectar el subElement exclusivo para SequenceFlow (targetRef)
+    var subElement = '';
+    if (e.type === 'bpmn:SequenceFlow' && businessObject.targetRef) {
+      subElement = businessObject.targetRef.id;
+    }
+
+    // Detectar super-tareas para secuencias de flujo
+    var superElement = [];
+    if (e.type !== 'bpmn:SequenceFlow' && businessObject.incoming) {
+      // Para cada flujo entrante, obtener el sourceRef
+      superElement = businessObject.incoming.map(flow => {
+        if (flow.sourceRef) {
+          return flow.sourceRef.id;
+        }
+        return null;
+      }).filter(id => id !== null);
+    } else if (e.type === 'bpmn:SequenceFlow' && businessObject.sourceRef) {
+      // Si es un SequenceFlow, el superElement es simplemente el sourceRef
+      superElement = [businessObject.sourceRef.id];
+    }
 
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isUserTask = e.type === 'bpmn:UserTask';
@@ -161,6 +191,8 @@ function getAllRelevantTasks(bpmnModeler) {
       UserTask: (isTask || isUserTask) ? (userTasks.join(', ') || '') : '', // Ajuste aquí
       Log: businessObject.Log || '',
       SubTasks: subTasks,
+      subElement: subElement, // Nueva propiedad subElement
+      superElement: superElement, 
       Instances: isProcess ? (businessObject.instance || 0) : 0,
       Frequency: isProcess ? (businessObject.frequency || 0) : 0,
       PercentageOfBranches: percentageOfBranches,
@@ -179,46 +211,64 @@ function exportToEsper(bpmnModeler) {
 
       let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
-        content += `Element: [type=${element.type}, `;
-        content += `name=${element.name || 'Unnamed'}, `;
-        content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
-        content += `sodSecurity=${element.Sod}, `;
-        content += `bodSecurity=${element.Bod}, `;
-        content += `uocSecurity=${element.Uoc}, `;
-        content += `timestamp=${Date.now()}, `;
-        content += `nu=${element.Nu}, `;
-        content += `mth=${element.Mth}, `;
-        content += `p=${element.P}, `;
-
-        // Diferenciar entre Task, UserTask, ManualTask
-        if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
-          content += `userTask=${element.UserTask || 'N/A'}, `;
-          content += `user=${element.User || 'N/A'}, `;
+        // Si el elemento es un bpmn:SequenceFlow, solo incluir propiedades específicas
+        if (element.type === 'bpmn:SequenceFlow') {
+          content += `Element: [type=${element.type}, `;
+          content += `name=${element.name || 'Unnamed'}, `;
+          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+          if (element.PercentageOfBranches && element.PercentageOfBranches !== 'N/A') {
+            content += `percentageOfBranches=${element.PercentageOfBranches}, `;
+          }
+          const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
+          content += `superElement="${superElement}", `;
+          content += `subElement="${element.subElement || 'No Sub Element'}"]\n`;
+        }
+        // Si el elemento es un bpmn:ServiceTask, solo incluir propiedades específicas
+        else if (element.type === 'bpmn:ServiceTask') {
+          content += `Element: [type=${element.type}, `;
+          content += `name=${element.name || 'Unnamed'}, `;
+          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+          content += `sodSecurity=${element.Sod}, `;
+          content += `bodSecurity=${element.Bod}, `;
+          content += `uocSecurity=${element.Uoc}, `;
+          content += `nu=${element.Nu}, `;
+          content += `mth=${element.Mth}, `;
+          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+          content += `subTask="${subTasks}"]\n`;
+        }
+        // Si el elemento es un bpmn:Task o bpmn:UserTask, solo incluir propiedades específicas
+        else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask') {
+          content += `Element: [type=${element.type}, `;
+          content += `name=${element.name || 'Unnamed'}, `;
+          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+          content += `userTask="${element.UserTask || 'N/A'}", `;
           content += `numberOfExecutions=${element.NumberOfExecutions}, `;
           content += `minimumTime=${element.MinimumTime}, `;
           content += `maximumTime=${element.MaximumTime}, `;
-          content += `userInstance=${element.UserInstance}, `;
+          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+          content += `subTask="${subTasks}"]\n`;
         }
-
-        content += `instances=${element.Instances}, `;
-        content += `frequency=${element.Frequency}, `;
-
-        if (element.type === 'bpmn:SequenceFlow') {
-
-          content += `percentageOfBranches=${element.PercentageOfBranches || 'N/A'}, `;
+        // Si el elemento es un bpmn:Process, solo incluir propiedades específicas
+        else if (element.type === 'bpmn:Process') {
+          content += `Element: [type=${element.type}, `;
+          content += `name=${element.name || 'Unnamed'}, `;
+          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+          content += `instances=${element.Instances}, `;
+          content += `frequency=${element.Frequency}]\n`;
+        } 
+        // Para otros tipos de elementos
+        else {
+          content += `Element: [type=${element.type}, `;
+          content += `name=${element.name || 'Unnamed'}, `;
+          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+          content += `subTask="${subTasks}"]\n`;
         }
-
-        content += `log=${element.Log || 'N/A'}, `;
-
-        const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
-        content += `subTask=${subTasks}]\n`;
       });
 
       if (elements.length === 0) {
         content += 'No elements generated.\n';
       }
-
-      console.log('Generated content for Esper:', content);
 
       resolve(content);
     } catch (err) {
@@ -226,7 +276,6 @@ function exportToEsper(bpmnModeler) {
     }
   });
 }
-
 
 function getTaskById(bpmnModeler, taskId) {
   const elementRegistry = bpmnModeler.get('elementRegistry');

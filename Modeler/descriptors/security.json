@@ -22,21 +22,6 @@
           "name": "Mth",
           "isAttr": true,
           "type": "Integer"
-        },
-        {
-          "name": "P",
-          "isAttr": true,
-          "type": "Integer"
-        },
-        {
-          "name": "User",
-          "isAttr": true,
-          "type": "String"
-        },
-        {
-          "name": "Log",
-          "isAttr": true,
-          "type": "String"
         }
       ]
     }
