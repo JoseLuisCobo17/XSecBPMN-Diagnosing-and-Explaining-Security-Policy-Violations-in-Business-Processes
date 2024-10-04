@@ -1,8 +1,8 @@
-package com.cor.cep.event;
+package main.java.com.cor.cep.event;
 
 import java.util.List;
 
-public class Task {
+public class UserTask {
 
     private String type;
     private String name;
@@ -12,7 +12,7 @@ public class Task {
     private List<String> subTasks;
 
     // Constructor
-    public Task(String type, String name, String idBpmn, Integer nu, Integer mth, List<String> subTasks) {
+    public UserTask(String type, String name, String idBpmn, Integer nu, Integer mth, List<String> subTasks) {
         this.type = type;
         this.name = name;
         this.idBpmn = idBpmn;
@@ -73,7 +73,7 @@ public class Task {
 
     @Override
     public String toString() {
-        return "Task [type=" + type + ", name=" + name + ", idBpmn=" + idBpmn + ", nu=" + nu 
+        return "UserTask [type=" + type + ", name=" + name + ", idBpmn=" + idBpmn + ", nu=" + nu 
             + ", mth=" + mth + ", subTasks=" + subTasks + "]";
     }
 }

@@ -16,24 +16,6 @@ export default function(element) {
       element,
       component: MthFunction, 
       isEdited: isNumberEntryEdited 
-    },
-    {
-      id: 'P',
-      element,
-      component: PFunction, 
-      isEdited: isNumberEntryEdited 
-    },
-    {
-      id: 'User',
-      element,
-      component: UserFunction,
-      isEdited: isStringEntryEdited
-    },
-    {
-      id: 'Log',
-      element,
-      component: LogFunction,
-      isEdited: isStringEntryEdited
     }
   ];
 }
@@ -145,152 +127,10 @@ function MthFunction(props) {
   />`;
 }
 
-function PFunction(props) {
-  const { element, id } = props;
-
-  const modeling = useService('modeling');
-  const translate = useService('translate');
-  const debounce = useService('debounceInput');
-
-  const getValue = () => {
-    if (!element || !element.businessObject) {
-      return '';
-    }
-    const value = element.businessObject.P;
-    return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
-  };
-
-  const setValue = value => {
-    if (typeof value === 'undefined') {
-      return;
-    }
-
-    if (!element || !element.businessObject) {
-      return;
-    }
-
-    if (value.trim() === '') {
-      modeling.updateProperties(element, {
-        P: ''
-      });
-      return;
-    }
-    const newValue = parseFloat(value);
-    if (isNaN(newValue)) {
-      return;
-    }
-
-    modeling.updateProperties(element, {
-      P: newValue
-    });
-  };
-
-  return html`<${TextFieldEntry}
-    id=${id}
-    element=${element}
-    label=${translate('P')}
-    getValue=${getValue}
-    setValue=${debounce(setValue)}
-    debounce=${debounce}
-    tooltip=${translate('Enter a numeric value.')}
-  />`;
-}
-
-function UserFunction(props) {
-  const { element, id } = props;
-
-  const modeling = useService('modeling');
-  const translate = useService('translate');
-  const debounce = useService('debounceInput');
-
-  const getValue = () => {
-    if (!element || !element.businessObject) {
-      return ''; 
-    }
-    const value = element.businessObject.User;
-    console.log('Current User value (getValue):', value);
-    return value !== undefined ? value : ''; 
-  };
-
-  const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
-    }
-    console.log('Setting User to (setValue):', value); 
-    modeling.updateProperties(element, {
-      User: value 
-    });
-  };
-
-  return html`<${TextFieldEntry}
-    id=${id}
-    element=${element}
-    label=${translate('User')}
-    getValue=${getValue}
-    setValue=${debounce(setValue)}
-    debounce=${debounce}
-    tooltip=${translate('Enter a user name.')}
-  />`;
-}
-
-function LogFunction(props) {
-  const { element, id } = props;
-
-  const modeling = useService('modeling');
-  const translate = useService('translate');
-  const debounce = useService('debounceInput');
-
-  const getValue = () => {
-    if (!element || !element.businessObject) {
-      return ''; 
-    }
-    const value = element.businessObject.Log;
-    return value !== undefined ? value : ''; 
-  };
-
-  const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
-    }
-    console.log('Setting Log to (setValue):', value); 
-    modeling.updateProperties(element, {
-      Log: value 
-    });
-  };
-
-  return html`<${TextFieldEntry}
-    id=${id}
-    element=${element}
-    label=${translate('Log')}
-    getValue=${getValue}
-    setValue=${debounce(setValue)}
-    debounce=${debounce}
-    tooltip=${translate('Enter a user name.')}
-  />`;
-}
-
-function isCheckboxEntryEdited(element) {
-  if (!element || !element.businessObject) {
-    return false;
-  }
-  const boDValue = element.businessObject.Bod;
-  const soDValue = element.businessObject.Sod;
-  const uoCValue = element.businessObject.Uoc;
-  return typeof boDValue !== 'undefined' || typeof soDValue !== 'undefined' || typeof uoCValue !== 'undefined';
-}
-
 function isNumberEntryEdited(element) {
   if (!element || !element.businessObject) {
     return 0;
   }
   const nuValue = element.businessObject.Nu;
   return (typeof nuValue !== 'undefined' && !isNaN(nuValue)) ? nuValue : 0;
-}
-
-function isStringEntryEdited(element) {
-  if (!element || !element.businessObject) {
-    return false;
-  }
-  const userValue = element.businessObject.User;
-  return typeof userValue !== 'undefined' && userValue !== '';
 }

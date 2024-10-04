@@ -27,12 +27,6 @@ export default function(element) {
       element,
       component: maximumTimeFunction,
       isEdited: isNumberEntryEdited
-    },
-    {
-      id: 'Instance',
-      element,
-      component: InstanceFunction,
-      isEdited: isListOfStringEntryEdited
     }
   ];
 }
@@ -252,46 +246,6 @@ function minimumTimeFunction(props) {
     setValue=${debounce(setValue)}
     debounce=${debounce}
     tooltip=${translate('Enter the minimum time.')} 
-  />`;
-}
-
-
-// Instance
-function InstanceFunction(props) {
-  const { element, id } = props;
-
-  const modeling = useService('modeling');
-  const translate = useService('translate');
-  const debounce = useService('debounceInput');
-
-  const getValue = () => {
-    if (!element || !element.businessObject) {
-      return ''; 
-    }
-    const value = element.businessObject.Instance; 
-    console.log('Current Instance value (getValue):', value);
-    return value !== undefined ? value : ''; 
-  };
-
-  const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
-    }
-
-    // Asegúrate de que la propiedad Instance está presente en el businessObject
-    modeling.updateProperties(element, {
-      Instance: value 
-    });
-  };
-
-  return html`<${TextFieldEntry}
-    id=${id}
-    element=${element}
-    label=${translate('Instance')}
-    getValue=${getValue}
-    setValue=${debounce(setValue)}
-    debounce=${debounce}
-    tooltip=${translate('Enter a Instance name.')} 
   />`;
 }
 
