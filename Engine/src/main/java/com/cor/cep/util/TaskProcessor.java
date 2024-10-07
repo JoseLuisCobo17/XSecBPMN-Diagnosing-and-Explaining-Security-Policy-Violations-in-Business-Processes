@@ -14,6 +14,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Component
 public class TaskProcessor {
@@ -31,10 +34,23 @@ public class TaskProcessor {
             for (File file : listOfFiles) {
                 if (file.isFile()) {
                     LOG.info("Processing file: " + file.getName());
-                    List<Task> tasks = parseTaskFile(file.getAbsolutePath());
-                    for (Task task : tasks) {
-                        taskEventHandler.handle(task);
-                    }
+// En TaskProcessor.java
+List<Task> tasks = parseTaskFile(file.getAbsolutePath());
+
+// Filtrar tareas con startTime no nulo y agruparlas en un TreeMap para ordenarlas
+Map<Long, List<Task>> groupedTasks = tasks.stream()
+        .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
+        .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar
+
+// Imprimir las tareas agrupadas y ordenadas
+groupedTasks.forEach((startTime, taskList) -> {
+    LOG.info("Tasks grouped by startTime: {}", startTime);
+    taskList.forEach(task -> LOG.info("{}", task));
+});
+
+// Llama a handleTasks en lugar de handle
+taskEventHandler.handleTasks(tasks);
+
                 }
             }
         } else {
@@ -120,10 +136,6 @@ public class TaskProcessor {
                     break;
             }
         }
-
-        // Log all fields to verify
-        LOG.info("Parsed Task - idBpmn: {}, userTasks: {}, subTasks: {}, sodSecurity: {}, bodSecurity: {}, uocSecurity: {}, startTime: {}, time: {}",
-                 idBpmn, userTasks, subTasks, sodSecurity, bodSecurity, uocSecurity, startTime, time);
 
         // Return a new Task with the correct parameters for the constructor
         return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, sodSecurity, bodSecurity, uocSecurity, startTime, time);

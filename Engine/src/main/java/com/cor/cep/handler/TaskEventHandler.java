@@ -25,7 +25,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Component
 @Scope(value = "singleton")
@@ -61,8 +64,39 @@ public class TaskEventHandler implements InitializingBean {
         }
 
         try {
+// Obtener la lista de tareas a comparar
+List<Task> tasks = obtenerListaDeTareas();
+
+// Log para verificar si hay tareas y sus valores
+if (tasks.isEmpty()) {
+    LOG.warn("La lista de tareas está vacía.");
+} else {
+    LOG.info("Total de tareas obtenidas: {}", tasks.size());
+    tasks.forEach(task -> LOG.info("Task: {} - startTime: {}", task, task.getStartTime()));
+}
+
+// Filtrar tareas con startTime no nulo y agruparlas en un TreeMap para ordenarlas
+Map<Long, List<Task>> groupedTasks = tasks.stream()
+    .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
+    .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar
+
+if (groupedTasks.isEmpty()) {
+    LOG.warn("No se encontraron tareas con startTime no nulo.");
+} else {
+    groupedTasks.forEach((startTime, taskList) -> {
+        // Log intermedio para indicar la franja horaria
+        LOG.info("Procesando tareas en la franja horaria: [{}]", startTime);
+    
+        // Log para el tiempo actual y detalle de tareas
+        LOG.info("Tiempo actual: [{}]", startTime);
+        taskList.forEach(task -> LOG.info("Task: {}", task));
+    });
+}
+
+        
             EPCompiler compiler = EPCompilerProvider.getCompiler();
             CompilerArguments args = new CompilerArguments(configuration);
+              
 
             // Crear la consulta EPL para BoD
             LOG.debug("Creating Generalized BoD Check Expression");
@@ -116,9 +150,6 @@ String bodEPL = "select parent.idBpmn as parentId, " +
                     }
                 }
             });
-
-            // Obtener la lista de tareas a comparar
-            List<Task> tasks = obtenerListaDeTareas();
 
             for (int i = 0; i < tasks.size(); i++) {
                 Task sub1 = tasks.get(i);
@@ -260,6 +291,34 @@ String bodEPL = "select parent.idBpmn as parentId, " +
         epRuntime.getEventService().sendEventBean(event, "Task");
     }
 
+    public void handleTasks(List<Task> tasks) {
+    if (tasks == null || tasks.isEmpty()) {
+        LOG.warn("La lista de tareas está vacía o es nula.");
+        return;
+    }
+
+    // Log para verificar las tareas recibidas
+    LOG.info("Total de tareas recibidas para manejar: {}", tasks.size());
+    tasks.forEach(task -> LOG.info("Task con startTime: {}", task.getStartTime()));
+
+    // Agrupar tareas por startTime
+    Map<Long, List<Task>> groupedTasks = tasks.stream()
+        .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
+        .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar por startTime
+
+    // Enviar todas las tareas agrupadas por startTime
+    groupedTasks.forEach((startTime, taskList) -> {
+        // Log para indicar que se está enviando un grupo de tareas con el mismo startTime
+        LOG.info("Enviando tarea con startTime: {}", startTime);
+
+        // Enviar cada tarea del grupo
+        taskList.forEach(task -> {
+            LOG.info("Task: {}", task);
+            epRuntime.getEventService().sendEventBean(task, "Task");
+        });
+    });
+}
+    
     @Override
     public void afterPropertiesSet() {
         LOG.debug("Configuring..");
