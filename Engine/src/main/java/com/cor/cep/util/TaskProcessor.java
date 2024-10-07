@@ -70,6 +70,7 @@ public class TaskProcessor {
         List<String> userTasks = new ArrayList<>();
         boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
         Integer nu = null, mth = null;
+        Long startTime = null; // Nueva propiedad
 
         // Split content by ', ' ensuring sub-tasks aren't broken
         String[] parts = content.split(", (?=[a-zA-Z_]+=)");
@@ -104,21 +105,23 @@ public class TaskProcessor {
                 case "mth":
                     mth = Integer.parseInt(keyValue[1].trim());
                     break;
-                case "userTask":  // Include the "userTask" case to populate userTasks
+                case "userTask":
                     userTasks.add(keyValue[1].trim());
                     break;
                 case "subTask":
-                    // Remove quotes and split by comma to create a list of sub-tasks
                     subTasks = Arrays.asList(keyValue[1].replace("\"", "").trim().split("\\s*,\\s*"));
+                    break;
+                case "startTime":
+                    startTime = Long.parseLong(keyValue[1].trim());
                     break;
             }
         }
 
         // Log all fields to verify
-        LOG.info("Parsed Task - idBpmn: {}, userTasks: {}, subTasks: {}, sodSecurity: {}, bodSecurity: {}, uocSecurity: {}",
-                 idBpmn, userTasks, subTasks, sodSecurity, bodSecurity, uocSecurity);
+        LOG.info("Parsed Task - idBpmn: {}, userTasks: {}, subTasks: {}, sodSecurity: {}, bodSecurity: {}, uocSecurity: {}, startTime: {}",
+                 idBpmn, userTasks, subTasks, sodSecurity, bodSecurity, uocSecurity, startTime);
 
         // Return a new Task with the correct parameters for the constructor
-        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, sodSecurity, bodSecurity, uocSecurity);
+        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, sodSecurity, bodSecurity, uocSecurity, startTime);
     }
 }

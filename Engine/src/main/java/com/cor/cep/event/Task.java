@@ -13,9 +13,10 @@ public class Task {
     private boolean bodSecurity;
     private boolean sodSecurity;
     private boolean uocSecurity;
+    private Long startTime; // Nueva propiedad
 
     // Constructor
-    public Task(String type, String name, String idBpmn, Integer nu, Integer mth, List<String> subTasks, List<String> userTasks, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity) {
+    public Task(String type, String name, String idBpmn, Integer nu, Integer mth, List<String> subTasks, List<String> userTasks, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity, Long startTime) {
         this.type = type;
         this.name = name;
         this.idBpmn = idBpmn;
@@ -26,6 +27,7 @@ public class Task {
         this.bodSecurity = bodSecurity;
         this.sodSecurity = sodSecurity;
         this.uocSecurity = uocSecurity;
+        this.startTime = startTime; // Inicializar la nueva propiedad
     }
 
     // Getters y Setters
@@ -109,11 +111,19 @@ public class Task {
         this.uocSecurity = uocSecurity;
     }
 
+    public Long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(Long startTime) {
+        this.startTime = startTime;
+    }
+
     @Override
     public String toString() {
         return "Task [type=" + type + ", name=" + name + ", idBpmn=" + idBpmn + ", nu=" + nu 
             + ", mth=" + mth + ", subTasks=" + subTasks + ", userTasks=" + userTasks
             + ", bodSecurity=" + bodSecurity + ", sodSecurity=" + sodSecurity
-            + ", uocSecurity=" + uocSecurity + "]";
+            + ", uocSecurity=" + uocSecurity + ", startTime=" + startTime + "]";
     }
 }
