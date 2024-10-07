@@ -21,7 +21,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Component
@@ -31,6 +34,7 @@ public class TaskEventHandler implements InitializingBean {
     private static final Logger LOG = LoggerFactory.getLogger(TaskEventHandler.class);
     private EPRuntime epRuntime;
 
+    // Esta función inicializa el servicio de Esper
     public void initService() {
         LOG.debug("Initializing Service ..");
         Configuration configuration = new Configuration();
@@ -38,6 +42,7 @@ public class TaskEventHandler implements InitializingBean {
 
         epRuntime = EPRuntimeProvider.getDefaultRuntime(configuration);
 
+        // Procesar los archivos .txt en el directorio actual
         File currentDir = new File(System.getProperty("user.dir"));
         File[] listOfFiles = currentDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
 
@@ -59,20 +64,22 @@ public class TaskEventHandler implements InitializingBean {
             EPCompiler compiler = EPCompilerProvider.getCompiler();
             CompilerArguments args = new CompilerArguments(configuration);
 
-            // BoD rules 
+            // Crear la consulta EPL para BoD
             LOG.debug("Creating Generalized BoD Check Expression");
+            // Crear la consulta EPL para BoD
+LOG.debug("Creating Generalized BoD Check Expression");
+String bodEPL = "select parent.idBpmn as parentId, " +
+    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id " +
+    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+    "where parent.bodSecurity = true " +  // Parent task has BoD enabled
+    "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
+    "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
+    "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
+    "and sub1.userTasks is not null " +  // Ensure userTasks is not null for sub1
+    "and sub2.userTasks is not null";  // Ensure userTasks is not null for sub2
 
-            String bodEPL = "select parent.idBpmn as parentId, " +
-                "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-                "sub1.user as user1, sub2.user as user2 " +
-                "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-                "where parent.bodSecurity = true " +              // Parent task has BoD enabled
-                "and sub1.user is not null and sub2.user is not null " + // Ensure both users are not null
-                "and sub1.user = sub2.user " +                    // Same user for both sub-tasks
-                "and sub1.idBpmn != sub2.idBpmn " +               // Different sub-tasks
-                "and sub1.idBpmn in (parent.subTasks) " +         // sub1 is a sub-task of parent
-                "and sub2.idBpmn in (parent.subTasks) ";          // sub2 is a sub-task of parent
 
+ 
 
             EPCompiled compiledBod = compiler.compile(bodEPL, args);
             EPDeployment deploymentBod = epRuntime.getDeploymentService().deploy(compiledBod);
@@ -85,48 +92,64 @@ public class TaskEventHandler implements InitializingBean {
                     String user1 = (String) newData[0].get("user1");
                     String user2 = (String) newData[0].get("user2");
 
-            // Debug log for BoD checks
-            LOG.debug("New data received for BoD check: Parent Task ID = {}, SubTask 1 ID = {}, SubTask 2 ID = {}, User1 = {}, User2 = {}", 
-                  parentId, subTask1Id, subTask2Id, user1, user2);
+                    // Debug log for BoD checks
+                    LOG.debug("New data received for BoD check: Parent Task ID = {}, SubTask 1 ID = {}, SubTask 2 ID = {}, User1 = {}, User2 = {}", 
+                          parentId, subTask1Id, subTask2Id, user1, user2);
 
-            LOG.info("Checking BoD for Parent Task: {}", parentId);
-            LOG.info("SubTask 1: {} (User: {})", subTask1Id, user1);
-            LOG.info("SubTask 2: {} (User: {})", subTask2Id, user2);
+                    LOG.info("Checking BoD for Parent Task: {}", parentId);
+                    LOG.info("SubTask 1: {} (User: {})", subTask1Id, user1);
+                    LOG.info("SubTask 2: {} (User: {})", subTask2Id, user2);
 
-            if (user1 != null && user1.equals(user2)) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("---------------------------------");
-                sb.append("\n- [BOD MONITOR] Binding of Duties detected:");
-                sb.append("\n- Parent Task ID: ").append(parentId);
-                sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-                sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
-                sb.append("\n- User ID: ").append(user1);
-                sb.append("\n---------------------------------");
+                    if (user1 != null && user1.equals(user2)) {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("---------------------------------");
+                        sb.append("\n- [BOD MONITOR] Binding of Duties detected:");
+                        sb.append("\n- Parent Task ID: ").append(parentId);
+                        sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
+                        sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+                        sb.append("\n- User ID: ").append(user1);
+                        sb.append("\n---------------------------------");
 
-                LOG.info(sb.toString());
-            } else {
-                LOG.info("No BoD violation: Users differ or are empty.");
+                        LOG.info(sb.toString());
+                    } else {
+                        LOG.info("No BoD violation: Users differ or are empty.");
+                    }
+                }
+            });
+
+            // Obtener la lista de tareas a comparar
+            List<Task> tasks = obtenerListaDeTareas();
+
+            for (int i = 0; i < tasks.size(); i++) {
+                Task sub1 = tasks.get(i);
+
+                for (int j = i + 1; j < tasks.size(); j++) {
+                    Task sub2 = tasks.get(j);
+
+                    // Comprobar intersección entre userTasks de sub1 y sub2
+                    boolean hasIntersection = !Collections.disjoint(sub1.getUserTasks(), sub2.getUserTasks());
+
+                    if (hasIntersection) {
+                        // Lógica para manejar la intersección y enviar eventos
+                        epRuntime.getEventService().sendEventBean(sub1, "Task");
+                        epRuntime.getEventService().sendEventBean(sub2, "Task");
+                    }
+                }
             }
-        }
-    });
 
             // SoD rules
             LOG.debug("Creating Generalized SoD Check Expression");
             String sodEPL = "select parent.idBpmn as parentId, " +
-                "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-                "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
-                "parent.nu as nuValue, " +
-                "count(distinct user) as distinctUserCount " +
-                "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-                "unidirectional " +  // To ensure we evaluate sub1 and sub2 in one direction only
-                "where parent.sodSecurity = true " +  // Parent task has SoD enabled
-                "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
-                "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
-                "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
-                // Check for intersection between userTasks1 and userTasks2
-                "and (select count(*) from sub1.userTasks as u1, sub2.userTasks as u2 where u1 = u2) > 0 " + 
-                "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, parent.nu, sub1.userTasks, sub2.userTasks " +
-                "having count(distinct (select u from sub1.userTasks as u union sub2.userTasks)) < parent.nu";  // Check if 'nu' is greater than distinct user count
+                    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+                    "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
+                    "parent.nu as nuValue " +
+                    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+                    "where parent.sodSecurity = true " +  // Parent task has SoD enabled
+                    "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
+                    "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
+                    "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
+                    "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, parent.nu, sub1.userTasks, sub2.userTasks " +
+                    "having count(distinct sub1.userTasks) < parent.nu";
 
             EPCompiled compiledSod = compiler.compile(sodEPL, args);
             EPDeployment deploymentSod = epRuntime.getDeploymentService().deploy(compiledSod);
@@ -164,9 +187,10 @@ public class TaskEventHandler implements InitializingBean {
 
             // UoC rules
             LOG.debug("Creating UoC Check Expression");
-            String uocEPL = "select user as userId, count(*) as taskCount " +
-                            "from Task#time(1 min) " +
-                            "where uocSecurity = true and mth >= 4 ";
+            String uocEPL = "select userTasks as userTasksList, count(*) as taskCount " +
+            "from Task#time(1 min) " +
+            "where uocSecurity = true and mth >= 4";
+
             EPCompiled compiledUoc = compiler.compile(uocEPL, args);
             EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
             EPStatement statementUoc = deploymentUoc.getStatements()[0];
@@ -204,6 +228,12 @@ public class TaskEventHandler implements InitializingBean {
         } catch (Exception e) {
             LOG.error("Error compiling or deploying EPL statements", e);
         }
+    }
+
+    // Método para obtener la lista de tareas. Ajustar según tu lógica
+    private List<Task> obtenerListaDeTareas() {
+        // Implementación ficticia. Ajusta esta lógica para obtener la lista real de tareas.
+        return new ArrayList<>(); 
     }
 
     private Set<String> obtenerUserTasksDesdeArchivo(String rutaArchivo) {

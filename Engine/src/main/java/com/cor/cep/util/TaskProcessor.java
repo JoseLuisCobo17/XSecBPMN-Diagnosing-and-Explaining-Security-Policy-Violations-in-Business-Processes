@@ -47,7 +47,7 @@ public class TaskProcessor {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.startsWith("Element:")) {
+                if (line.startsWith("Element:") || line.startsWith("Instance")) {
                     Task task = parseTaskLine(line);
                     if (task != null) {
                         tasks.add(task);
@@ -60,74 +60,65 @@ public class TaskProcessor {
         return tasks;
     }
 
-   private Task parseTaskLine(String line) {
-    // Extract the content within brackets
-    String content = line.substring(line.indexOf("[") + 1, line.lastIndexOf("]"));
+    private Task parseTaskLine(String line) {
+        // Extract the content within brackets
+        String content = line.substring(line.indexOf("[") + 1, line.lastIndexOf("]"));
 
-    // Initialize variables
-    String type = null, name = null, idBpmn = null, user = null, log = null;
-    List<String> subTasks = new ArrayList<>();
-    boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
-    long timestamp = 0;
-    int nu = 0, mth = 0, p = 0;
+        // Initialize variables
+        String type = null, name = null, idBpmn = null;
+        List<String> subTasks = new ArrayList<>();
+        List<String> userTasks = new ArrayList<>();
+        boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
+        Integer nu = null, mth = null;
 
-    // Split content by ', ' ensuring sub-tasks aren't broken
-    String[] parts = content.split(", (?=[a-zA-Z_]+=)");
+        // Split content by ', ' ensuring sub-tasks aren't broken
+        String[] parts = content.split(", (?=[a-zA-Z_]+=)");
 
-    for (String part : parts) {
-        String[] keyValue = part.split("=", 2);
-        if (keyValue.length != 2) {
-            continue;  // Skip parts that do not match the "key=value" pattern
+        for (String part : parts) {
+            String[] keyValue = part.split("=", 2);
+            if (keyValue.length != 2) {
+                continue;  // Skip parts that do not match the "key=value" pattern
+            }
+            switch (keyValue[0].trim()) {
+                case "type":
+                    type = keyValue[1].trim();
+                    break;
+                case "name":
+                    name = keyValue[1].trim();
+                    break;
+                case "id_bpmn":
+                    idBpmn = keyValue[1].trim();
+                    break;
+                case "sodSecurity":
+                    sodSecurity = Boolean.parseBoolean(keyValue[1].trim());
+                    break;
+                case "bodSecurity":
+                    bodSecurity = Boolean.parseBoolean(keyValue[1].trim());
+                    break;
+                case "uocSecurity":
+                    uocSecurity = Boolean.parseBoolean(keyValue[1].trim());
+                    break;
+                case "nu":
+                    nu = Integer.parseInt(keyValue[1].trim());
+                    break;
+                case "mth":
+                    mth = Integer.parseInt(keyValue[1].trim());
+                    break;
+                case "userTask":  // Include the "userTask" case to populate userTasks
+                    userTasks.add(keyValue[1].trim());
+                    break;
+                case "subTask":
+                    // Remove quotes and split by comma to create a list of sub-tasks
+                    subTasks = Arrays.asList(keyValue[1].replace("\"", "").trim().split("\\s*,\\s*"));
+                    break;
+            }
         }
-        switch (keyValue[0].trim()) {
-            case "type":
-                type = keyValue[1].trim();
-                break;
-            case "name":
-                name = keyValue[1].trim();
-                break;
-            case "id_bpmn":
-                idBpmn = keyValue[1].trim();  // Ensure this correctly assigns to idBpmn
-                break;
-            case "sodSecurity":
-                sodSecurity = Boolean.parseBoolean(keyValue[1].trim());
-                break;
-            case "bodSecurity":
-                bodSecurity = Boolean.parseBoolean(keyValue[1].trim());
-                break;
-            case "uocSecurity":
-                uocSecurity = Boolean.parseBoolean(keyValue[1].trim());
-                break;
-            case "timestamp":
-                timestamp = Long.parseLong(keyValue[1].trim());
-                break;
-            case "nu":
-                nu = Integer.parseInt(keyValue[1].trim());
-                break;
-            case "mth":
-                mth = Integer.parseInt(keyValue[1].trim());
-                break;
-            case "p":
-                p = Integer.parseInt(keyValue[1].trim());
-                break;
-            case "user":
-            case "userTask":  // Include both "user" and "userTask" cases
-                user = keyValue[1].trim();
-                break;
-            case "log":
-                log = keyValue[1].trim();
-                break;
-            case "subTask":
-                subTasks = Arrays.asList(keyValue[1].trim().split("\\s*,\\s*"));
-                break;
-        }
+
+        // Log all fields to verify
+        LOG.info("Parsed Task - idBpmn: {}, userTasks: {}, subTasks: {}, sodSecurity: {}, bodSecurity: {}, uocSecurity: {}",
+                 idBpmn, userTasks, subTasks, sodSecurity, bodSecurity, uocSecurity);
+
+        // Return a new Task with the correct parameters for the constructor
+        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, sodSecurity, bodSecurity, uocSecurity);
     }
-
-    // Log all fields to verify
-    LOG.info("Parsed Task - idBpmn: {}, user: {}, subTasks: {}, sodSecurity: {}", idBpmn, user, subTasks, sodSecurity);
-
-    return new Task(type, name, idBpmn, sodSecurity, bodSecurity, uocSecurity, timestamp, nu, mth, p, user, log, subTasks);
-}
-
-
 }

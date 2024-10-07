@@ -3,26 +3,32 @@ package com.cor.cep.event;
 import java.util.List;
 
 public class Task {
-
     private String type;
     private String name;
     private String idBpmn;
     private Integer nu;
     private Integer mth;
     private List<String> subTasks;
+    private List<String> userTasks;
+    private boolean bodSecurity;
+    private boolean sodSecurity;
+    private boolean uocSecurity;
 
     // Constructor
-    public Task(String type, String name, String idBpmn, Integer nu, Integer mth, List<String> subTasks) {
+    public Task(String type, String name, String idBpmn, Integer nu, Integer mth, List<String> subTasks, List<String> userTasks, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity) {
         this.type = type;
         this.name = name;
         this.idBpmn = idBpmn;
         this.nu = nu;
         this.mth = mth;
         this.subTasks = subTasks;
+        this.userTasks = userTasks;
+        this.bodSecurity = bodSecurity;
+        this.sodSecurity = sodSecurity;
+        this.uocSecurity = uocSecurity;
     }
 
     // Getters y Setters
-
     public String getType() {
         return type;
     }
@@ -71,9 +77,43 @@ public class Task {
         this.subTasks = subTasks;
     }
 
+    public List<String> getUserTasks() {
+        return userTasks;
+    }
+
+    public void setUserTasks(List<String> userTasks) {
+        this.userTasks = userTasks;
+    }
+
+    public boolean isBodSecurity() {
+        return bodSecurity;
+    }
+
+    public void setBodSecurity(boolean bodSecurity) {
+        this.bodSecurity = bodSecurity;
+    }
+
+    public boolean isSodSecurity() {
+        return sodSecurity;
+    }
+
+    public void setSodSecurity(boolean sodSecurity) {
+        this.sodSecurity = sodSecurity;
+    }
+
+    public boolean isUocSecurity() {
+        return uocSecurity;
+    }
+
+    public void setUocSecurity(boolean uocSecurity) {
+        this.uocSecurity = uocSecurity;
+    }
+
     @Override
     public String toString() {
         return "Task [type=" + type + ", name=" + name + ", idBpmn=" + idBpmn + ", nu=" + nu 
-            + ", mth=" + mth + ", subTasks=" + subTasks + "]";
+            + ", mth=" + mth + ", subTasks=" + subTasks + ", userTasks=" + userTasks
+            + ", bodSecurity=" + bodSecurity + ", sodSecurity=" + sodSecurity
+            + ", uocSecurity=" + uocSecurity + "]";
     }
 }
