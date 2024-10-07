@@ -15,9 +15,10 @@ public class Task {
     private boolean uocSecurity;
     private Long startTime; 
     private Long time; 
+    private Integer instance; // Nueva propiedad para la instancia
 
     // Constructor
-    public Task(String type, String name, String idBpmn, Integer nu, Integer mth, List<String> subTasks, List<String> userTasks, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity, Long startTime, Long time) {
+    public Task(String type, String name, String idBpmn, Integer nu, Integer mth, List<String> subTasks, List<String> userTasks, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity, Long startTime, Long time, Integer instance) {
         this.type = type;
         this.name = name;
         this.idBpmn = idBpmn;
@@ -28,8 +29,9 @@ public class Task {
         this.bodSecurity = bodSecurity;
         this.sodSecurity = sodSecurity;
         this.uocSecurity = uocSecurity;
-        this.startTime = startTime; // Inicializar la propiedad existente
-        this.time = time; // Inicializar la nueva propiedad
+        this.startTime = startTime; 
+        this.time = time; 
+        this.instance = instance; // Inicializar la nueva propiedad
     }
 
     // Getters y Setters
@@ -128,12 +130,21 @@ public class Task {
     public void setTime(Long time) {
         this.time = time;
     }
+    
+    public Integer getInstance() {
+        return instance;
+    }
 
+    public void setInstance(Integer instance) {
+        this.instance = instance;
+    }
+    
     @Override
     public String toString() {
         return "Task [type=" + type + ", name=" + name + ", idBpmn=" + idBpmn + ", nu=" + nu 
             + ", mth=" + mth + ", subTasks=" + subTasks + ", userTasks=" + userTasks
             + ", bodSecurity=" + bodSecurity + ", sodSecurity=" + sodSecurity
-            + ", uocSecurity=" + uocSecurity + ", startTime=" + startTime + ", time=" + time + "]";
+            + ", uocSecurity=" + uocSecurity + ", startTime=" + startTime + ", time=" + time 
+            + ", instance=" + instance + "]";
     }
 }

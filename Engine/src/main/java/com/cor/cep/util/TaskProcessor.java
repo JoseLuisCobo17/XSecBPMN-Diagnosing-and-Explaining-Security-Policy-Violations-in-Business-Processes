@@ -29,35 +29,42 @@ public class TaskProcessor {
     public void processTaskFiles(String directoryPath) {
         File folder = new File(directoryPath);
         File[] listOfFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
-
+    
         if (listOfFiles != null) {
             for (File file : listOfFiles) {
                 if (file.isFile()) {
                     LOG.info("Processing file: " + file.getName());
-// En TaskProcessor.java
-List<Task> tasks = parseTaskFile(file.getAbsolutePath());
-
-// Filtrar tareas con startTime no nulo y agruparlas en un TreeMap para ordenarlas
-Map<Long, List<Task>> groupedTasks = tasks.stream()
-        .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
-        .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar
-
-// Imprimir las tareas agrupadas y ordenadas
-groupedTasks.forEach((startTime, taskList) -> {
-    LOG.info("Tasks grouped by startTime: {}", startTime);
-    taskList.forEach(task -> LOG.info("{}", task));
-});
-
-// Llama a handleTasks en lugar de handle
-taskEventHandler.handleTasks(tasks);
-
+                    List<Task> tasks = parseTaskFile(file.getAbsolutePath());
+    
+                    // Agrupar tareas por startTime
+                    Map<Long, List<Task>> groupedTasks = tasks.stream()
+                            .filter(task -> task.getStartTime() != null)
+                            .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList()));
+    
+                    // Procesar las tareas agrupadas
+                    for (Map.Entry<Long, List<Task>> entry : groupedTasks.entrySet()) {
+                        Long startTime = entry.getKey();
+                        List<Task> taskList = entry.getValue();
+    
+                        // Imprimir solo una vez el startTime
+                        LOG.info("Enviando tarea con startTime: {}", startTime);
+    
+                        // Imprimir cada tarea con la instancia correspondiente
+                        taskList.forEach(task -> 
+                            LOG.info("Instancia {}: {}", task.getInstance(), task));
+                    }
+    
+                    // Manejar cada tarea individualmente para enviar eventos a Esper
+                    for (Task task : tasks) {
+                        taskEventHandler.handle(task);
+                    }
                 }
             }
         } else {
             LOG.error("No files found in the directory: " + directoryPath);
         }
     }
-
+    
     private List<Task> parseTaskFile(String filePath) {
         List<Task> tasks = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
@@ -77,21 +84,37 @@ taskEventHandler.handleTasks(tasks);
     }
 
     private Task parseTaskLine(String line) {
-        // Extract the content within brackets
-        String content = line.substring(line.indexOf("[") + 1, line.lastIndexOf("]"));
-
         // Initialize variables
         String type = null, name = null, idBpmn = null;
         List<String> subTasks = new ArrayList<>();
         List<String> userTasks = new ArrayList<>();
         boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
-        Integer nu = null, mth = null;
-        Long startTime = null; // Propiedad existente
-        Long time = null; // Nueva propiedad
-
+        Integer nu = null, mth = null, instance = null; // Añadir la variable de instancia
+        Long startTime = null; 
+        Long time = null;
+    
+        // Verificar y extraer el valor de instance al inicio de la línea
+        if (line.startsWith("Instance")) {
+            // Extraer el valor de la instancia
+            String instancePart = line.substring(0, line.indexOf(":")).trim();
+            String[] instanceParts = instancePart.split(" ");
+            if (instanceParts.length == 2) {
+                try {
+                    instance = Integer.parseInt(instanceParts[1]);
+                } catch (NumberFormatException e) {
+                    LOG.error("Error parsing instance number", e);
+                }
+            }
+            // Actualizar la línea para extraer solo el contenido dentro de los corchetes
+            line = line.substring(line.indexOf("["));
+        }
+    
+        // Extract the content within brackets
+        String content = line.substring(line.indexOf("[") + 1, line.lastIndexOf("]"));
+    
         // Split content by ', ' ensuring sub-tasks aren't broken
         String[] parts = content.split(", (?=[a-zA-Z_]+=)");
-
+    
         for (String part : parts) {
             String[] keyValue = part.split("=", 2);
             if (keyValue.length != 2) {
@@ -136,8 +159,8 @@ taskEventHandler.handleTasks(tasks);
                     break;
             }
         }
-
+    
         // Return a new Task with the correct parameters for the constructor
-        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, sodSecurity, bodSecurity, uocSecurity, startTime, time);
-    }
+        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, sodSecurity, bodSecurity, uocSecurity, startTime, time, instance);
+    }    
 }

@@ -247,7 +247,6 @@ String bodEPL = "select parent.idBpmn as parentId, " +
             EPStatement statementMonitor = deploymentMonitor.getStatements()[0];
             statementMonitor.addListener((newData, oldData, stat, rt) -> {
                 Task task = (Task) newData[0].getUnderlying();
-                LOG.info("Task: " + task);
                 try {
                     Thread.sleep(3000);
                 } catch (InterruptedException e) {
@@ -285,39 +284,39 @@ String bodEPL = "select parent.idBpmn as parentId, " +
         }
         return userTasks;
     }
-
     public void handle(Task event) {
-        LOG.debug(event.toString());
+        // Solo loggear una vez la instancia de la tarea
+        LOG.info("Instance {}: {}", event.getInstance(), event);
         epRuntime.getEventService().sendEventBean(event, "Task");
     }
-
+    
     public void handleTasks(List<Task> tasks) {
-    if (tasks == null || tasks.isEmpty()) {
-        LOG.warn("La lista de tareas está vacía o es nula.");
-        return;
-    }
-
-    // Log para verificar las tareas recibidas
-    LOG.info("Total de tareas recibidas para manejar: {}", tasks.size());
-    tasks.forEach(task -> LOG.info("Task con startTime: {}", task.getStartTime()));
-
-    // Agrupar tareas por startTime
-    Map<Long, List<Task>> groupedTasks = tasks.stream()
-        .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
-        .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar por startTime
-
-    // Enviar todas las tareas agrupadas por startTime
-    groupedTasks.forEach((startTime, taskList) -> {
-        // Log para indicar que se está enviando un grupo de tareas con el mismo startTime
-        LOG.info("Enviando tarea con startTime: {}", startTime);
-
-        // Enviar cada tarea del grupo
-        taskList.forEach(task -> {
-            LOG.info("Task: {}", task);
-            epRuntime.getEventService().sendEventBean(task, "Task");
+        if (tasks == null || tasks.isEmpty()) {
+            LOG.warn("La lista de tareas está vacía o es nula.");
+            return;
+        }
+    
+        // Log para verificar las tareas recibidas
+        LOG.info("Total de tareas recibidas para manejar: {}", tasks.size());
+    
+        // Agrupar tareas por startTime
+        Map<Long, List<Task>> groupedTasks = tasks.stream()
+            .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
+            .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar por startTime
+    
+        // Enviar todas las tareas agrupadas por startTime
+        groupedTasks.forEach((startTime, taskList) -> {
+            // Log para indicar que se está enviando un grupo de tareas con el mismo startTime
+            LOG.info("Enviando tarea con startTime: {}", startTime);
+    
+            // Enviar cada tarea del grupo, registrando solo una vez
+            taskList.forEach(task -> {
+                LOG.info("Instance {}: {}", task.getInstance(), task);
+                epRuntime.getEventService().sendEventBean(task, "Task");
+            });
         });
-    });
-}
+    }
+    
     
     @Override
     public void afterPropertiesSet() {
