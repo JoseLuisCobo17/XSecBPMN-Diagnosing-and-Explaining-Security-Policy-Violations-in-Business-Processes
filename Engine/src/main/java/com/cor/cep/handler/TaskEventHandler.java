@@ -198,23 +198,25 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
     }
 });
 
-// UoC rules
+// Crear la consulta EPL para UoC
 LOG.debug("Creating UoC Check Expression");
 
 String uocEPL = "select parent.idBpmn as parentId, " +
-        "parent.uocSecurity as uocSecurityEnabled, " +
-        "subTask.idBpmn as subTaskId, " +
-        "subTask.userTasks as userTasksList, " +
-        "count(*) as taskCount, " +
-        "parent.mth as maxTimes, " +
-        "parent.nu as numUsers, " +
-        "parent.x as roleOrUser " +
-        "from Task#keepall as parent, Task#keepall as subTask " +  // Ventana indefinida para mantener todas las tareas
-        "where parent.uocSecurity = true " +  // uocSecurity activado en la tarea padre
-        "and subTask.idBpmn in (parent.subTasks) " +  // Subtareas del padre
-        "and ?(parent.x, subTask.userTasks) " +  // Verificar si el usuario o rol está en la lista de userTasks
-        "group by parent.idBpmn, subTask.userTasks " +
-        "having count(*) > parent.mth";  // Verificar si el número de veces excede el máximo permitido
+                "parent.uocSecurity as uocSecurityEnabled, " +
+                "subTask.idBpmn as subTaskId, " +
+                "subTask.userTasks as userTasksList, " +
+                "collect(subTask.instance) as instanceList, " +  // Recoger todas las instancias
+                "count(distinct subTask.instance) as taskCount, " +  // Contar instancias distintas
+                "parent.mth as maxTimes, " +
+                "parent.nu as numUsers, " +
+                "parent.x as roleOrUser " +
+                "from Task#keepall as parent, Task#keepall as subTask " +  // Ventana indefinida para mantener todas las tareas
+                "where parent.uocSecurity = true " +  // uocSecurity activado en la tarea padre
+                "and subTask.idBpmn in (parent.subTasks) " +  // Subtareas del padre
+                "and subTask.userTasks is not null " +  // Ensure userTasks is not null for subTask
+                "and ?(parent.x, subTask.userTasks) " +  // Verificar si el usuario o rol está en la lista de userTasks
+                "group by parent.idBpmn, subTask.userTasks " +
+                "having count(distinct subTask.instance) > parent.mth";  // Verificar si el número de instancias distintas excede el máximo permitido
 
 EPCompiled compiledUoc = compiler.compile(uocEPL, args);
 EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
@@ -225,6 +227,7 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
         String parentId = (String) newData[0].get("parentId");
         String subTaskId = (String) newData[0].get("subTaskId");
         List<String> userTasksList = (List<String>) newData[0].get("userTasksList");
+        List<Integer> instanceList = (List<Integer>) newData[0].get("instanceList");
         Long taskCount = (Long) newData[0].get("taskCount");
         Integer maxTimes = (Integer) newData[0].get("maxTimes");
 
@@ -236,6 +239,7 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
         sb.append("\n- Users: ").append(userTasksList);  // Mostrar la lista de usuarios
         sb.append("\n- Number of executions: ").append(taskCount);
         sb.append("\n- Maximum allowed: ").append(maxTimes);
+        sb.append("\n- Instances: ").append(instanceList);  // Mostrar la lista de instancias
         sb.append("\n---------------------------------");
 
         LOG.info(sb.toString());
