@@ -142,53 +142,61 @@ public class TaskEventHandler implements InitializingBean {
                 }
             }
 
-            // SoD rules
-            LOG.debug("Creating Generalized SoD Check Expression");
-            String sodEPL = "select parent.idBpmn as parentId, " +
-                            "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-                            "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
-                            "parent.nu as nuValue " +
-                            "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-                            "where parent.sodSecurity = true " +  // Parent task has SoD enabled
-                            "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
-                            "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
-                            "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
-                            "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, parent.nu, sub1.userTasks, sub2.userTasks " +
-                            "having count(distinct sub1.userTasks) < parent.nu";
+// Crear la consulta EPL para SoD
+LOG.debug("Creating Generalized SoD Check Expression");
+String sodEPL = "select parent.idBpmn as parentId, " +
+                "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+                "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
+                "parent.nu as nuValue, sub1.instance as instance1, sub2.instance as instance2 " +
+                "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+                "where parent.sodSecurity = true " +  // Parent task has SoD enabled
+                "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
+                "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
+                "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
+                "and sub1.instance = sub2.instance " +  // Ensure sub-tasks are in the same instance
+                "and sub1.userTasks is not null " +  // Ensure userTasks is not null for sub1
+                "and sub2.userTasks is not null " +  // Ensure userTasks is not null for sub2
+                "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, parent.nu, sub1.userTasks, sub2.userTasks, sub1.instance, sub2.instance " +
+                "having count(distinct sub1.userTasks) >= parent.nu";  // Ensure minimum number of different users
 
-            EPCompiled compiledSod = compiler.compile(sodEPL, args);
-            EPDeployment deploymentSod = epRuntime.getDeploymentService().deploy(compiledSod);
-            EPStatement statementSod = deploymentSod.getStatements()[0];
-            statementSod.addListener((newData, oldData, stat, rt) -> {
-                if (newData != null && newData.length > 0) {
-                    String parentId = (String) newData[0].get("parentId");
-                    String subTask1Id = (String) newData[0].get("subTask1Id");
-                    String subTask2Id = (String) newData[0].get("subTask2Id");
-                    String user1 = (String) newData[0].get("user1");
-                    String user2 = (String) newData[0].get("user2");
-                    Integer nuValue = (Integer) newData[0].get("nuValue");
-                    Long distinctUserCount = (Long) newData[0].get("distinctUserCount");
+EPCompiled compiledSod = compiler.compile(sodEPL, args);
+EPDeployment deploymentSod = epRuntime.getDeploymentService().deploy(compiledSod);
+EPStatement statementSod = deploymentSod.getStatements()[0];
+statementSod.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId = (String) newData[0].get("parentId");
+        String subTask1Id = (String) newData[0].get("subTask1Id");
+        String subTask2Id = (String) newData[0].get("subTask2Id");
+        List<String> userTasks1 = (List<String>) newData[0].get("userTasks1");
+        List<String> userTasks2 = (List<String>) newData[0].get("userTasks2");
+        Integer nuValue = (Integer) newData[0].get("nuValue");
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        Integer instance2 = (Integer) newData[0].get("instance2");
 
-                    LOG.info("Comparing SubTasks: {} (User: {}) and {} (User: {}) under Parent Task: {} with NU: {} and Distinct Users: {}",
-                            subTask1Id, user1, subTask2Id, user2, parentId, nuValue, distinctUserCount);
+        // Debug log for SoD checks
+        LOG.debug("New data received for SoD check: Parent Task ID = {}, SubTask 1 ID = {}, SubTask 2 ID = {}, UserTasks1 = {}, UserTasks2 = {}, Instance1 = {}, Instance2 = {}", 
+              parentId, subTask1Id, subTask2Id, userTasks1, userTasks2, instance1, instance2);
 
-                    if (user1.equals(user2) || nuValue > distinctUserCount) {
-                        StringBuilder sb = new StringBuilder();
-                        sb.append("---------------------------------");
-                        sb.append("\n- [SOD MONITOR] Segregation of Duties enforced:");
-                        sb.append("\n- Parent Task ID: ").append(parentId);
-                        sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-                        sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
-                        sb.append("\n- User 1 ID: ").append(user1);
-                        sb.append("\n- User 2 ID: ").append(user2);
-                        sb.append("\n- NU Value: ").append(nuValue);
-                        sb.append("\n- Distinct User Count: ").append(distinctUserCount);
-                        sb.append("\n---------------------------------");
+        LOG.info("Checking SoD for Parent Task: {}", parentId);
+        LOG.info("SubTask 1: {} (Users: {}, Instance: {})", subTask1Id, userTasks1, instance1);
+        LOG.info("SubTask 2: {} (Users: {}, Instance: {})", subTask2Id, userTasks2, instance2);
 
-                        LOG.info(sb.toString());
-                    }
-                }
-            });
+        if (userTasks1 != null && userTasks2 != null && Collections.disjoint(userTasks1, userTasks2)) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("---------------------------------");
+            sb.append("\n- [SOD MONITOR] Segregation of Duties enforced:");
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
+            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n---------------------------------");
+
+            LOG.info(sb.toString());
+        } else {
+            LOG.info("No SoD violation: Users overlap or are empty.");
+        }
+    }
+});
 
 // UoC rules
 LOG.debug("Creating UoC Check Expression");
