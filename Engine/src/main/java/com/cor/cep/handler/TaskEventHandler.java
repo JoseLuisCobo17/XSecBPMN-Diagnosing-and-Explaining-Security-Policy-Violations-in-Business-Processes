@@ -23,6 +23,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -260,6 +261,76 @@ String bodEPL = "select parent.idBpmn as parentId, " +
         }
     }
 
+// Declarar un mapa para almacenar tareas por startTime
+private Map<Long, List<Task>> taskGroups = new HashMap<>();
+private Set<Long> processedStartTimes = new HashSet<>(); // Para rastrear startTimes ya procesados
+
+public void handle(Task event) {
+    Long startTime = event.getStartTime();
+    
+    if (startTime != null) {
+        // Agrupar las tareas por startTime
+        taskGroups.computeIfAbsent(startTime, k -> new ArrayList<>()).add(event);
+    }
+
+    // Revisar si es el momento de procesar el grupo (cuando se ha acumulado un grupo)
+    processTaskGroups();
+}
+
+private Long previousStartTime = null;
+
+private void processTaskGroups() {
+    // Procesar cada grupo de tareas en el mapa
+    taskGroups.forEach((startTime, tasks) -> {
+        // Verificar si este startTime ya fue procesado
+        if (previousStartTime == null || !startTime.equals(previousStartTime)) {
+            // Imprimir solo una vez por cada startTime
+            LOG.info("Enviando tarea con startTime: {}", startTime);
+
+            // Actualizar el valor de previousStartTime
+            previousStartTime = startTime;
+        }
+
+        // Imprimir cada tarea con su instancia correspondiente
+        tasks.forEach(task -> {
+            LOG.info("Instance {}: {}", task.getInstance(), task);
+            // Enviar el evento a Esper
+            epRuntime.getEventService().sendEventBean(task, "Task");
+        });
+
+        // Marcar este startTime como procesado para evitar mensajes repetidos
+        processedStartTimes.add(startTime);
+    });
+
+    // Limpiar las tareas agrupadas una vez procesadas
+    taskGroups.clear();
+}
+
+    public void handleTasks(List<Task> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            LOG.warn("La lista de tareas está vacía o es nula.");
+            return;
+        }
+    
+        // Agrupar tareas por startTime, excluyendo las que tengan startTime nulo
+        Map<Long, List<Task>> groupedTasks = tasks.stream()
+            .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
+            .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar por startTime
+    
+        // Procesar las tareas agrupadas
+        groupedTasks.forEach((startTime, taskList) -> {
+            // Imprimir solo una vez el startTime
+            LOG.info("Enviando tarea con startTime: {}", startTime);
+    
+            // Imprimir cada tarea con la instancia correspondiente
+            taskList.forEach(task -> {
+                LOG.info("Instance {}: {}", task.getInstance(), task);
+                // Enviar el evento a Esper
+                epRuntime.getEventService().sendEventBean(task, "Task");
+            });
+        });
+    }    
+
     // Método para obtener la lista de tareas. Ajustar según tu lógica
     private List<Task> obtenerListaDeTareas() {
         // Implementación ficticia. Ajusta esta lógica para obtener la lista real de tareas.
@@ -284,39 +355,6 @@ String bodEPL = "select parent.idBpmn as parentId, " +
         }
         return userTasks;
     }
-    public void handle(Task event) {
-        // Solo loggear una vez la instancia de la tarea
-        LOG.info("Instance {}: {}", event.getInstance(), event);
-        epRuntime.getEventService().sendEventBean(event, "Task");
-    }
-    
-    public void handleTasks(List<Task> tasks) {
-        if (tasks == null || tasks.isEmpty()) {
-            LOG.warn("La lista de tareas está vacía o es nula.");
-            return;
-        }
-    
-        // Log para verificar las tareas recibidas
-        LOG.info("Total de tareas recibidas para manejar: {}", tasks.size());
-    
-        // Agrupar tareas por startTime
-        Map<Long, List<Task>> groupedTasks = tasks.stream()
-            .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
-            .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar por startTime
-    
-        // Enviar todas las tareas agrupadas por startTime
-        groupedTasks.forEach((startTime, taskList) -> {
-            // Log para indicar que se está enviando un grupo de tareas con el mismo startTime
-            LOG.info("Enviando tarea con startTime: {}", startTime);
-    
-            // Enviar cada tarea del grupo, registrando solo una vez
-            taskList.forEach(task -> {
-                LOG.info("Instance {}: {}", task.getInstance(), task);
-                epRuntime.getEventService().sendEventBean(task, "Task");
-            });
-        });
-    }
-    
     
     @Override
     public void afterPropertiesSet() {
