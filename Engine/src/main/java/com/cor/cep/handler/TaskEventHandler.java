@@ -74,50 +74,56 @@ public class TaskEventHandler implements InitializingBean {
             // Crear la consulta EPL para BoD
             LOG.debug("Creating Generalized BoD Check Expression");
             String bodEPL = "select parent.idBpmn as parentId, " +
-                            "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id " +
-                            "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-                            "where parent.bodSecurity = true " +  // Parent task has BoD enabled
-                            "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
-                            "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
-                            "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
-                            "and sub1.userTasks is not null " +  // Ensure userTasks is not null for sub1
-                            "and sub2.userTasks is not null";  // Ensure userTasks is not null for sub2
+                "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+                "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
+                "sub1.instance as instance1, sub2.instance as instance2 " +
+                "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+                "where parent.bodSecurity = true " +  // Parent task has BoD enabled
+                "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
+                "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
+                "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
+                "and sub1.userTasks is not null " +  // Ensure userTasks is not null for sub1
+                "and sub2.userTasks is not null " +  // Ensure userTasks is not null for sub2
+                "and sub1.instance = sub2.instance";  // Ensure sub-tasks are in the same instance
 
             EPCompiled compiledBod = compiler.compile(bodEPL, args);
             EPDeployment deploymentBod = epRuntime.getDeploymentService().deploy(compiledBod);
             EPStatement statementBod = deploymentBod.getStatements()[0];
             statementBod.addListener((newData, oldData, stat, rt) -> {
-                if (newData != null && newData.length > 0) {
-                    String parentId = (String) newData[0].get("parentId");
-                    String subTask1Id = (String) newData[0].get("subTask1Id");
-                    String subTask2Id = (String) newData[0].get("subTask2Id");
-                    String user1 = (String) newData[0].get("user1");
-                    String user2 = (String) newData[0].get("user2");
+            if (newData != null && newData.length > 0) {
+                String parentId = (String) newData[0].get("parentId");
+                String subTask1Id = (String) newData[0].get("subTask1Id");
+                String subTask2Id = (String) newData[0].get("subTask2Id");
+                List<String> userTasks1 = (List<String>) newData[0].get("userTasks1");
+                List<String> userTasks2 = (List<String>) newData[0].get("userTasks2");
+                Integer instance1 = (Integer) newData[0].get("instance1");
+                Integer instance2 = (Integer) newData[0].get("instance2");
 
-                    // Debug log for BoD checks
-                    LOG.debug("New data received for BoD check: Parent Task ID = {}, SubTask 1 ID = {}, SubTask 2 ID = {}, User1 = {}, User2 = {}", 
-                          parentId, subTask1Id, subTask2Id, user1, user2);
+            // Debug log for BoD checks
+            LOG.debug("New data received for BoD check: Parent Task ID = {}, SubTask 1 ID = {}, SubTask 2 ID = {}, UserTasks1 = {}, UserTasks2 = {}, Instance1 = {}, Instance2 = {}", 
+              parentId, subTask1Id, subTask2Id, userTasks1, userTasks2, instance1, instance2);
 
-                    LOG.info("Checking BoD for Parent Task: {}", parentId);
-                    LOG.info("SubTask 1: {} (User: {})", subTask1Id, user1);
-                    LOG.info("SubTask 2: {} (User: {})", subTask2Id, user2);
+            LOG.info("Checking BoD for Parent Task: {}", parentId);
+            LOG.info("SubTask 1: {} (Users: {}, Instance: {})", subTask1Id, userTasks1, instance1);
+            LOG.info("SubTask 2: {} (Users: {}, Instance: {})", subTask2Id, userTasks2, instance2);
 
-                    if (user1 != null && user1.equals(user2)) {
-                        StringBuilder sb = new StringBuilder();
-                        sb.append("---------------------------------");
-                        sb.append("\n- [BOD MONITOR] Binding of Duties detected:");
-                        sb.append("\n- Parent Task ID: ").append(parentId);
-                        sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-                        sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
-                        sb.append("\n- User ID: ").append(user1);
-                        sb.append("\n---------------------------------");
+            if (userTasks1 != null && userTasks2 != null && !Collections.disjoint(userTasks1, userTasks2)) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("---------------------------------");
+                sb.append("\n- [BOD MONITOR] Binding of Duties detected:");
+                sb.append("\n- Parent Task ID: ").append(parentId);
+                sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
+                sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+                sb.append("\n- Instance: ").append(instance1);
+                sb.append("\n- Common Users: ").append(userTasks1.stream().filter(userTasks2::contains).collect(Collectors.toList()));
+                sb.append("\n---------------------------------");
 
-                        LOG.info(sb.toString());
-                    } else {
-                        LOG.info("No BoD violation: Users differ or are empty.");
-                    }
-                }
-            });
+                LOG.info(sb.toString());
+            } else {
+                LOG.info("No BoD violation: Users differ or are empty.");
+            }
+        }
+    });
 
             for (int i = 0; i < tasks.size(); i++) {
                 Task sub1 = tasks.get(i);
@@ -184,44 +190,49 @@ public class TaskEventHandler implements InitializingBean {
                 }
             });
 
-            // UoC rules
-            LOG.debug("Creating UoC Check Expression");
-            String uocEPL = "select userTasks as userTasksList, count(*) as taskCount " +
-            "from Task#time(1 min) " +
-            "where uocSecurity = true and mth >= 4";
+// UoC rules
+LOG.debug("Creating UoC Check Expression");
 
-            EPCompiled compiledUoc = compiler.compile(uocEPL, args);
-            EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
-            EPStatement statementUoc = deploymentUoc.getStatements()[0];
-            statementUoc.addListener((newData, oldData, stat, rt) -> {
-                String userId = (String) newData[0].get("userId");
-                Long taskCount = (Long) newData[0].get("taskCount");
+String uocEPL = "select parent.idBpmn as parentId, " +
+        "parent.uocSecurity as uocSecurityEnabled, " +
+        "subTask.idBpmn as subTaskId, " +
+        "subTask.userTasks as userTasksList, " +
+        "count(*) as taskCount, " +
+        "parent.mth as maxTimes, " +
+        "parent.nu as numUsers, " +
+        "parent.x as roleOrUser " +
+        "from Task#keepall as parent, Task#keepall as subTask " +  // Ventana indefinida para mantener todas las tareas
+        "where parent.uocSecurity = true " +  // uocSecurity activado en la tarea padre
+        "and subTask.idBpmn in (parent.subTasks) " +  // Subtareas del padre
+        "and ?(parent.x, subTask.userTasks) " +  // Verificar si el usuario o rol está en la lista de userTasks
+        "group by parent.idBpmn, subTask.userTasks " +
+        "having count(*) > parent.mth";  // Verificar si el número de veces excede el máximo permitido
 
-                StringBuilder sb = new StringBuilder();
-                sb.append("---------------------------------");
-                sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
-                sb.append("\n- User ID: ").append(userId);
-                sb.append("\n- Number of executions: ").append(taskCount);
-                sb.append("\n---------------------------------");
+EPCompiled compiledUoc = compiler.compile(uocEPL, args);
+EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
+EPStatement statementUoc = deploymentUoc.getStatements()[0];
 
-                LOG.info(sb.toString());
-            });
+statementUoc.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId = (String) newData[0].get("parentId");
+        String subTaskId = (String) newData[0].get("subTaskId");
+        List<String> userTasksList = (List<String>) newData[0].get("userTasksList");
+        Long taskCount = (Long) newData[0].get("taskCount");
+        Integer maxTimes = (Integer) newData[0].get("maxTimes");
 
-            // Monitor all tasks
-            LOG.debug("Creating Monitor Expression");
-            String monitorEPL = "select * from Task";
-            EPCompiled compiledMonitor = compiler.compile(monitorEPL, args);
-            EPDeployment deploymentMonitor = epRuntime.getDeploymentService().deploy(compiledMonitor);
-            EPStatement statementMonitor = deploymentMonitor.getStatements()[0];
-            statementMonitor.addListener((newData, oldData, stat, rt) -> {
-                Task task = (Task) newData[0].getUnderlying();
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    LOG.error("Thread was interrupted", e);
-                }
-            });
+        StringBuilder sb = new StringBuilder();
+        sb.append("---------------------------------");
+        sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
+        sb.append("\n- Parent Task ID: ").append(parentId);
+        sb.append("\n- SubTask ID: ").append(subTaskId);
+        sb.append("\n- Users: ").append(userTasksList);  // Mostrar la lista de usuarios
+        sb.append("\n- Number of executions: ").append(taskCount);
+        sb.append("\n- Maximum allowed: ").append(maxTimes);
+        sb.append("\n---------------------------------");
+
+        LOG.info(sb.toString());
+    }
+});
 
         } catch (Exception e) {
             LOG.error("Error compiling or deploying EPL statements", e);
