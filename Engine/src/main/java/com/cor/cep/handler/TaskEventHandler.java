@@ -65,56 +65,23 @@ public class TaskEventHandler implements InitializingBean {
         }
 
         try {
-// Obtener la lista de tareas a comparar
-List<Task> tasks = obtenerListaDeTareas();
-
-// Log para verificar si hay tareas y sus valores
-if (tasks.isEmpty()) {
-    LOG.warn("La lista de tareas está vacía.");
-} else {
-    LOG.info("Total de tareas obtenidas: {}", tasks.size());
-    tasks.forEach(task -> LOG.info("Task: {} - startTime: {}", task, task.getStartTime()));
-}
-
-// Filtrar tareas con startTime no nulo y agruparlas en un TreeMap para ordenarlas
-Map<Long, List<Task>> groupedTasks = tasks.stream()
-    .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
-    .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar
-
-if (groupedTasks.isEmpty()) {
-    LOG.warn("No se encontraron tareas con startTime no nulo.");
-} else {
-    groupedTasks.forEach((startTime, taskList) -> {
-        // Log intermedio para indicar la franja horaria
-        LOG.info("Procesando tareas en la franja horaria: [{}]", startTime);
-    
-        // Log para el tiempo actual y detalle de tareas
-        LOG.info("Tiempo actual: [{}]", startTime);
-        taskList.forEach(task -> LOG.info("Task: {}", task));
-    });
-}
-
-        
+            List<Task> tasks = obtenerListaDeTareas();
             EPCompiler compiler = EPCompilerProvider.getCompiler();
             CompilerArguments args = new CompilerArguments(configuration);
               
-
             // Crear la consulta EPL para BoD
             LOG.debug("Creating Generalized BoD Check Expression");
             // Crear la consulta EPL para BoD
-LOG.debug("Creating Generalized BoD Check Expression");
-String bodEPL = "select parent.idBpmn as parentId, " +
-    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id " +
-    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-    "where parent.bodSecurity = true " +  // Parent task has BoD enabled
-    "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
-    "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
-    "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
-    "and sub1.userTasks is not null " +  // Ensure userTasks is not null for sub1
-    "and sub2.userTasks is not null";  // Ensure userTasks is not null for sub2
-
-
- 
+            LOG.debug("Creating Generalized BoD Check Expression");
+            String bodEPL = "select parent.idBpmn as parentId, " +
+                            "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id " +
+                            "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+                            "where parent.bodSecurity = true " +  // Parent task has BoD enabled
+                            "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
+                            "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
+                            "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
+                            "and sub1.userTasks is not null " +  // Ensure userTasks is not null for sub1
+                            "and sub2.userTasks is not null";  // Ensure userTasks is not null for sub2
 
             EPCompiled compiledBod = compiler.compile(bodEPL, args);
             EPDeployment deploymentBod = epRuntime.getDeploymentService().deploy(compiledBod);
@@ -172,16 +139,16 @@ String bodEPL = "select parent.idBpmn as parentId, " +
             // SoD rules
             LOG.debug("Creating Generalized SoD Check Expression");
             String sodEPL = "select parent.idBpmn as parentId, " +
-                    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-                    "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
-                    "parent.nu as nuValue " +
-                    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-                    "where parent.sodSecurity = true " +  // Parent task has SoD enabled
-                    "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
-                    "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
-                    "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
-                    "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, parent.nu, sub1.userTasks, sub2.userTasks " +
-                    "having count(distinct sub1.userTasks) < parent.nu";
+                            "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+                            "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
+                            "parent.nu as nuValue " +
+                            "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+                            "where parent.sodSecurity = true " +  // Parent task has SoD enabled
+                            "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
+                            "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
+                            "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
+                            "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, parent.nu, sub1.userTasks, sub2.userTasks " +
+                            "having count(distinct sub1.userTasks) < parent.nu";
 
             EPCompiled compiledSod = compiler.compile(sodEPL, args);
             EPDeployment deploymentSod = epRuntime.getDeploymentService().deploy(compiledSod);
@@ -261,48 +228,38 @@ String bodEPL = "select parent.idBpmn as parentId, " +
         }
     }
 
-// Declarar un mapa para almacenar tareas por startTime
-private Map<Long, List<Task>> taskGroups = new HashMap<>();
-private Set<Long> processedStartTimes = new HashSet<>(); // Para rastrear startTimes ya procesados
+    // Declarar un mapa para almacenar tareas por startTime
+    private Map<Long, List<Task>> taskGroups = new HashMap<>();
+    private Set<Long> processedStartTimes = new HashSet<>(); // Para rastrear startTimes ya procesados
 
-public void handle(Task event) {
-    Long startTime = event.getStartTime();
+    public void handle(Task event) {
+        Long startTime = event.getStartTime();
     
-    if (startTime != null) {
-        // Agrupar las tareas por startTime
-        taskGroups.computeIfAbsent(startTime, k -> new ArrayList<>()).add(event);
+        if (startTime != null) {
+            // Agrupar las tareas por startTime
+            taskGroups.computeIfAbsent(startTime, k -> new ArrayList<>()).add(event);
+        }
+
+        // Revisar si es el momento de procesar el grupo (cuando se ha acumulado un grupo)
+        processTaskGroups();
     }
 
-    // Revisar si es el momento de procesar el grupo (cuando se ha acumulado un grupo)
-    processTaskGroups();
-}
+    private Long previousStartTime = null;
 
-private Long previousStartTime = null;
+    private void processTaskGroups() {
+        taskGroups.forEach((startTime, tasks) -> {
+            if (previousStartTime == null || !startTime.equals(previousStartTime)) {
+                LOG.info("Enviando tarea con startTime: {}", startTime);
 
-private void processTaskGroups() {
-    // Procesar cada grupo de tareas en el mapa
-    taskGroups.forEach((startTime, tasks) -> {
-        // Verificar si este startTime ya fue procesado
-        if (previousStartTime == null || !startTime.equals(previousStartTime)) {
-            // Imprimir solo una vez por cada startTime
-            LOG.info("Enviando tarea con startTime: {}", startTime);
-
-            // Actualizar el valor de previousStartTime
             previousStartTime = startTime;
         }
 
-        // Imprimir cada tarea con su instancia correspondiente
         tasks.forEach(task -> {
             LOG.info("Instance {}: {}", task.getInstance(), task);
-            // Enviar el evento a Esper
             epRuntime.getEventService().sendEventBean(task, "Task");
         });
-
-        // Marcar este startTime como procesado para evitar mensajes repetidos
         processedStartTimes.add(startTime);
     });
-
-    // Limpiar las tareas agrupadas una vez procesadas
     taskGroups.clear();
 }
 
@@ -312,28 +269,21 @@ private void processTaskGroups() {
             return;
         }
     
-        // Agrupar tareas por startTime, excluyendo las que tengan startTime nulo
         Map<Long, List<Task>> groupedTasks = tasks.stream()
             .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
             .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar por startTime
     
-        // Procesar las tareas agrupadas
         groupedTasks.forEach((startTime, taskList) -> {
-            // Imprimir solo una vez el startTime
             LOG.info("Enviando tarea con startTime: {}", startTime);
-    
-            // Imprimir cada tarea con la instancia correspondiente
+
             taskList.forEach(task -> {
                 LOG.info("Instance {}: {}", task.getInstance(), task);
-                // Enviar el evento a Esper
                 epRuntime.getEventService().sendEventBean(task, "Task");
             });
         });
     }    
 
-    // Método para obtener la lista de tareas. Ajustar según tu lógica
     private List<Task> obtenerListaDeTareas() {
-        // Implementación ficticia. Ajusta esta lógica para obtener la lista real de tareas.
         return new ArrayList<>(); 
     }
 
