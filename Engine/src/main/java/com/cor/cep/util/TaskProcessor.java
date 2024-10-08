@@ -36,18 +36,27 @@ public class TaskProcessor {
                     LOG.info("Processing file: " + file.getName());
                     List<Task> tasks = parseTaskFile(file.getAbsolutePath());
     
-                    // Agrupar tareas por startTime
+                    // Agrupar tareas por startTime o tareas con propiedades de seguridad activas
                     Map<Long, List<Task>> groupedTasks = tasks.stream()
-                            .filter(task -> task.getStartTime() != null)
-                            .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList()));
+                            .filter(task -> task.getStartTime() != null || 
+                                            task.isBodSecurity() || 
+                                            task.isSodSecurity() || 
+                                            task.isUocSecurity())
+                            .collect(Collectors.groupingBy(
+                                task -> task.getStartTime() != null ? task.getStartTime() : -1L, 
+                                TreeMap::new, Collectors.toList()));
     
                     // Procesar las tareas agrupadas
                     for (Map.Entry<Long, List<Task>> entry : groupedTasks.entrySet()) {
                         Long startTime = entry.getKey();
                         List<Task> taskList = entry.getValue();
     
-                        // Imprimir solo una vez el startTime
-                        LOG.info("Enviando tarea con startTime: {}", startTime);
+                        // Imprimir solo una vez el startTime o "Sin StartTime" si es nulo
+                        if (startTime == -1L) {
+                            LOG.info("Enviando tarea sin startTime, con security task activa:");
+                        } else {
+                            LOG.info("Enviando tarea con startTime: {}", startTime);
+                        }
     
                         // Imprimir cada tarea con la instancia correspondiente
                         taskList.forEach(task -> 
@@ -63,7 +72,7 @@ public class TaskProcessor {
         } else {
             LOG.error("No files found in the directory: " + directoryPath);
         }
-    }
+    }    
     
     private List<Task> parseTaskFile(String filePath) {
         List<Task> tasks = new ArrayList<>();
@@ -84,18 +93,15 @@ public class TaskProcessor {
     }
 
     private Task parseTaskLine(String line) {
-        // Initialize variables
         String type = null, name = null, idBpmn = null;
         List<String> subTasks = new ArrayList<>();
         List<String> userTasks = new ArrayList<>();
         boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
-        Integer nu = null, mth = null, instance = null; // Añadir la variable de instancia
+        Integer nu = null, mth = null, instance = null;
         Long startTime = null; 
         Long time = null;
     
-        // Verificar y extraer el valor de instance al inicio de la línea
         if (line.startsWith("Instance")) {
-            // Extraer el valor de la instancia
             String instancePart = line.substring(0, line.indexOf(":")).trim();
             String[] instanceParts = instancePart.split(" ");
             if (instanceParts.length == 2) {
@@ -105,20 +111,16 @@ public class TaskProcessor {
                     LOG.error("Error parsing instance number", e);
                 }
             }
-            // Actualizar la línea para extraer solo el contenido dentro de los corchetes
             line = line.substring(line.indexOf("["));
         }
     
-        // Extract the content within brackets
         String content = line.substring(line.indexOf("[") + 1, line.lastIndexOf("]"));
-    
-        // Split content by ', ' ensuring sub-tasks aren't broken
         String[] parts = content.split(", (?=[a-zA-Z_]+=)");
     
         for (String part : parts) {
             String[] keyValue = part.split("=", 2);
             if (keyValue.length != 2) {
-                continue;  // Skip parts that do not match the "key=value" pattern
+                continue;  // Saltar partes que no coinciden con el patrón "key=value"
             }
             switch (keyValue[0].trim()) {
                 case "type":
@@ -131,13 +133,13 @@ public class TaskProcessor {
                     idBpmn = keyValue[1].trim();
                     break;
                 case "sodSecurity":
-                    sodSecurity = Boolean.parseBoolean(keyValue[1].trim());
+                    sodSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase()); // Normalizar a minúsculas
                     break;
                 case "bodSecurity":
-                    bodSecurity = Boolean.parseBoolean(keyValue[1].trim());
+                    bodSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase()); // Normalizar a minúsculas
                     break;
                 case "uocSecurity":
-                    uocSecurity = Boolean.parseBoolean(keyValue[1].trim());
+                    uocSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase()); // Normalizar a minúsculas
                     break;
                 case "nu":
                     nu = Integer.parseInt(keyValue[1].trim());
@@ -146,7 +148,7 @@ public class TaskProcessor {
                     mth = Integer.parseInt(keyValue[1].trim());
                     break;
                 case "userTask":
-                    userTasks.add(keyValue[1].trim());
+                    userTasks.add(keyValue[1].trim().replace("\"", ""));
                     break;
                 case "subTask":
                     subTasks = Arrays.asList(keyValue[1].replace("\"", "").trim().split("\\s*,\\s*"));
@@ -160,7 +162,12 @@ public class TaskProcessor {
             }
         }
     
-        // Return a new Task with the correct parameters for the constructor
-        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, sodSecurity, bodSecurity, uocSecurity, startTime, time, instance);
+        // Agregar un log para verificar los valores asignados
+        LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}",
+                  idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks);
+    
+        // Devuelve la nueva instancia de la tarea
+        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, time, instance);
     }    
+    
 }

@@ -235,53 +235,67 @@ public class TaskEventHandler implements InitializingBean {
     public void handle(Task event) {
         Long startTime = event.getStartTime();
     
-        if (startTime != null) {
-            // Agrupar las tareas por startTime
-            taskGroups.computeIfAbsent(startTime, k -> new ArrayList<>()).add(event);
+        // Aceptar también tareas con propiedades de seguridad activas aunque el startTime sea nulo
+        if (startTime != null || event.isBodSecurity() || event.isSodSecurity() || event.isUocSecurity()) {
+            taskGroups.computeIfAbsent(startTime != null ? startTime : -1L, k -> new ArrayList<>()).add(event);
         }
-
+    
         // Revisar si es el momento de procesar el grupo (cuando se ha acumulado un grupo)
         processTaskGroups();
-    }
+    }    
 
     private Long previousStartTime = null;
 
     private void processTaskGroups() {
         taskGroups.forEach((startTime, tasks) -> {
             if (previousStartTime == null || !startTime.equals(previousStartTime)) {
-                LOG.info("Enviando tarea con startTime: {}", startTime);
-
-            previousStartTime = startTime;
-        }
-
-        tasks.forEach(task -> {
-            LOG.info("Instance {}: {}", task.getInstance(), task);
-            epRuntime.getEventService().sendEventBean(task, "Task");
-        });
-        processedStartTimes.add(startTime);
-    });
-    taskGroups.clear();
-}
-
-    public void handleTasks(List<Task> tasks) {
-        if (tasks == null || tasks.isEmpty()) {
-            LOG.warn("La lista de tareas está vacía o es nula.");
-            return;
-        }
+                if (startTime == -1L) {
+                    LOG.info("Enviando tarea sin startTime");
+                } else {
+                    LOG.info("Enviando tarea con startTime: {}", startTime);
+                }
+                previousStartTime = startTime;
+            }
     
-        Map<Long, List<Task>> groupedTasks = tasks.stream()
-            .filter(task -> task.getStartTime() != null) // Filtrar startTime no nulos
-            .collect(Collectors.groupingBy(Task::getStartTime, TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar por startTime
-    
-        groupedTasks.forEach((startTime, taskList) -> {
-            LOG.info("Enviando tarea con startTime: {}", startTime);
-
-            taskList.forEach(task -> {
+            // Procesar todas las tareas del grupo, incluidas las tareas padres de seguridad
+            tasks.forEach(task -> {
                 LOG.info("Instance {}: {}", task.getInstance(), task);
                 epRuntime.getEventService().sendEventBean(task, "Task");
             });
+    
+            processedStartTimes.add(startTime);
         });
-    }    
+        taskGroups.clear();
+    }
+    
+
+public void handleTasks(List<Task> tasks) {
+    if (tasks == null || tasks.isEmpty()) {
+        LOG.warn("La lista de tareas está vacía o es nula.");
+        return;
+    }
+
+    // Filtrar tareas con bodSecurity, uocSecurity, sodSecurity activos o startTime no nulo
+    Map<Long, List<Task>> groupedTasks = tasks.stream()
+        .filter(task -> task.getStartTime() != null || // Aceptar startTime no nulo
+            (task.isBodSecurity() || task.isUocSecurity() || task.isSodSecurity())) // Aceptar tareas con seguridad activa aunque startTime sea nulo
+        .collect(Collectors.groupingBy(task -> 
+            task.getStartTime() != null ? task.getStartTime() : -1L, // Usar -1L para agrupar las tareas sin startTime
+            TreeMap::new, Collectors.toList())); // Usar TreeMap para ordenar por startTime
+
+    groupedTasks.forEach((startTime, taskList) -> {
+        if (startTime == -1L) {
+            LOG.info("Enviando tarea sin startTime");
+        } else {
+            LOG.info("Enviando tarea con startTime: {}", startTime);
+        }
+
+        taskList.forEach(task -> {
+            LOG.info("Instance {}: {}", task.getInstance(), task);
+            epRuntime.getEventService().sendEventBean(task, "Task");
+        });
+    });
+}
 
     private List<Task> obtenerListaDeTareas() {
         return new ArrayList<>(); 
