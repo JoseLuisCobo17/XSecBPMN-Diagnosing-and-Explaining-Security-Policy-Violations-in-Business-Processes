@@ -71,8 +71,6 @@ public class TaskEventHandler implements InitializingBean {
               
             // Crear la consulta EPL para BoD
             LOG.debug("Creating Generalized BoD Check Expression");
-            // Crear la consulta EPL para BoD
-            LOG.debug("Creating Generalized BoD Check Expression");
             String bodEPL = "select parent.idBpmn as parentId, " +
                 "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
                 "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
@@ -213,8 +211,8 @@ String uocEPL = "select parent.idBpmn as parentId, " +
                 "from Task#keepall as parent, Task#keepall as subTask " +  // Ventana indefinida para mantener todas las tareas
                 "where parent.uocSecurity = true " +  // uocSecurity activado en la tarea padre
                 "and subTask.idBpmn in (parent.subTasks) " +  // Subtareas del padre
-                "and subTask.userTasks is not null " +  // Ensure userTasks is not null for subTask
-                "and ?(parent.x, subTask.userTasks) " +  // Verificar si el usuario o rol está en la lista de userTasks
+                "and subTask.userTasks is not null " +  // Verificar que userTasks no sea null para subTask
+                "and parent.x in subTask.userTasks " +  // Verificar si el usuario o rol está en la lista de userTasks
                 "group by parent.idBpmn, subTask.userTasks " +
                 "having count(distinct subTask.instance) > parent.mth";  // Verificar si el número de instancias distintas excede el máximo permitido
 
