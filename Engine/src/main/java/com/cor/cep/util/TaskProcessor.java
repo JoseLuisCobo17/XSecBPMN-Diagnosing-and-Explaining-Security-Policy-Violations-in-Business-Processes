@@ -101,20 +101,34 @@ public class TaskProcessor {
         Long startTime = null; 
         Long time = null;
     
+        // Comprobar si la línea contiene "Instance"
         if (line.startsWith("Instance")) {
-            String instancePart = line.substring(0, line.indexOf(":")).trim();
-            String[] instanceParts = instancePart.split(" ");
-            if (instanceParts.length == 2) {
-                try {
-                    instance = Integer.parseInt(instanceParts[1]);
-                } catch (NumberFormatException e) {
-                    LOG.error("Error parsing instance number", e);
+            int colonIndex = line.indexOf(":");
+            if (colonIndex != -1) {  // Verificar si existe el carácter ':'
+                String instancePart = line.substring(0, colonIndex).trim();
+                String[] instanceParts = instancePart.split(" ");
+                if (instanceParts.length == 2) {
+                    try {
+                        instance = Integer.parseInt(instanceParts[1]);
+                    } catch (NumberFormatException e) {
+                        LOG.error("Error parsing instance number", e);
+                    }
                 }
+                line = line.substring(colonIndex + 1).trim();
+            } else {
+                LOG.error("Instance format incorrect in line: {}", line);
+                return null;  // Saltar la línea si el formato es incorrecto
             }
-            line = line.substring(line.indexOf("["));
         }
     
-        String content = line.substring(line.indexOf("[") + 1, line.lastIndexOf("]"));
+        int openBracketIndex = line.indexOf("[");
+        int closeBracketIndex = line.lastIndexOf("]");
+        if (openBracketIndex == -1 || closeBracketIndex == -1) {
+            LOG.error("Brackets not found in line: {}", line);
+            return null;  // Saltar la línea si no hay corchetes
+        }
+    
+        String content = line.substring(openBracketIndex + 1, closeBracketIndex);
         String[] parts = content.split(", (?=[a-zA-Z_]+=)");
     
         for (String part : parts) {
@@ -133,13 +147,13 @@ public class TaskProcessor {
                     idBpmn = keyValue[1].trim();
                     break;
                 case "sodSecurity":
-                    sodSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase()); // Normalizar a minúsculas
+                    sodSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase());
                     break;
                 case "bodSecurity":
-                    bodSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase()); // Normalizar a minúsculas
+                    bodSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase());
                     break;
                 case "uocSecurity":
-                    uocSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase()); // Normalizar a minúsculas
+                    uocSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase());
                     break;
                 case "nu":
                     nu = Integer.parseInt(keyValue[1].trim());
@@ -162,11 +176,9 @@ public class TaskProcessor {
             }
         }
     
-        // Agregar un log para verificar los valores asignados
         LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}",
                   idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks);
     
-        // Devuelve la nueva instancia de la tarea
         return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, time, instance);
     }    
     

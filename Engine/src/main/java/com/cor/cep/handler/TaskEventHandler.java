@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,6 +31,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import com.espertech.esper.common.client.PropertyAccessException;
 
 @Component
 @Scope(value = "singleton")
@@ -200,21 +203,15 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
 LOG.debug("Creating UoC Check Expression");
 
 String uocEPL = "select parent.idBpmn as parentId, " +
-                "parent.uocSecurity as uocSecurityEnabled, " +
-                "subTask.idBpmn as subTaskId, " +
-                "subTask.userTasks as userTasksList, " +
-                "collect(subTask.instance) as instanceList, " +  // Recoger todas las instancias
-                "count(distinct subTask.instance) as taskCount, " +  // Contar instancias distintas
-                "parent.mth as maxTimes, " +
-                "parent.nu as numUsers, " +
-                "parent.x as roleOrUser " +
-                "from Task#keepall as parent, Task#keepall as subTask " +  // Ventana indefinida para mantener todas las tareas
-                "where parent.uocSecurity = true " +  // uocSecurity activado en la tarea padre
-                "and subTask.idBpmn in (parent.subTasks) " +  // Subtareas del padre
-                "and subTask.userTasks is not null " +  // Verificar que userTasks no sea null para subTask
-                "and parent.x in subTask.userTasks " +  // Verificar si el usuario o rol está en la lista de userTasks
-                "group by parent.idBpmn, subTask.userTasks " +
-                "having count(distinct subTask.instance) > parent.mth";  // Verificar si el número de instancias distintas excede el máximo permitido
+    "sub.idBpmn as subTaskId, sub.userTasks as userTasks, " +
+    "sub.instance as instance, count(sub.userTasks) as userTaskCount " +
+    "from Task#keepall as parent, Task#keepall as sub " +
+    "where parent.uocSecurity = true " +  
+    "and sub.idBpmn in (parent.subTasks) " +
+    "and sub.userTasks is not null " +
+    "and sub.instance = parent.instance " +
+    "group by sub.userTasks, sub.idBpmn, parent.mth " +
+    "having count(sub.userTasks) <= parent.mth";
 
 EPCompiled compiledUoc = compiler.compile(uocEPL, args);
 EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
@@ -222,22 +219,44 @@ EPStatement statementUoc = deploymentUoc.getStatements()[0];
 
 statementUoc.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
+        // Log para depurar
+        LOG.debug("Evento recibido: " + newData[0].getUnderlying());  // Esto imprimirá los datos del evento
+
         String parentId = (String) newData[0].get("parentId");
         String subTaskId = (String) newData[0].get("subTaskId");
-        List<String> userTasksList = (List<String>) newData[0].get("userTasksList");
-        List<Integer> instanceList = (List<Integer>) newData[0].get("instanceList");
-        Long taskCount = (Long) newData[0].get("taskCount");
-        Integer maxTimes = (Integer) newData[0].get("maxTimes");
+        List<String> userTasks = (List<String>) newData[0].get("userTasks");
+        Integer instance = (Integer) newData[0].get("instance");
+        Long taskCount = (Long) newData[0].get("userTaskCount");
+        
+    // Intentar obtener el valor de 'parentMth'
+Integer maxTimes = null;
+try {
+    // Intentar acceder a 'parentMth'
+    maxTimes = (Integer) newData[0].get("parentMth");
+    LOG.debug("Valor de 'parentMth' obtenido: " + maxTimes);
+} catch (PropertyAccessException e) {
+    // Error al acceder a la propiedad
+    LOG.error("Error al acceder a 'parentMth': " + e.getMessage());
+    
+    // Imprimir el contenido completo del evento para depuración
+    LOG.debug("Evento recibido: " + newData[0].getUnderlying());
+
+    // Intentar imprimir las propiedades disponibles
+    String[] propertyNames = newData[0].getEventType().getPropertyNames();
+    LOG.debug("Propiedades disponibles en el evento: " + Arrays.toString(propertyNames));
+}
+
+        String firstUserTask = userTasks != null && !userTasks.isEmpty() ? userTasks.get(0) : "Unknown";
 
         StringBuilder sb = new StringBuilder();
         sb.append("---------------------------------");
         sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
         sb.append("\n- Parent Task ID: ").append(parentId);
         sb.append("\n- SubTask ID: ").append(subTaskId);
-        sb.append("\n- Users: ").append(userTasksList);  // Mostrar la lista de usuarios
+        sb.append("\n- User: ").append(firstUserTask);
         sb.append("\n- Number of executions: ").append(taskCount);
-        sb.append("\n- Maximum allowed: ").append(maxTimes);
-        sb.append("\n- Instances: ").append(instanceList);  // Mostrar la lista de instancias
+        sb.append("\n- Maximum allowed: ").append(maxTimes != null ? maxTimes : "N/A");
+        sb.append("\n- Instance: ").append(instance);
         sb.append("\n---------------------------------");
 
         LOG.info(sb.toString());
