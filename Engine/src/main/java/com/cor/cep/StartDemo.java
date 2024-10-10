@@ -1,5 +1,7 @@
 package com.cor.cep;
 
+import java.io.File;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -45,8 +47,14 @@ public class StartDemo {
         LOG.info("Processing task files...");
         TaskProcessor taskProcessor = (TaskProcessor) factory.getBean("taskProcessor");
 
-        // Directorio que contiene los archivos .txt
-        String directoryPath = ".../Simulator/files/";
+        String directoryPath = "../Simulator/files/";
+        File directory = new File(directoryPath);
+
+        // Obtener la ruta canónica
+        String canonicalPath = directory.getCanonicalPath();
+
+        // Imprimir la ruta canónica
+        System.out.println("Ruta canónica: " + canonicalPath);
         taskProcessor.processTaskFiles(directoryPath);
     }
 }

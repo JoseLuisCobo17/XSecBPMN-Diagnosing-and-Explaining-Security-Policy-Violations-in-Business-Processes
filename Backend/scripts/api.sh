@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Cambiar al directorio del proyecto
-cd .../Backend
+cd ../Backend
 
 # Detener cualquier instancia en ejecución de Node.js
 killall -9 node
