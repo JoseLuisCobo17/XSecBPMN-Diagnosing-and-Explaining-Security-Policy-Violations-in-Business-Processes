@@ -14,6 +14,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Component
 public class TaskProcessor {
@@ -26,12 +29,41 @@ public class TaskProcessor {
     public void processTaskFiles(String directoryPath) {
         File folder = new File(directoryPath);
         File[] listOfFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
-
+    
         if (listOfFiles != null) {
             for (File file : listOfFiles) {
                 if (file.isFile()) {
                     LOG.info("Processing file: " + file.getName());
                     List<Task> tasks = parseTaskFile(file.getAbsolutePath());
+    
+                    // Agrupar tareas por startTime o tareas con propiedades de seguridad activas
+                    Map<Long, List<Task>> groupedTasks = tasks.stream()
+                            .filter(task -> task.getStartTime() != null || 
+                                            task.isBodSecurity() || 
+                                            task.isSodSecurity() || 
+                                            task.isUocSecurity())
+                            .collect(Collectors.groupingBy(
+                                task -> task.getStartTime() != null ? task.getStartTime() : -1L, 
+                                TreeMap::new, Collectors.toList()));
+    
+                    // Procesar las tareas agrupadas
+                    for (Map.Entry<Long, List<Task>> entry : groupedTasks.entrySet()) {
+                        Long startTime = entry.getKey();
+                        List<Task> taskList = entry.getValue();
+    
+                        // Imprimir solo una vez el startTime o "Sin StartTime" si es nulo
+                        if (startTime == -1L) {
+                            LOG.info("Enviando tarea sin startTime, con security task activa:");
+                        } else {
+                            LOG.info("Enviando tarea con startTime: {}", startTime);
+                        }
+    
+                        // Imprimir cada tarea con la instancia correspondiente
+                        taskList.forEach(task -> 
+                            LOG.info("Instancia {}: {}", task.getInstance(), task));
+                    }
+    
+                    // Manejar cada tarea individualmente para enviar eventos a Esper
                     for (Task task : tasks) {
                         taskEventHandler.handle(task);
                     }
@@ -40,14 +72,14 @@ public class TaskProcessor {
         } else {
             LOG.error("No files found in the directory: " + directoryPath);
         }
-    }
-
+    }    
+    
     private List<Task> parseTaskFile(String filePath) {
         List<Task> tasks = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.startsWith("Element:")) {
+                if (line.startsWith("Element:") || line.startsWith("Instance")) {
                     Task task = parseTaskLine(line);
                     if (task != null) {
                         tasks.add(task);
@@ -60,74 +92,94 @@ public class TaskProcessor {
         return tasks;
     }
 
-   private Task parseTaskLine(String line) {
-    // Extract the content within brackets
-    String content = line.substring(line.indexOf("[") + 1, line.lastIndexOf("]"));
-
-    // Initialize variables
-    String type = null, name = null, idBpmn = null, user = null, log = null;
-    List<String> subTasks = new ArrayList<>();
-    boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
-    long timestamp = 0;
-    int nu = 0, mth = 0, p = 0;
-
-    // Split content by ', ' ensuring sub-tasks aren't broken
-    String[] parts = content.split(", (?=[a-zA-Z_]+=)");
-
-    for (String part : parts) {
-        String[] keyValue = part.split("=", 2);
-        if (keyValue.length != 2) {
-            continue;  // Skip parts that do not match the "key=value" pattern
+    private Task parseTaskLine(String line) {
+        String type = null, name = null, idBpmn = null;
+        List<String> subTasks = new ArrayList<>();
+        List<String> userTasks = new ArrayList<>();
+        boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
+        Integer nu = null, mth = null, instance = null;
+        Long startTime = null; 
+        Long time = null;
+    
+        // Comprobar si la línea contiene "Instance"
+        if (line.startsWith("Instance")) {
+            int colonIndex = line.indexOf(":");
+            if (colonIndex != -1) {  // Verificar si existe el carácter ':'
+                String instancePart = line.substring(0, colonIndex).trim();
+                String[] instanceParts = instancePart.split(" ");
+                if (instanceParts.length == 2) {
+                    try {
+                        instance = Integer.parseInt(instanceParts[1]);
+                    } catch (NumberFormatException e) {
+                        LOG.error("Error parsing instance number", e);
+                    }
+                }
+                line = line.substring(colonIndex + 1).trim();
+            } else {
+                LOG.error("Instance format incorrect in line: {}", line);
+                return null;  // Saltar la línea si el formato es incorrecto
+            }
         }
-        switch (keyValue[0].trim()) {
-            case "type":
-                type = keyValue[1].trim();
-                break;
-            case "name":
-                name = keyValue[1].trim();
-                break;
-            case "id_bpmn":
-                idBpmn = keyValue[1].trim();  // Ensure this correctly assigns to idBpmn
-                break;
-            case "sodSecurity":
-                sodSecurity = Boolean.parseBoolean(keyValue[1].trim());
-                break;
-            case "bodSecurity":
-                bodSecurity = Boolean.parseBoolean(keyValue[1].trim());
-                break;
-            case "uocSecurity":
-                uocSecurity = Boolean.parseBoolean(keyValue[1].trim());
-                break;
-            case "timestamp":
-                timestamp = Long.parseLong(keyValue[1].trim());
-                break;
-            case "nu":
-                nu = Integer.parseInt(keyValue[1].trim());
-                break;
-            case "mth":
-                mth = Integer.parseInt(keyValue[1].trim());
-                break;
-            case "p":
-                p = Integer.parseInt(keyValue[1].trim());
-                break;
-            case "user":
-            case "userTask":  // Include both "user" and "userTask" cases
-                user = keyValue[1].trim();
-                break;
-            case "log":
-                log = keyValue[1].trim();
-                break;
-            case "subTask":
-                subTasks = Arrays.asList(keyValue[1].trim().split("\\s*,\\s*"));
-                break;
+    
+        int openBracketIndex = line.indexOf("[");
+        int closeBracketIndex = line.lastIndexOf("]");
+        if (openBracketIndex == -1 || closeBracketIndex == -1) {
+            LOG.error("Brackets not found in line: {}", line);
+            return null;  // Saltar la línea si no hay corchetes
         }
-    }
-
-    // Log all fields to verify
-    LOG.info("Parsed Task - idBpmn: {}, user: {}, subTasks: {}, sodSecurity: {}", idBpmn, user, subTasks, sodSecurity);
-
-    return new Task(type, name, idBpmn, sodSecurity, bodSecurity, uocSecurity, timestamp, nu, mth, p, user, log, subTasks);
-}
-
-
+    
+        String content = line.substring(openBracketIndex + 1, closeBracketIndex);
+        String[] parts = content.split(", (?=[a-zA-Z_]+=)");
+    
+        for (String part : parts) {
+            String[] keyValue = part.split("=", 2);
+            if (keyValue.length != 2) {
+                continue;  // Saltar partes que no coinciden con el patrón "key=value"
+            }
+            switch (keyValue[0].trim()) {
+                case "type":
+                    type = keyValue[1].trim();
+                    break;
+                case "name":
+                    name = keyValue[1].trim();
+                    break;
+                case "id_bpmn":
+                    idBpmn = keyValue[1].trim();
+                    break;
+                case "sodSecurity":
+                    sodSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase());
+                    break;
+                case "bodSecurity":
+                    bodSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase());
+                    break;
+                case "uocSecurity":
+                    uocSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase());
+                    break;
+                case "nu":
+                    nu = Integer.parseInt(keyValue[1].trim());
+                    break;
+                case "mth":
+                    mth = Integer.parseInt(keyValue[1].trim());
+                    break;
+                case "userTask":
+                    userTasks.add(keyValue[1].trim().replace("\"", ""));
+                    break;
+                case "subTask":
+                    subTasks = Arrays.asList(keyValue[1].replace("\"", "").trim().split("\\s*,\\s*"));
+                    break;
+                case "startTime":
+                    startTime = Long.parseLong(keyValue[1].trim());
+                    break;
+                case "time":
+                    time = Long.parseLong(keyValue[1].trim());
+                    break;
+            }
+        }
+    
+        LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}",
+                  idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks);
+    
+        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, time, instance);
+    }    
+    
 }
