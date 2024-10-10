@@ -155,7 +155,7 @@ exports.esperRules = function (req, res) {
 };
 
 // Ruta donde se guardará el archivo
-const FILES_DIRECTORY = '/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/src/main/java/com/cor/cep/files/';
+const FILES_DIRECTORY = '.../Simulator/files/';
 
 exports.saveEsperFile = (req, res) => {
     const { content, filename } = req.body;
@@ -183,7 +183,7 @@ const { spawn } = require('child_process');
 
 exports.runMavenCommand = (req, res) => {
   const { filename } = req.body;
-  const filePath = path.join('/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/src/main/java/com/cor/cep/files/', filename);
+  const filePath = path.join('.../Simulator/files/', filename);
 
   console.log(`Archivo guardado en: ${filePath}`);
 
@@ -192,7 +192,7 @@ exports.runMavenCommand = (req, res) => {
     `-Dexec.mainClass=com.cor.cep.StartDemo`,
     `-Dexec.args=file`
   ], {
-    cwd: '/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/',
+    cwd: '.../Engine/',
   });
 
   // Captura la salida estándar

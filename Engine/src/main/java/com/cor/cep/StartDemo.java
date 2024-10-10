@@ -46,7 +46,7 @@ public class StartDemo {
         TaskProcessor taskProcessor = (TaskProcessor) factory.getBean("taskProcessor");
 
         // Directorio que contiene los archivos .txt
-        String directoryPath = "/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/src/main/java/com/cor/cep/files";
+        String directoryPath = ".../Simulator/files/";
         taskProcessor.processTaskFiles(directoryPath);
     }
 }
