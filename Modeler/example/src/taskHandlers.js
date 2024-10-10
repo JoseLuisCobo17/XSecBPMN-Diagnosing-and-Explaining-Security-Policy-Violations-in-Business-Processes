@@ -28,8 +28,8 @@ function getSecurityTasks(bpmnModeler) {
             const targetType = subTaskElement.businessObject.$type;
             console.log('Tipo de tarea objetivo (targetType):', targetType); // Depuración para ver el tipo
 
-            let userTask = 'N/A';
-            let numberOfExecutions = 'N/A';
+            let userTask = '""';
+            let numberOfExecutions = '1';
             let averageTimeEstimate = 'N/A';
             let instance = 'N/A';
 
@@ -192,7 +192,7 @@ function getAllRelevantTasks(bpmnModeler) {
       Log: businessObject.Log || '',
       SubTasks: subTasks,
       subElement: subElement, // Nueva propiedad subElement
-      superElement: superElement, 
+      superElement: superElement,
       Instances: isProcess ? (businessObject.instance || 0) : 0,
       Frequency: isProcess ? (businessObject.frequency || 0) : 0,
       PercentageOfBranches: percentageOfBranches,
@@ -241,7 +241,7 @@ function exportToEsper(bpmnModeler) {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
-          content += `userTask="${element.UserTask || 'N/A'}", `;
+          content += `userTask="${element.UserTask || '""'}", `;
           content += `numberOfExecutions=${element.NumberOfExecutions}, `;
           content += `minimumTime=${element.MinimumTime}, `;
           content += `maximumTime=${element.MaximumTime}, `;

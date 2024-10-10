@@ -108,21 +108,21 @@ public class TaskEventHandler implements InitializingBean {
             LOG.info("SubTask 1: {} (Users: {}, Instance: {})", subTask1Id, userTasks1, instance1);
             LOG.info("SubTask 2: {} (Users: {}, Instance: {})", subTask2Id, userTasks2, instance2);
 
-            if (userTasks1 != null && userTasks2 != null && !Collections.disjoint(userTasks1, userTasks2)) {
+            if (userTasks1 != null && userTasks2 != null && Collections.disjoint(userTasks1, userTasks2)) {
+                // Si no hay intersección, es una violación de BoD
                 StringBuilder sb = new StringBuilder();
                 sb.append("---------------------------------");
-                sb.append("\n- [BOD MONITOR] Binding of Duties detected:");
+                sb.append("\n- [BOD MONITOR] Binding of Duties violation detected:");
                 sb.append("\n- Parent Task ID: ").append(parentId);
                 sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
                 sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
                 sb.append("\n- Instance: ").append(instance1);
-                sb.append("\n- Common Users: ").append(userTasks1.stream().filter(userTasks2::contains).collect(Collectors.toList()));
                 sb.append("\n---------------------------------");
-
+            
                 LOG.info(sb.toString());
             } else {
-                LOG.info("No BoD violation: Users differ or are empty.");
-            }
+                LOG.info("No BoD violation: Users intersect.");
+            }            
         }
     });
 
@@ -182,20 +182,21 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
         LOG.info("SubTask 1: {} (Users: {}, Instance: {})", subTask1Id, userTasks1, instance1);
         LOG.info("SubTask 2: {} (Users: {}, Instance: {})", subTask2Id, userTasks2, instance2);
 
-        if (userTasks1 != null && userTasks2 != null && Collections.disjoint(userTasks1, userTasks2)) {
+        if (userTasks1 != null && userTasks2 != null && !Collections.disjoint(userTasks1, userTasks2)) {
+            // Si hay intersección, es una violación de SoD
             StringBuilder sb = new StringBuilder();
             sb.append("---------------------------------");
-            sb.append("\n- [SOD MONITOR] Segregation of Duties enforced:");
+            sb.append("\n- [SOD MONITOR] Segregation of Duties violation detected:");
             sb.append("\n- Parent Task ID: ").append(parentId);
             sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
             sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
             sb.append("\n- Instance: ").append(instance1);
             sb.append("\n---------------------------------");
-
+        
             LOG.info(sb.toString());
         } else {
-            LOG.info("No SoD violation: Users overlap or are empty.");
-        }
+            LOG.info("No SoD violation: Users are disjoint.");
+        }        
     }
 });
 
