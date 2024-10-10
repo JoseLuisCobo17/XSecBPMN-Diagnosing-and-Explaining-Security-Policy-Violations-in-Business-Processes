@@ -204,7 +204,8 @@ LOG.debug("Creating UoC Check Expression");
 
 String uocEPL = "select parent.idBpmn as parentId, " +
     "sub.idBpmn as subTaskId, sub.userTasks as userTasks, " +
-    "sub.instance as instance, count(sub.userTasks) as userTaskCount " +
+    "sub.instance as instance, count(sub.userTasks) as userTaskCount, " +
+    "parent.mth as parentMth " +  // Asegúrate de seleccionar 'parent.mth' explícitamente
     "from Task#keepall as parent, Task#keepall as sub " +
     "where parent.uocSecurity = true " +  
     "and sub.idBpmn in (parent.subTasks) " +
@@ -231,6 +232,9 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
     // Intentar obtener el valor de 'parentMth'
 Integer maxTimes = null;
 try {
+    // Intentar imprimir las propiedades disponibles para el evento 'parent'
+String[] parentPropertyNames = newData[0].getEventType().getPropertyNames();
+LOG.debug("Propiedades disponibles en el evento 'parent': " + Arrays.toString(parentPropertyNames));
     // Intentar acceder a 'parentMth'
     maxTimes = (Integer) newData[0].get("parentMth");
     LOG.debug("Valor de 'parentMth' obtenido: " + maxTimes);
