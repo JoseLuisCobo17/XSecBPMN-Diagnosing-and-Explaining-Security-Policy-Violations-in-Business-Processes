@@ -188,7 +188,7 @@ function getAllRelevantTasks(bpmnModeler) {
       Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
       P: isServiceTask ? (businessObject.P || 0) : 0,
       User: isServiceTask ? (businessObject.User || '') : '',
-      UserTask: (isTask || isUserTask) ? (userTasks.join(', ') || '') : '', // Ajuste aquí
+      UserTask: (isTask || isUserTask) ? (userTasks.join(', ') || '') : '',
       Log: businessObject.Log || '',
       SubTasks: subTasks,
       subElement: subElement, // Nueva propiedad subElement
@@ -199,7 +199,8 @@ function getAllRelevantTasks(bpmnModeler) {
       NumberOfExecutions: numberOfExecutions,
       MinimumTime: minimumTime,
       MaximumTime: maximumTime,
-      UserInstance: instance
+      UserInstance: instance,
+      userPool: isProcess ? (businessObject.userPool || 'No User Pool') : '' // Nueva propiedad userPool
     };
   });
 }
@@ -254,8 +255,9 @@ function exportToEsper(bpmnModeler) {
           content += `name=${element.name || 'Unnamed'}, `;
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
           content += `instances=${element.Instances}, `;
-          content += `frequency=${element.Frequency}]\n`;
-        } 
+          content += `frequency=${element.Frequency}, `;
+          content += `userPool="${element.userPool || ''}"]\n`;
+        }
         // Para otros tipos de elementos
         else {
           content += `Element: [type=${element.type}, `;
