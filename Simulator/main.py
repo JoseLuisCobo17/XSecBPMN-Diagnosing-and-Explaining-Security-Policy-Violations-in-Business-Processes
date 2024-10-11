@@ -2,7 +2,7 @@ import subprocess
 import os
 from generateScript import generateScript
 print(os.getcwd())
-rulesPath = 'Simulator/files/esperTasks.txt'
+rulesPath = 'files/esperTasks.txt'
 
 with open(rulesPath, 'r') as f:
     file_content = f.read()

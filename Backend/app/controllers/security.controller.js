@@ -154,10 +154,13 @@ exports.esperRules = function (req, res) {
     });
 };
 
-// Ruta donde se guardará el archivo
-const FILES_DIRECTORY = '../Simulator/files/';
+const { exec } = require('child_process');
+
+const FILES_DIRECTORY = path.resolve(__dirname, '../../../Simulator/files/');
+const SIMULATOR_DIRECTORY = path.resolve(__dirname, '../../../Simulator');
 
 exports.saveEsperFile = (req, res) => {
+    console.log(SIMULATOR_DIRECTORY)
     const { content, filename } = req.body;
 
     if (!content || !filename) {
@@ -175,68 +178,23 @@ exports.saveEsperFile = (req, res) => {
         }
 
         console.log('Archivo guardado exitosamente en:', filePath);
-        res.status(200).send({ message: 'Archivo guardado exitosamente' });
+
+        // Ejecutar el simulador con el directorio de trabajo correcto
+        exec(`python main.py`, { cwd: SIMULATOR_DIRECTORY }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error al ejecutar el simulador: ${error.message}`);
+                return res.status(500).send({ message: 'Error al ejecutar el simulador' });
+            }
+            if (stderr) {
+                console.error(`Error en el simulador: ${stderr}`);
+                // Decide whether to handle stderr as an error or informational message
+            }
+            console.log(`Resultado del simulador: ${stdout}`);
+            // Enviar la respuesta después de ejecutar el simulador
+            res.status(200).send({ message: 'Archivo guardado y simulador ejecutado exitosamente' });
+        });
     });
 };
-
-const { spawn } = require('child_process');
-
-exports.runMavenCommand = (req, res) => {
-    const { filename } = req.body;
-    const filePath = path.join('../Simulator/files/', filename);
-  
-    console.log(`Archivo guardado en: ${filePath}`);
-  
-    // Use 'mvn.cmd' instead of 'mvn' on Windows
-    const mavenExecutable = 'mvn.cmd';
-  
-    const mavenProcess = spawn(mavenExecutable, [
-      'exec:java',
-      '-Dexec.mainClass=com.cor.cep.StartDemo',
-      '-Dexec.args=file'
-    ], {
-      cwd: '../../Engine/',
-    });
-
-  // Handle standard output
-  mavenProcess.stdout.on('data', (data) => {
-    console.log(`${data.toString()}`);
-  });
-
-  // Handle errors from stderr
-  mavenProcess.stderr.on('data', (data) => {
-    const errorString = data.toString();
-    if (errorString.includes('ERROR') || errorString.includes('Exception')) {
-      console.error(`Error real: ${errorString}`);
-    } else {
-      console.log(`${errorString}`);
-    }
-  });
-
-  // Handle process close event
-  mavenProcess.on('close', (code) => {
-    if (isResponseSent) return; // Prevent multiple responses
-    isResponseSent = true;
-
-    if (code !== 0) {
-      console.error(`Proceso Maven finalizó con código ${code}`);
-      return res.status(500).send({ message: `Proceso Maven finalizó con código ${code}` });
-    }
-
-    console.log('Comando Maven ejecutado correctamente');
-    res.status(200).send({ message: 'Comando Maven ejecutado correctamente' });
-  });
-
-  // Handle process error event
-  mavenProcess.on('error', (err) => {
-    if (isResponseSent) return; // Prevent multiple responses
-    isResponseSent = true;
-
-    console.error('Error al ejecutar el comando Maven:', err);
-    res.status(500).send({ message: 'Error al ejecutar el comando Maven', error: err.message });
-  });
-};
-
 
 exports.findAll = async function (req, res) {
     try {
