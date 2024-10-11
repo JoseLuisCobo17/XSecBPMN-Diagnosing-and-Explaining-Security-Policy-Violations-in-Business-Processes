@@ -182,29 +182,30 @@ exports.saveEsperFile = (req, res) => {
 const { spawn } = require('child_process');
 
 exports.runMavenCommand = (req, res) => {
-  const { filename } = req.body;
-  const filePath = path.join('../Simulator/files/', filename);
+    const { filename } = req.body;
+    const filePath = path.join('../Simulator/files/', filename);
+  
+    console.log(`Archivo guardado en: ${filePath}`);
+  
+    // Use 'mvn.cmd' instead of 'mvn' on Windows
+    const mavenExecutable = 'mvn.cmd';
+  
+    const mavenProcess = spawn(mavenExecutable, [
+      'exec:java',
+      '-Dexec.mainClass=com.cor.cep.StartDemo',
+      '-Dexec.args=file'
+    ], {
+      cwd: '../../Engine/',
+    });
 
-  console.log(`Archivo guardado en: ${filePath}`);
-
-  const mavenProcess = spawn('mvn', [
-    'exec:java',
-    `-Dexec.mainClass=com.cor.cep.StartDemo`,
-    `-Dexec.args=file`
-  ], {
-    cwd: '.../Engine/',
-  });
-
-  // Captura la salida estándar
+  // Handle standard output
   mavenProcess.stdout.on('data', (data) => {
     console.log(`${data.toString()}`);
   });
 
-  // Captura los errores reales (si ocurren)
+  // Handle errors from stderr
   mavenProcess.stderr.on('data', (data) => {
     const errorString = data.toString();
-    
-    // Filtra la salida para evitar tratar todo como error si es solo log
     if (errorString.includes('ERROR') || errorString.includes('Exception')) {
       console.error(`Error real: ${errorString}`);
     } else {
@@ -212,22 +213,30 @@ exports.runMavenCommand = (req, res) => {
     }
   });
 
-  // Maneja la finalización del proceso
+  // Handle process close event
   mavenProcess.on('close', (code) => {
+    if (isResponseSent) return; // Prevent multiple responses
+    isResponseSent = true;
+
     if (code !== 0) {
       console.error(`Proceso Maven finalizó con código ${code}`);
       return res.status(500).send({ message: `Proceso Maven finalizó con código ${code}` });
     }
+
     console.log('Comando Maven ejecutado correctamente');
     res.status(200).send({ message: 'Comando Maven ejecutado correctamente' });
   });
 
-  // Manejar posibles errores durante la ejecución
+  // Handle process error event
   mavenProcess.on('error', (err) => {
+    if (isResponseSent) return; // Prevent multiple responses
+    isResponseSent = true;
+
     console.error('Error al ejecutar el comando Maven:', err);
     res.status(500).send({ message: 'Error al ejecutar el comando Maven', error: err.message });
   });
 };
+
 
 exports.findAll = async function (req, res) {
     try {

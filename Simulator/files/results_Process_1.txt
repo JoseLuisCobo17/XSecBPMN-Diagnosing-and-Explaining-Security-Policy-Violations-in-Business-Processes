@@ -1,0 +1,37 @@
+Element: [type=bpmn:Process, name=Unnamed, id_bpmn=Process_1, instances=5, frequency=20, userPool="jl, joaq"]
+Instance 1: [type=bpmn:StartEvent, name=Unnamed, id_bpmn=Event_0pnm820, subTask="Gateway_084289y", startTime=0]
+Instance 1: [type=bpmn:ExclusiveGateway, name=Unnamed, id_bpmn=Gateway_084289y, subTask="Activity_1w01r6n", startTime=0]
+Instance 1: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_1w01r6n, userTask=joaq, numberOfExecutions=1, time=13, subTask="Activity_0qlelp4", startTime=0]
+Instance 1: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_0qlelp4, userTask=joaq, numberOfExecutions=1, time=34, subTask="Event_1hkg0c9", startTime=13]
+Instance 1: [type=bpmn:ServiceTask, name=Unnamed, id_bpmn=Activity_1p7r79v, sodSecurity=False, bodSecurity=True, uocSecurity=False, nu=1, mth=3, subTask="Activity_1w01r6n, Activity_0qlelp4"]
+Instance 2: [type=bpmn:StartEvent, name=Unnamed, id_bpmn=Event_0pnm820, subTask="Gateway_084289y", startTime=20]
+Instance 2: [type=bpmn:ExclusiveGateway, name=Unnamed, id_bpmn=Gateway_084289y, subTask="Activity_1w01r6n", startTime=20]
+Instance 2: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_1w01r6n, userTask=jl, numberOfExecutions=1, time=26, subTask="Activity_0qlelp4", startTime=20]
+Instance 3: [type=bpmn:StartEvent, name=Unnamed, id_bpmn=Event_0pnm820, subTask="Gateway_084289y", startTime=40]
+Instance 3: [type=bpmn:ExclusiveGateway, name=Unnamed, id_bpmn=Gateway_084289y, subTask="Activity_1w01r6n", startTime=40]
+Instance 3: StandBy on task Activity_1w01r6n, start at 40, stops at 46, duration of 6
+Instance 3: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_1w01r6n, userTask=jl, numberOfExecutions=1, time=27, subTask="Activity_0qlelp4", startTime=46]
+Instance 1: [type=bpmn:EndEvent, name=Unnamed, id_bpmn=Event_1hkg0c9, subTask="", startTime=47]
+Instance 2: StandBy on task Activity_0qlelp4, start at 46, stops at 47, duration of 1
+Instance 2: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_0qlelp4, userTask=joaq, numberOfExecutions=1, time=35, subTask="Event_1hkg0c9", startTime=47]
+Instance 2: [type=bpmn:ServiceTask, name=Unnamed, id_bpmn=Activity_1p7r79v, sodSecurity=False, bodSecurity=True, uocSecurity=False, nu=1, mth=3, subTask="Activity_1w01r6n, Activity_0qlelp4"]
+Instance 4: [type=bpmn:StartEvent, name=Unnamed, id_bpmn=Event_0pnm820, subTask="Gateway_084289y", startTime=60]
+Instance 4: [type=bpmn:ExclusiveGateway, name=Unnamed, id_bpmn=Gateway_084289y, subTask="Activity_1w01r6n", startTime=60]
+Instance 4: StandBy on task Activity_1w01r6n, start at 60, stops at 73, duration of 13
+Instance 4: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_1w01r6n, userTask=jl, numberOfExecutions=1, time=10, subTask="Activity_0qlelp4", startTime=73]
+Instance 5: [type=bpmn:StartEvent, name=Unnamed, id_bpmn=Event_0pnm820, subTask="Gateway_084289y", startTime=80]
+Instance 5: [type=bpmn:ExclusiveGateway, name=Unnamed, id_bpmn=Gateway_084289y, subTask="Activity_1w01r6n", startTime=80]
+Instance 2: [type=bpmn:EndEvent, name=Unnamed, id_bpmn=Event_1hkg0c9, subTask="", startTime=82]
+Instance 3: StandBy on task Activity_0qlelp4, start at 73, stops at 82, duration of 9
+Instance 3: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_0qlelp4, userTask=joaq, numberOfExecutions=1, time=22, subTask="Event_1hkg0c9", startTime=82]
+Instance 3: [type=bpmn:ServiceTask, name=Unnamed, id_bpmn=Activity_1p7r79v, sodSecurity=False, bodSecurity=True, uocSecurity=False, nu=1, mth=3, subTask="Activity_1w01r6n, Activity_0qlelp4"]
+Instance 5: StandBy on task Activity_1w01r6n, start at 80, stops at 83, duration of 3
+Instance 5: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_1w01r6n, userTask=jl, numberOfExecutions=1, time=28, subTask="Activity_0qlelp4", startTime=83]
+Instance 3: [type=bpmn:EndEvent, name=Unnamed, id_bpmn=Event_1hkg0c9, subTask="", startTime=104]
+Instance 4: StandBy on task Activity_0qlelp4, start at 83, stops at 104, duration of 21
+Instance 4: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_0qlelp4, userTask=joaq, numberOfExecutions=1, time=35, subTask="Event_1hkg0c9", startTime=104]
+Instance 4: [type=bpmn:ServiceTask, name=Unnamed, id_bpmn=Activity_1p7r79v, sodSecurity=False, bodSecurity=True, uocSecurity=False, nu=1, mth=3, subTask="Activity_1w01r6n, Activity_0qlelp4"]
+Instance 5: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_0qlelp4, userTask=jl, numberOfExecutions=1, time=32, subTask="Event_1hkg0c9", startTime=111]
+Instance 5: [type=bpmn:ServiceTask, name=Unnamed, id_bpmn=Activity_1p7r79v, sodSecurity=False, bodSecurity=True, uocSecurity=False, nu=1, mth=3, subTask="Activity_1w01r6n, Activity_0qlelp4"]
+Instance 4: [type=bpmn:EndEvent, name=Unnamed, id_bpmn=Event_1hkg0c9, subTask="", startTime=139]
+Instance 5: [type=bpmn:EndEvent, name=Unnamed, id_bpmn=Event_1hkg0c9, subTask="", startTime=143]

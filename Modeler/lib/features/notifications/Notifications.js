@@ -9,7 +9,7 @@ import {
 
 import {
   InfoIcon
-} from '../../icons';
+} from '../../../images/icons';
 
 
 const NOTIFICATION_TIME_TO_LIVE = 2000; // ms

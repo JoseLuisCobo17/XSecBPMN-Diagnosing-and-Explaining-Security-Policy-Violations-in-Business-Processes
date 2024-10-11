@@ -12,7 +12,7 @@ import {
 
 import {
   ExclamationTriangleIcon
-} from '../../icons';
+} from '../../../images/icons';
 
 
 const UNSUPPORTED_ELEMENTS = [

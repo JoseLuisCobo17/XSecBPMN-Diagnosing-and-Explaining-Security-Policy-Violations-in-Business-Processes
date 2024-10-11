@@ -17,6 +17,7 @@ import ToggleOnSVG from './toggle-on.svg';
 
 function createIcon(svg) {
   return function Icon(className = '') {
+    console.log(svg)
     return `<span class="bts-icon ${ className }">${svg}</span>`;
   };
 }

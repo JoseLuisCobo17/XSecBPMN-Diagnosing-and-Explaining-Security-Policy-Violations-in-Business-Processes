@@ -4,7 +4,7 @@ import {
 
 import {
   ForkIcon
-} from '../../../icons';
+} from '../../../../images/icons';
 
 
 export default function ExclusiveGatewayHandler(exclusiveGatewaySettings) {

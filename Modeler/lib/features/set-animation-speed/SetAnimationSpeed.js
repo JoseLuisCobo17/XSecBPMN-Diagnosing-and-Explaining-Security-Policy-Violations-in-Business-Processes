@@ -19,7 +19,7 @@ const SPEEDS = [
 import {
   TachometerIcon,
   AngleRightIcon
-} from '../../icons';
+} from '../../../images/icons';
 
 
 export default function SetAnimationSpeed(canvas, animation, eventBus) {
