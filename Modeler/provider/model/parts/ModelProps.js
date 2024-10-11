@@ -16,6 +16,12 @@ export default function(element) {
       element,
       component: frequencyFunction,
       isEdited: isNumberEntryEdited
+    },
+    {
+      id: 'userPool',
+      element,
+      component: userPoolFunction,
+      isEdited: isListOfStringEntryEdited
     }
   ];
 }
@@ -122,6 +128,44 @@ function frequencyFunction(props) {
     />`;
 }
 
+function userPoolFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return '';
+    }
+    const value = element.businessObject.userPool;
+    console.log('Current userPool value (getValue):', value);
+    return value !== undefined ? value : '';
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    // Asegúrate de que la propiedad userPool está presente en el businessObject
+    modeling.updateProperties(element, {
+      userPool: value
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Name of different users')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter all users name.')} 
+  />`;
+}
+
 function isNumberEntryEdited(element) {
   console.log("element:", element.businessObject);
 
@@ -132,4 +176,20 @@ function isNumberEntryEdited(element) {
   const nuValue = element.businessObject.numberOfExecutions;
 
   return nuValue;
+}
+
+function isListOfStringEntryEdited(element) {
+  if (!element || !element.businessObject) {
+    return false;
+  }
+
+  const userPoolValues = element.businessObject.userPool;
+
+  // Verificamos que userPool es un array
+  if (!Array.isArray(userPoolValues)) {
+    return false;
+  }
+
+  // Retornamos true si al menos un elemento en la lista no es un string vacío
+  return userPoolValues.some(value => typeof value === 'string' && value !== '');
 }
