@@ -1,4 +1,4 @@
-from models import parse_bpmn_elements
+from models.parser import parse_bpmn_elements
 
 def getPercentOfBranches(elements, gateway):
     possibleElements = []
@@ -38,7 +38,11 @@ def {element.id_bpmn}(env, name):
         userTask = random.choice(available_users)
         with user_resources[userTask].request() as req:
             yield req
-            time = sum(random.randint({element.minimumTime}, {element.maximumTime}) for _ in range({element.numberOfExecutions}))
+            min_time = {element.minimumTime}
+            max_time = {element.maximumTime}
+            mu = (min_time+max_time)/2
+            sigma = (max_time-min_time)/6
+            time = sum(int(max(min_time, min(random.gauss(mu,sigma), max_time))) for _ in range({element.numberOfExecutions}))
             with open('files/results_{next(iter(elements))}.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
@@ -59,7 +63,11 @@ def {element.id_bpmn}(env, name):
                 with open('files/results_{next(iter(elements))}.txt', 'a') as f:
                     f.write(f'''
 {{name}}: StandBy on task {{TaskName}}, start at {{time_standby_start}}, stops at {{standby_end_time}}, duration of {{standby_duration}}''')
-                time = sum(random.randint({element.minimumTime}, {element.maximumTime}) for _ in range({element.numberOfExecutions}))
+                min_time = {element.minimumTime}
+                max_time = {element.maximumTime}
+                mu = (min_time+max_time)/2
+                sigma = (max_time-min_time)/6
+                time = sum(int(max(min_time, min(random.gauss(mu,sigma), max_time))) for _ in range({element.numberOfExecutions}))
                 with open('files/results_{next(iter(elements))}.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
@@ -82,7 +90,11 @@ def {element.id_bpmn}(env, name):
         userTask = random.choice(available_users)
         with user_resources[userTask].request() as req:
             yield req
-            time = sum(random.randint({element.minimumTime}, {element.maximumTime}) for _ in range({element.numberOfExecutions}))
+            min_time = {element.minimumTime}
+            max_time = {element.maximumTime}
+            mu = (min_time+max_time)/2
+            sigma = (max_time-min_time)/6
+            time = sum(int(max(min_time, min(random.gauss(mu,sigma), max_time))) for _ in range({element.numberOfExecutions}))
             with open('files/results_{next(iter(elements))}.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
@@ -103,7 +115,11 @@ def {element.id_bpmn}(env, name):
                 with open('files/results_{next(iter(elements))}.txt', 'a') as f:
                     f.write(f'''
 {{name}}: StandBy on task {{TaskName}}, start at {{time_standby_start}}, stops at {{standby_end_time}}, duration of {{standby_duration}}''')
-                time = sum(random.randint({element.minimumTime}, {element.maximumTime}) for _ in range({element.numberOfExecutions}))
+                min_time = {element.minimumTime}
+                max_time = {element.maximumTime}
+                mu = (min_time+max_time)/2
+                sigma = (max_time-min_time)/6
+                time = sum(int(max(min_time, min(random.gauss(mu,sigma), max_time))) for _ in range({element.numberOfExecutions}))
                 with open('files/results_{next(iter(elements))}.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
@@ -115,7 +131,56 @@ def {element.id_bpmn}(env, name):
     return generateFunction(elements, element.subTask, script + functionStr)
 
 def userTask(elements, element, script):
-    return manualTask(elements, element, script)
+    functionStr = f"""
+def {element.id_bpmn}(env, name):
+    TaskName = '{element.id_bpmn}'
+    possibleUsers = {element.userTask}
+    if possibleUsers is None:
+        possibleUsers = userPool
+    available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+    if available_users:
+        userTask = random.choice(available_users)
+        with user_resources[userTask].request() as req:
+            yield req
+            min_time = {element.minimumTime}
+            max_time = {element.maximumTime}
+            mu = (min_time+max_time)/2
+            sigma = (max_time-min_time)/6
+            time = sum(int(max(min_time, min(random.gauss(mu,sigma), max_time))) for _ in range({element.numberOfExecutions}))
+            with open('files/results_{next(iter(elements))}.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
+            yield env.timeout(time)
+            user_resources[userTask].release(req)
+    else:
+        time_standby_start = env.now
+        requests = {{user: user_resources[user].request() for user in possibleUsers}}
+        result = yield simpy.AnyOf(env, list(requests.values()))
+        for user, req in requests.items():
+            if req in result.events:
+                userTask = user
+                for other_user, other_req in requests.items():
+                    if other_user != userTask:
+                        other_req.cancel()
+                standby_end_time = env.now
+                standby_duration = standby_end_time - time_standby_start
+                with open('files/results_{next(iter(elements))}.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: StandBy on task {{TaskName}}, start at {{time_standby_start}}, stops at {{standby_end_time}}, duration of {{standby_duration}}''')
+                min_time = {element.minimumTime}
+                max_time = {element.maximumTime}
+                mu = (min_time+max_time)/2
+                sigma = (max_time-min_time)/6
+                time = sum(int(max(min_time, min(random.gauss(mu,sigma), max_time))) for _ in range({element.numberOfExecutions}))
+                with open('files/results_{next(iter(elements))}.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
+                yield env.timeout(time)
+                user_resources[userTask].release(req)
+                break
+    return '{element.subTask}'
+    """
+    return generateFunction(elements, element.subTask, script + functionStr)
 
 def parallelGateway(elements, element, script):
     possibleElements, _ = getPercentOfBranches(elements, element.id_bpmn)
