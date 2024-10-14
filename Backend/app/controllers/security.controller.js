@@ -158,9 +158,9 @@ const { exec } = require('child_process');
 
 const FILES_DIRECTORY = path.resolve(__dirname, '../../../Simulator/files/');
 const SIMULATOR_DIRECTORY = path.resolve(__dirname, '../../../Simulator');
+const ENGINE_DIRECTORY = path.resolve(__dirname, '../../../Engine');
 
 exports.saveEsperFile = (req, res) => {
-    console.log(SIMULATOR_DIRECTORY)
     const { content, filename } = req.body;
 
     if (!content || !filename) {
@@ -187,11 +187,43 @@ exports.saveEsperFile = (req, res) => {
             }
             if (stderr) {
                 console.error(`Error en el simulador: ${stderr}`);
-                // Decide whether to handle stderr as an error or informational message
             }
             console.log(`Resultado del simulador: ${stdout}`);
-            // Enviar la respuesta después de ejecutar el simulador
-            res.status(200).send({ message: 'Archivo guardado y simulador ejecutado exitosamente' });
+
+            // Ejecutar el comando mvn exec:java
+            exec('mvn exec:java', { cwd: ENGINE_DIRECTORY }, (mvnError, mvnStdout, mvnStderr) => {
+                if (mvnError) {
+                    console.error(`Error al ejecutar mvn exec:java: ${mvnError.message}`);
+                    return res.status(500).send({ message: 'Error al ejecutar mvn exec:java' });
+                }
+                if (mvnStderr) {
+                    console.error(`Error en mvn exec:java: ${mvnStderr}`);
+                }
+                console.log(`Resultado de mvn exec:java: ${mvnStdout}`);
+
+                // Eliminar todos los archivos de la carpeta "files"
+                fs.readdir(FILES_DIRECTORY, (err, files) => {
+                    if (err) {
+                        console.error(`Error al leer la carpeta: ${err.message}`);
+                        return res.status(500).send({ message: 'Error al leer la carpeta de archivos' });
+                    }
+
+                    // Iterar sobre los archivos y eliminarlos
+                    files.forEach(file => {
+                        const filePath = path.join(FILES_DIRECTORY, file);
+                        fs.unlink(filePath, (unlinkErr) => {
+                            if (unlinkErr) {
+                                console.error(`Error al eliminar el archivo: ${filePath}`, unlinkErr);
+                            } else {
+                                console.log(`Archivo eliminado: ${filePath}`);
+                            }
+                        });
+                    });
+
+                    // Enviar la respuesta después de eliminar los archivos
+                    res.status(200).send({ message: 'Archivo guardado, simulador y mvn exec:java ejecutados exitosamente. Todos los archivos eliminados.' });
+                });
+            });
         });
     });
 };

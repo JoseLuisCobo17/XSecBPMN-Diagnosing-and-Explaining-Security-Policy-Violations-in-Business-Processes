@@ -35,7 +35,6 @@ public class TaskProcessor {
                 if (file.isFile()) {
                     LOG.info("Processing file: " + file.getName());
                     List<Task> tasks = parseTaskFile(file.getAbsolutePath());
-    
                     // Agrupar tareas por startTime o tareas con propiedades de seguridad activas
                     Map<Long, List<Task>> groupedTasks = tasks.stream()
                             .filter(task -> task.getStartTime() != null || 
@@ -45,7 +44,6 @@ public class TaskProcessor {
                             .collect(Collectors.groupingBy(
                                 task -> task.getStartTime() != null ? task.getStartTime() : -1L, 
                                 TreeMap::new, Collectors.toList()));
-    
                     // Procesar las tareas agrupadas
                     for (Map.Entry<Long, List<Task>> entry : groupedTasks.entrySet()) {
                         Long startTime = entry.getKey();
