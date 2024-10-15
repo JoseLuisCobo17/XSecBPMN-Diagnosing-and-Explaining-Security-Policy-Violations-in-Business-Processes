@@ -24,7 +24,12 @@
             "type": "Integer"
           },
           {
-            "name": "userPool",
+            "name": "userWithoutRole",
+            "isAttr": true,
+            "type": "Integer"
+          },
+          {
+            "name": "userWithRole",
             "isAttr": false,
             "type": "Object"
           }          

@@ -18,10 +18,16 @@ export default function(element) {
       isEdited: isNumberEntryEdited
     },
     {
-      id: 'userPool',
+      id: 'userWithoutRole',
       element,
-      component: userPoolFunction,
-      isEdited: element => isStringEntryEdited(element, 'userPool')
+      component: userWithoutRoleFunction,
+      isEdited: isListOfStringEntryEdited
+    },
+    {
+      id: 'userWithRole',
+      element,
+      component: userWithRoleFunction,
+      isEdited: element => isStringEntryEdited(element, 'userWithRole')
     }
   ];
 }
@@ -128,66 +134,104 @@ function frequencyFunction(props) {
     />`;
 }
 
-function userPoolFunction(props) {
+function userWithoutRoleFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return ''; 
+    }
+    const value = element.businessObject.userWithoutRole; 
+    console.log('Current userWithoutRole value (getValue):', value);
+    return value !== undefined ? value : ''; 
+  };
+
+  const setValue = value => {
+    if (!element || !element.businessObject) {
+      return; 
+    }
+
+    // Asegúrate de que la propiedad userWithoutRole está presente en el businessObject
+    modeling.updateProperties(element, {
+      userWithoutRole: value 
+    });
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('User without role')}
+    getValue=${getValue}
+    setValue=${debounce(setValue)}
+    debounce=${debounce}
+    tooltip=${translate('Enter a user name without role.')} 
+  />`;
+}
+
+function userWithRoleFunction(props) {
   const { element, id } = props;
   const modeling = useService('modeling');
   const translate = useService('translate');
   const debounce = useService('debounceInput');
 
-  // Obtén el objeto userPool o un objeto vacío si no existe
-  const getUserPool = () => {
+  // Obtén el objeto userWithRole o un objeto vacío si no existe
+  const getuserWithRole = () => {
     if (!element || !element.businessObject) {
       return {};
     }
-    return element.businessObject.userPool || {};
+    return element.businessObject.userWithRole || {};
   };
 
   // Función para actualizar el nombre del rol
   const setRoleName = (oldRole, newRole) => {
-    const userPool = getUserPool();
-    const updatedUserPool = {};
+    const userWithRole = getuserWithRole();
+    const updateduserWithRole = {};
 
     // Transferir los valores, cambiando el nombre del rol
-    Object.keys(userPool).forEach(role => {
+    Object.keys(userWithRole).forEach(role => {
       if (role === oldRole) {
-        updatedUserPool[newRole] = userPool[role];
+        updateduserWithRole[newRole] = userWithRole[role];
       } else {
-        updatedUserPool[role] = userPool[role];
+        updateduserWithRole[role] = userWithRole[role];
       }
     });
 
-    // Actualizar el businessObject con el nuevo userPool
+    // Actualizar el businessObject con el nuevo userWithRole
     modeling.updateProperties(element, {
-      userPool: updatedUserPool
+      userWithRole: updateduserWithRole
     });
   };
 
-  // Función para actualizar el valor de un rol en el userPool
-  const setUserPoolValue = (role, value) => {
-    const userPool = getUserPool();
-    const updatedUserPool = { ...userPool, [role]: value };
+  // Función para actualizar el valor de un rol en el userWithRole
+  const setuserWithRoleValue = (role, value) => {
+    const userWithRole = getuserWithRole();
+    const updateduserWithRole = { ...userWithRole, [role]: value };
 
-    // Actualizar el businessObject con el nuevo userPool
+    // Actualizar el businessObject con el nuevo userWithRole
     modeling.updateProperties(element, {
-      userPool: updatedUserPool
+      userWithRole: updateduserWithRole
     });
   };
 
-  // Función para añadir un nuevo rol al userPool
+  // Función para añadir un nuevo rol al userWithRole
   const addRole = () => {
-    const userPool = getUserPool();
-    const newRole = `role${Object.keys(userPool).length + 1}`; // Crear una clave única para el nuevo rol
-    const updatedUserPool = { ...userPool, [newRole]: '' };
+    const userWithRole = getuserWithRole();
+    const newRole = `role${Object.keys(userWithRole).length + 1}`; // Crear una clave única para el nuevo rol
+    const updateduserWithRole = { ...userWithRole, [newRole]: '' };
 
     modeling.updateProperties(element, {
-      userPool: updatedUserPool
+      userWithRole: updateduserWithRole
     });
   };
 
   // Renderizar las entradas clave-valor
-  const renderUserPoolEntries = () => {
-    const userPool = getUserPool();
-    return Object.keys(userPool).map(role => {
+  const renderuserWithRoleEntries = () => {
+    const userWithRole = getuserWithRole();
+    return Object.keys(userWithRole).map(role => {
       return html`
         <div class="user-pool-item">
           <!-- Entrada editable para el nombre del rol (clave) -->
@@ -201,8 +245,8 @@ function userPoolFunction(props) {
           <!-- Entrada para el valor asociado al rol -->
           <input 
             type="text" 
-            value=${userPool[role]} 
-            onInput=${(event) => setUserPoolValue(role, event.target.value)} 
+            value=${userWithRole[role]} 
+            onInput=${(event) => setuserWithRoleValue(role, event.target.value)} 
             placeholder="User name" 
           />
         </div>
@@ -212,8 +256,8 @@ function userPoolFunction(props) {
 
   return html`
     <div class="user-pool-container">
-      ${renderUserPoolEntries()}
-      <button class="add-role-button" onClick=${addRole}>${translate('Add Role')}</button>
+      ${renderuserWithRoleEntries()}
+      <button class="add-role-button" onClick=${addRole}>${translate('Add role with user')}</button>
     </div>
   `;
 }
@@ -240,29 +284,18 @@ function isStringEntryEdited(element, attributeName) {
   return typeof value === 'string' && value.trim() !== '';
 }
 
-
 function isListOfStringEntryEdited(element) {
   if (!element || !element.businessObject) {
     return false;
   }
 
-  const userPool = element.businessObject.userPool;
+  const userWithoutRoleValues = element.businessObject.userWithoutRole;
 
-  if (!userPool || typeof userPool !== 'object') {
+  // Verificamos que userWithoutRole es un array
+  if (!Array.isArray(userWithoutRoleValues)) {
     return false;
   }
 
-  // Verificar si algún valor en userPool no es un string vacío
-  return Object.values(userPool).some(value => typeof value === 'string' && value !== '');
-}
-
-function isListOfRolesEntryEdited(element) {
-  if (!element || !element.businessObject) {
-    return false;
-  }
-
-  const rolPool = element.businessObject.rolPool;
-
-  // Verificar si rolPool es un array y contiene al menos un string no vacío
-  return Array.isArray(rolPool) && rolPool.some(role => typeof role === 'string' && role !== '');
+  // Retornamos true si al menos un elemento en la lista no es un string vacío
+  return userWithoutRoleValues.some(value => typeof value === 'string' && value !== '');
 }
