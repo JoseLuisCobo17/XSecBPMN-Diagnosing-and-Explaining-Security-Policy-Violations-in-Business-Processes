@@ -263,3 +263,17 @@ body:not(.presentation-mode) .bts-notifications {
 .add-role-button:hover {
   background-color: #0056b3;
 }
+
+.remove-role-button {
+  padding: 5px 8px;
+  background-color: red;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.remove-role-button:hover {
+  background-color: darkred;
+}
+

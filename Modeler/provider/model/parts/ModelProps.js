@@ -217,6 +217,18 @@ function userWithRoleFunction(props) {
     });
   };
 
+  // Función para eliminar un rol y su valor asociado del userWithRole
+  const removeRole = (role) => {
+    const userWithRole = getuserWithRole();
+    const updateduserWithRole = { ...userWithRole };
+    delete updateduserWithRole[role]; // Eliminar el rol específico
+
+    // Actualizar el businessObject con el nuevo userWithRole
+    modeling.updateProperties(element, {
+      userWithRole: updateduserWithRole
+    });
+  };
+
   // Función para añadir un nuevo rol al userWithRole
   const addRole = () => {
     const userWithRole = getuserWithRole();
@@ -249,6 +261,13 @@ function userWithRoleFunction(props) {
             onInput=${(event) => setuserWithRoleValue(role, event.target.value)} 
             placeholder="User name" 
           />
+          <!-- Botón para eliminar el rol -->
+          <button 
+            class="remove-role-button" 
+            onClick=${() => removeRole(role)}
+            style="margin-left: 10px; background-color: red; color: white;">
+            ${translate('X')}
+          </button>
         </div>
       `;
     });
