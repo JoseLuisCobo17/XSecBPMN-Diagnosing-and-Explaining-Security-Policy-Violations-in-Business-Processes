@@ -25,9 +25,9 @@
           },
           {
             "name": "userPool",
-            "isAttr": true,
-            "type": "String"
-          }
+            "isAttr": false,
+            "type": "Object"
+          }          
         ]
       }
     ]
