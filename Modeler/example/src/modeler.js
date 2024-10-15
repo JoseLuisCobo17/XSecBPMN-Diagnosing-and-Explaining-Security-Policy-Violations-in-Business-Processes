@@ -177,25 +177,6 @@ $('#js-download-esper').off('click').on('click', async function(e) {
     }
 
     console.log('Archivo guardado en la carpeta del proyecto');
-
-    // Luego de guardar, hacer la solicitud para ejecutar el comando Maven
-    const mavenResponse = await fetch('http://localhost:3000/run-maven', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ filename: 'esperTasks.txt' }),
-    });
-
-    if (!mavenResponse.ok) {
-      throw new Error(`Error al ejecutar el comando Maven: ${mavenResponse.statusText}`);
-    }
-
-    // Mostrar la respuesta del comando Maven
-    const mavenData = await mavenResponse.json();
-    console.log('Salida del comando Maven:', mavenData.output);
-    console.log('Errores del comando Maven:', mavenData.errors);
-
   } catch (err) {
     console.error('Error al exportar a Esper:', err);
   } finally {

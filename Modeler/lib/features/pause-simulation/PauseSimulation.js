@@ -16,7 +16,7 @@ import {
 import {
   PlayIcon,
   PauseIcon
-} from '../../icons';
+} from '../../../images/icons';
 
 
 const PLAY_MARKUP = PlayIcon();

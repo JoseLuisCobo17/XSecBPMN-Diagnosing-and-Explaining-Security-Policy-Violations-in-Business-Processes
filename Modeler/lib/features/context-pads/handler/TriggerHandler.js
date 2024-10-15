@@ -1,6 +1,6 @@
 import {
   PlayIcon
-} from '../../../icons';
+} from '../../../../images/icons';
 
 
 export default function TriggerHandler(simulator) {

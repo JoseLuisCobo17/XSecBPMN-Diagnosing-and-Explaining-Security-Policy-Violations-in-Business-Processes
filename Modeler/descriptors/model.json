@@ -22,7 +22,17 @@
             "name": "frequency",
             "isAttr": true,
             "type": "Integer"
-          }
+          },
+          {
+            "name": "userWithoutRole",
+            "isAttr": true,
+            "type": "String"
+          },
+          {
+            "name": "userWithRole",
+            "isAttr": false,
+            "type": "Object"
+          }          
         ]
       }
     ]

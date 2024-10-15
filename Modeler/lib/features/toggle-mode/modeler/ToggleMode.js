@@ -12,7 +12,7 @@ import {
 import {
   ToggleOffIcon,
   ToggleOnIcon
-} from '../../../icons';
+} from '../../../../images/icons';
 
 
 export default function ToggleMode(

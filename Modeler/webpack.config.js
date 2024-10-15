@@ -1,4 +1,3 @@
-/* eslint-env node */
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const { DefinePlugin } = require('webpack');
@@ -10,13 +9,13 @@ module.exports = (env, argv) => {
   return {
     mode,
     entry: {
-      viewer: './example/src/viewer.js', // Archivo de entrada para el visor
-      modeler: './example/src/modeler.js' // Archivo de entrada para el modelador
+      viewer: './example/src/viewer.js',
+      modeler: './example/src/modeler.js'
     },
     output: {
       filename: 'dist/[name].js',
-      path: path.resolve(__dirname, 'example'), // Salida de archivos
-      clean: true // Limpia los archivos viejos en cada build
+      path: path.resolve(__dirname, 'example'),
+      clean: true
     },
     module: {
       rules: [
@@ -26,7 +25,7 @@ module.exports = (env, argv) => {
         },
         {
           test: /\.js$/,
-          exclude: /node_modules/, // Excluir la carpeta node_modules
+          exclude: /node_modules/,
           use: {
             loader: 'babel-loader',
             options: {
@@ -36,28 +35,32 @@ module.exports = (env, argv) => {
         },
         {
           test: /\.json$/,
-          type: 'json', // Soporte para archivos JSON
+          type: 'json',
           parser: {
             parse: JSON.parse
           }
         },
         {
           test: /\.css$/,
-          use: [ 'style-loader', 'css-loader' ] // Carga archivos CSS
+          use: ['style-loader', 'css-loader']
         },
         {
           test: /\.less$/,
-          use: [ 'style-loader', 'css-loader', 'less-loader' ] // Carga archivos LESS
+          use: ['style-loader', 'css-loader', 'less-loader']
+        },
+        {
+          test: /\.svg$/,
+          use: 'raw-loader'
         }
       ]
     },
     resolve: {
       fallback: {
         fs: false,
-        path: require.resolve('path-browserify'), // Soporte para path en el navegador
+        path: require.resolve('path-browserify'),
         crypto: require.resolve('crypto-browserify'),
         stream: require.resolve('stream-browserify'),
-        buffer: require.resolve('buffer/'),
+        buffer: require.resolve('buffer/')
       }
     },
     plugins: [

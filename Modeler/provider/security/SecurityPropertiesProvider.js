@@ -19,8 +19,7 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
         groups.push(createBoDGroup(element, translate));
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'UoC') {
         groups.push(createUoCGroup(element, translate));
-      }
-      else if (is(element, 'bpmn:ManualTask') || is(element, 'bpmn:UserTask') || (is(element, 'bpmn:Task') && !is(element, 'bpmn:BusinessRuleTask') && !is(element, 'bpmn:ScriptTask') && !is(element, 'bpmn:ServiceTask') && !is(element, 'bpmn:SendTask') && !is(element, 'bpmn:ReceiveTask'))) {
+      } else if (is(element, 'bpmn:ManualTask') || is(element, 'bpmn:UserTask') || (is(element, 'bpmn:Task') && !is(element, 'bpmn:BusinessRuleTask') && !is(element, 'bpmn:ScriptTask') && !is(element, 'bpmn:ServiceTask') && !is(element, 'bpmn:SendTask') && !is(element, 'bpmn:ReceiveTask'))) {
         groups.push(createUserGroup(element, translate));
       } else if (is(element, 'bpmn:SequenceFlow')) {
         const sourceElement = element.businessObject.sourceRef;
@@ -28,6 +27,7 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
           groups.push(createSequenceFlowGroup(element, translate));
         }
       } else if (is(element, 'bpmn:Process')) {
+        // Aquí se llama a la función que maneja las propiedades del modelo, incluyendo userPool
         groups.push(createModelGroup(element, translate));
       }
       return groups;
@@ -98,12 +98,13 @@ function createSequenceFlowGroup(element, translate) {
   return sequenceFlowGroup;
 }
 
+// Crear el grupo personalizado para Model
 function createModelGroup(element, translate) {
   const modelGroup = {
     id: 'model',
     label: translate('Model properties'),
-    entries: ModelProps(element),
-    tooltip: translate('Make sure you know what you are doing!')
+    entries: ModelProps(element), // Llama a ModelProps, donde está gestionado userPool
+    tooltip: translate('Manage model-level properties, including userPool.')
   };
 
   return modelGroup;

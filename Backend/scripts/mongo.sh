@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Detener cualquier instancia en ejecución de mongod
-sudo killall -9 mongod
+taskkill //IM mongod.exe //F
 
-# Iniciar mongod con sudo para asegurar permisos correctos
-sudo mongod --dbpath /var/lib/mongodb --logpath /var/log/mongodb/mongod.log --fork
+# Iniciar mongod sin necesidad de la ruta completa
+mongod --dbpath "../data/db" --logpath "../data/log/mongod.log" --logappend & sleep 5
 
-# Abrir una nueva terminal y ejecutar api.sh
-gnome-terminal -- bash -c "/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Backend/scripts/api.sh; exec bash"
+# Ejecutar api.sh
+bash -c "../Backend/scripts/api.sh"

@@ -26,6 +26,4 @@ module.exports = function(app) {
     // Delete a Security with securityId
     app.delete('/securities/:securityId', securities.delete);
 
-    app.post('/run-maven', securities.runMavenCommand);
-
 };

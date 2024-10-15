@@ -1,0 +1,13 @@
+### Esper Rules Export ###
+
+Element: [type=bpmn:Process, name=Unnamed, id_bpmn=Process_1, instances=5, frequency=20, userWithoutRole=["alba", "fran", "maca"], userWithRole={"role1": ["jl", "joaquin"], "role2": ["joaquin", "sonia"]}]
+Element: [type=bpmn:StartEvent, name=Unnamed, id_bpmn=Event_01cvyer, subTask="Activity_035bnw5"]
+Element: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_035bnw5, userTask="""", numberOfExecutions=2, minimumTime=20, maximumTime=40, subTask="Activity_00a31xa"]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=Flow_0lnr384, superElement="Event_01cvyer", subElement="Activity_035bnw5"]
+Element: [type=bpmn:Task, name=Unnamed, id_bpmn=Activity_00a31xa, userTask="""", numberOfExecutions=2, minimumTime=20, maximumTime=30, subTask="Event_0qd9va6"]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=Flow_12lyyuu, superElement="Activity_035bnw5", subElement="Activity_00a31xa"]
+Element: [type=bpmn:EndEvent, name=Unnamed, id_bpmn=Event_0qd9va6, subTask=""]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=Flow_1s4alhv, superElement="Activity_00a31xa", subElement="Event_0qd9va6"]
+Element: [type=bpmn:ServiceTask, name=Unnamed, id_bpmn=Activity_025tvzt, sodSecurity=false, bodSecurity=true, uocSecurity=false, nu=2, mth=2, subTask="Activity_035bnw5, Activity_00a31xa"]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=Flow_1o9waxt, superElement="Activity_025tvzt", subElement="Activity_035bnw5"]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=Flow_1oauhg8, superElement="Activity_025tvzt", subElement="Activity_00a31xa"]

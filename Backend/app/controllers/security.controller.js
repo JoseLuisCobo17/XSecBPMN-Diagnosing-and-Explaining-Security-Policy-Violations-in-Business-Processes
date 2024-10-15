@@ -154,8 +154,11 @@ exports.esperRules = function (req, res) {
     });
 };
 
-// Ruta donde se guardará el archivo
-const FILES_DIRECTORY = '/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/src/main/java/com/cor/cep/files/';
+const { exec } = require('child_process');
+
+const FILES_DIRECTORY = path.resolve(__dirname, '../../../Simulator/files/');
+const SIMULATOR_DIRECTORY = path.resolve(__dirname, '../../../Simulator');
+const ENGINE_DIRECTORY = path.resolve(__dirname, '../../../Engine');
 
 exports.saveEsperFile = (req, res) => {
     const { content, filename } = req.body;
@@ -175,58 +178,54 @@ exports.saveEsperFile = (req, res) => {
         }
 
         console.log('Archivo guardado exitosamente en:', filePath);
-        res.status(200).send({ message: 'Archivo guardado exitosamente' });
+
+        // Ejecutar el simulador con el directorio de trabajo correcto
+        exec(`python main.py`, { cwd: SIMULATOR_DIRECTORY }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error al ejecutar el simulador: ${error.message}`);
+                return res.status(500).send({ message: 'Error al ejecutar el simulador' });
+            }
+            if (stderr) {
+                console.error(`Error en el simulador: ${stderr}`);
+            }
+            console.log(`Resultado del simulador: ${stdout}`);
+
+            // Ejecutar el comando mvn exec:java
+            exec('mvn exec:java', { cwd: ENGINE_DIRECTORY }, (mvnError, mvnStdout, mvnStderr) => {
+                if (mvnError) {
+                    console.error(`Error al ejecutar mvn exec:java: ${mvnError.message}`);
+                    return res.status(500).send({ message: 'Error al ejecutar mvn exec:java' });
+                }
+                if (mvnStderr) {
+                    console.error(`Error en mvn exec:java: ${mvnStderr}`);
+                }
+                console.log(`Resultado de mvn exec:java: ${mvnStdout}`);
+
+                // Eliminar todos los archivos de la carpeta "files"
+                fs.readdir(FILES_DIRECTORY, (err, files) => {
+                    if (err) {
+                        console.error(`Error al leer la carpeta: ${err.message}`);
+                        return res.status(500).send({ message: 'Error al leer la carpeta de archivos' });
+                    }
+
+                    // Iterar sobre los archivos y eliminarlos
+                    files.forEach(file => {
+                        const filePath = path.join(FILES_DIRECTORY, file);
+                        fs.unlink(filePath, (unlinkErr) => {
+                            if (unlinkErr) {
+                                console.error(`Error al eliminar el archivo: ${filePath}`, unlinkErr);
+                            } else {
+                                console.log(`Archivo eliminado: ${filePath}`);
+                            }
+                        });
+                    });
+
+                    // Enviar la respuesta después de eliminar los archivos
+                    res.status(200).send({ message: 'Archivo guardado, simulador y mvn exec:java ejecutados exitosamente. Todos los archivos eliminados.' });
+                });
+            });
+        });
     });
-};
-
-const { spawn } = require('child_process');
-
-exports.runMavenCommand = (req, res) => {
-  const { filename } = req.body;
-  const filePath = path.join('/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/src/main/java/com/cor/cep/files/', filename);
-
-  console.log(`Archivo guardado en: ${filePath}`);
-
-  const mavenProcess = spawn('mvn', [
-    'exec:java',
-    `-Dexec.mainClass=com.cor.cep.StartDemo`,
-    `-Dexec.args=file`
-  ], {
-    cwd: '/home/jose_luis/Escritorio/Investigacion/ModelingSecurityEngine/Engine/',
-  });
-
-  // Captura la salida estándar
-  mavenProcess.stdout.on('data', (data) => {
-    console.log(`${data.toString()}`);
-  });
-
-  // Captura los errores reales (si ocurren)
-  mavenProcess.stderr.on('data', (data) => {
-    const errorString = data.toString();
-    
-    // Filtra la salida para evitar tratar todo como error si es solo log
-    if (errorString.includes('ERROR') || errorString.includes('Exception')) {
-      console.error(`Error real: ${errorString}`);
-    } else {
-      console.log(`${errorString}`);
-    }
-  });
-
-  // Maneja la finalización del proceso
-  mavenProcess.on('close', (code) => {
-    if (code !== 0) {
-      console.error(`Proceso Maven finalizó con código ${code}`);
-      return res.status(500).send({ message: `Proceso Maven finalizó con código ${code}` });
-    }
-    console.log('Comando Maven ejecutado correctamente');
-    res.status(200).send({ message: 'Comando Maven ejecutado correctamente' });
-  });
-
-  // Manejar posibles errores durante la ejecución
-  mavenProcess.on('error', (err) => {
-    console.error('Error al ejecutar el comando Maven:', err);
-    res.status(500).send({ message: 'Error al ejecutar el comando Maven', error: err.message });
-  });
 };
 
 exports.findAll = async function (req, res) {

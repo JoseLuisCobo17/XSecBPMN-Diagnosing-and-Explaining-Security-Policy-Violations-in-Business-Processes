@@ -1,7 +1,7 @@
 import {
   PauseIcon,
   RemovePauseIcon
-} from '../../../icons';
+} from '../../../../images/icons';
 
 
 import {

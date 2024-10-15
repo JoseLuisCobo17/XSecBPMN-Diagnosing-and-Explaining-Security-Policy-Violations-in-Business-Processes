@@ -12,7 +12,7 @@ import {
 
 import {
   ResetIcon
-} from '../../icons';
+} from '../../../images/icons';
 
 
 export default function ResetSimulation(eventBus, tokenSimulationPalette, notifications) {

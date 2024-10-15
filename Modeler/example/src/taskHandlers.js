@@ -114,7 +114,6 @@ function getAllRelevantTasks(bpmnModeler) {
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
 
-  // Obtener todos los elementos relevantes, incluyendo los procesos y secuencias de flujo.
   var relevantElements = elementRegistry.filter(e =>
     e.type === 'bpmn:Task' ||
     e.type === 'bpmn:ServiceTask' ||
@@ -130,26 +129,21 @@ function getAllRelevantTasks(bpmnModeler) {
   return relevantElements.map(e => {
     var businessObject = e.businessObject;
 
-    // Detectar sub-tareas para secuencias de flujo
     var subTasks = [];
     if (e.type === 'bpmn:SequenceFlow') {
       subTasks = (businessObject.targetRef && businessObject.targetRef.$type.includes('Task')) ?
         [businessObject.targetRef.id] : [];
     } else {
-      // Para otros elementos que no sean SequenceFlow
       subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
     }
 
-    // Detectar el subElement exclusivo para SequenceFlow (targetRef)
     var subElement = '';
     if (e.type === 'bpmn:SequenceFlow' && businessObject.targetRef) {
       subElement = businessObject.targetRef.id;
     }
 
-    // Detectar super-tareas para secuencias de flujo
     var superElement = [];
     if (e.type !== 'bpmn:SequenceFlow' && businessObject.incoming) {
-      // Para cada flujo entrante, obtener el sourceRef
       superElement = businessObject.incoming.map(flow => {
         if (flow.sourceRef) {
           return flow.sourceRef.id;
@@ -157,24 +151,23 @@ function getAllRelevantTasks(bpmnModeler) {
         return null;
       }).filter(id => id !== null);
     } else if (e.type === 'bpmn:SequenceFlow' && businessObject.sourceRef) {
-      // Si es un SequenceFlow, el superElement es simplemente el sourceRef
       superElement = [businessObject.sourceRef.id];
     }
 
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isUserTask = e.type === 'bpmn:UserTask';
-    const isTask = e.type === 'bpmn:Task' || isUserTask; // Ajuste para incluir bpmn:UserTask
+    const isTask = e.type === 'bpmn:Task' || isUserTask;
     const isProcess = e.type === 'bpmn:Process';
     const isSequenceFlow = e.type === 'bpmn:SequenceFlow';
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
 
-    // Asegurar que userTasks sea un arreglo
     const userTasks = Array.isArray(businessObject.UserTask) ? businessObject.UserTask : [businessObject.UserTask || ''];
     const numberOfExecutions = businessObject.NumberOfExecutions || 0;
     const minimumTime = businessObject.minimumTime || 0;
     const maximumTime = businessObject.maximumTime || 0;
     const instance = businessObject.Instance || '';
+    const userWithRole = isProcess ? (businessObject.userWithRole || {}) : {};
 
     return {
       id_model: id_model,
@@ -188,10 +181,10 @@ function getAllRelevantTasks(bpmnModeler) {
       Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
       P: isServiceTask ? (businessObject.P || 0) : 0,
       User: isServiceTask ? (businessObject.User || '') : '',
-      UserTask: (isTask || isUserTask) ? (userTasks.join(', ') || '') : '', // Ajuste aquí
+      UserTask: (isTask || isUserTask) ? (userTasks.join(', ') || '') : '',
       Log: businessObject.Log || '',
       SubTasks: subTasks,
-      subElement: subElement, // Nueva propiedad subElement
+      subElement: subElement,
       superElement: superElement,
       Instances: isProcess ? (businessObject.instance || 0) : 0,
       Frequency: isProcess ? (businessObject.frequency || 0) : 0,
@@ -199,7 +192,9 @@ function getAllRelevantTasks(bpmnModeler) {
       NumberOfExecutions: numberOfExecutions,
       MinimumTime: minimumTime,
       MaximumTime: maximumTime,
-      UserInstance: instance
+      UserInstance: instance,
+      userWithoutRole: isProcess ? (businessObject.userWithoutRole || '') : '',
+      userWithRole: userWithRole 
     };
   });
 }
@@ -211,7 +206,6 @@ function exportToEsper(bpmnModeler) {
 
       let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
-        // Si el elemento es un bpmn:SequenceFlow, solo incluir propiedades específicas
         if (element.type === 'bpmn:SequenceFlow') {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
@@ -222,9 +216,7 @@ function exportToEsper(bpmnModeler) {
           const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
           content += `superElement="${superElement}", `;
           content += `subElement="${element.subElement || 'No Sub Element'}"]\n`;
-        }
-        // Si el elemento es un bpmn:ServiceTask, solo incluir propiedades específicas
-        else if (element.type === 'bpmn:ServiceTask') {
+        } else if (element.type === 'bpmn:ServiceTask') {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
@@ -235,9 +227,7 @@ function exportToEsper(bpmnModeler) {
           content += `mth=${element.Mth}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
-        }
-        // Si el elemento es un bpmn:Task o bpmn:UserTask, solo incluir propiedades específicas
-        else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
+        } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
@@ -247,17 +237,24 @@ function exportToEsper(bpmnModeler) {
           content += `maximumTime=${element.MaximumTime}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
-        }
-        // Si el elemento es un bpmn:Process, solo incluir propiedades específicas
-        else if (element.type === 'bpmn:Process') {
+        } else if (element.type === 'bpmn:Process') {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
           content += `instances=${element.Instances}, `;
-          content += `frequency=${element.Frequency}]\n`;
-        } 
-        // Para otros tipos de elementos
-        else {
+          content += `frequency=${element.Frequency}, `;
+
+          // Ajuste para userWithoutRole en formato array
+          const userWithoutRole = element.userWithoutRole ? 
+            element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') : '""';
+          content += `userWithoutRole=[${userWithoutRole}], `;
+
+          // Ajuste para userWithRole en formato de objeto
+          const userWithRole = element.userWithRole ? 
+            Object.entries(element.userWithRole).map(([role, users]) => 
+              `"${role}": [${users.split(', ').map(u => `"${u}"`).join(', ')}]`).join(', ') : '{}';
+          content += `userWithRole={${userWithRole}}]\n`;
+        } else {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;

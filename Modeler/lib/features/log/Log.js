@@ -31,7 +31,7 @@ import {
   TimesCircleIcon,
   CheckCircleIcon,
   InfoIcon
-} from '../../icons';
+} from '../../../images/icons';
 
 
 const ICON_INFO = InfoIcon();
