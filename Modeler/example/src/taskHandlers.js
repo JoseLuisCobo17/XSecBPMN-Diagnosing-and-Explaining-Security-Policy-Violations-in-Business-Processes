@@ -200,7 +200,7 @@ function getAllRelevantTasks(bpmnModeler) {
       MinimumTime: minimumTime,
       MaximumTime: maximumTime,
       UserInstance: instance,
-      userPool: isProcess ? (businessObject.userPool || 'No User Pool') : '' // Nueva propiedad userPool
+      userWithoutRole: isProcess ? (businessObject.userWithoutRole || 'No User without role') : '' 
     };
   });
 }
@@ -256,7 +256,7 @@ function exportToEsper(bpmnModeler) {
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
-          content += `userPool="${element.userPool || ''}"]\n`;
+          content += `userWithoutRole="${element.userWithoutRole || ''}"]\n`;
         }
         // Para otros tipos de elementos
         else {

@@ -1,0 +1,8 @@
+### Esper Rules Export ###
+
+Element: [type=bpmn:Process, name=Unnamed, id_bpmn=Process_1, instances=0, frequency=0, userWithoutRole="jl"]
+Element: [type=bpmn:StartEvent, name=ATM Transaction Needed, id_bpmn=StartEvent_0offpno, subTask="Task_026c0id"]
+Element: [type=bpmn:UserTask, name=Insert Card, id_bpmn=Task_026c0id, userTask="""", numberOfExecutions=0, minimumTime=0, maximumTime=0, subTask="Event_1bvyn0q"]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=SequenceFlow_1xib75z, superElement="StartEvent_0offpno", subElement="Task_026c0id"]
+Element: [type=bpmn:EndEvent, name=Unnamed, id_bpmn=Event_1bvyn0q, subTask=""]
+Element: [type=bpmn:SequenceFlow, name=Unnamed, id_bpmn=Flow_1fipwea, superElement="Task_026c0id", subElement="Event_1bvyn0q"]

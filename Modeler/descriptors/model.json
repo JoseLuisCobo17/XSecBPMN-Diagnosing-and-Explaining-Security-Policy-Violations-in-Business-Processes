@@ -26,7 +26,7 @@
           {
             "name": "userWithoutRole",
             "isAttr": true,
-            "type": "Integer"
+            "type": "String"
           },
           {
             "name": "userWithRole",
