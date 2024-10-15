@@ -1,3 +1,4 @@
+import ast
 import re
 from models.baseModels import BPMNProcess, BPMNSequenceFlow, BPMNServiceTask
 from models.startEventModels import BPMNStartEvent, BPMNMessageStartEvent, BPMNTimerStartEvent, BPMNConditionalStartEvent, BPMNSignalStartEvent
@@ -25,8 +26,20 @@ def parse_bpmn_elements(file_content: str):
                 process = id_bpmn
                 instances = int(re.search(r'instances=(\d+)', line).group(1))
                 frequency = int(re.search(r'frequency=(\d+)', line).group(1))
-                userPool = re.search(r'userPool="([^"]+)"', line).group(1).split(', ')
-                element = BPMNProcess(name, id_bpmn, bpmn_type, instances, frequency, userPool)
+                userWithoutRole_match = re.search(r'userWithoutRole=(\[[^\]]*\])', line)
+                if userWithoutRole_match:
+                    userWithoutRole_str = userWithoutRole_match.group(1)
+                    userWithoutRole = ast.literal_eval(userWithoutRole_str)
+                else:
+                    userWithoutRole = []
+                userWithRole_match = re.search(r'userWithRole=({[^}]+})', line)
+                if userWithRole_match:
+                    userWithRole_str = userWithRole_match.group(1)
+                    userWithRole = ast.literal_eval(userWithRole_str)
+                else:
+                    userWithRole = {}
+
+                element = BPMNProcess(name, id_bpmn, bpmn_type, instances, frequency, userWithoutRole, userWithRole)
 
             elif element_type == "SequenceFlow":
                 superElement = re.search(r'superElement="([^"]+)"', line).group(1)

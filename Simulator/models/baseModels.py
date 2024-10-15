@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 
 class BPMNElement:
     def __init__(self, name: str, id_bpmn: str, bpmn_type: str):
@@ -7,11 +7,12 @@ class BPMNElement:
         self.bpmn_type = bpmn_type
 
 class BPMNProcess(BPMNElement):
-    def __init__(self, name: str, id_bpmn: str, bpmn_type: str, instances: int, frequency: int, userPool: List[str]):
+    def __init__(self, name: str, id_bpmn: str, bpmn_type: str, instances: int, frequency: int, userWithoutRole: List[str], userWithRole: Dict[str, List[str]]):
         super().__init__(name, id_bpmn, bpmn_type)
         self.instances = instances
         self.frequency = frequency
-        self.userPool = userPool
+        self.userWithoutRole = userWithoutRole
+        self.userWithRole = userWithRole
 
 class BPMNSequenceFlow(BPMNElement):
     def __init__(self, name: str, id_bpmn: str, bpmn_type: str, superElement: BPMNElement, subElement: BPMNElement, percentageOfBranches: float = None):

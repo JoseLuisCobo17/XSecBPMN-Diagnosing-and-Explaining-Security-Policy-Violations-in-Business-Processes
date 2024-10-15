@@ -33,9 +33,10 @@ def {element.id_bpmn}(env, name):
     possibleUsers = {element.userTask}
     if possibleUsers is None:
         possibleUsers = userPool
-    available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    if available_users:
-        userTask = random.choice(available_users)
+    users_direct, users_roles = resolve_possible_users(possibleUsers)
+    available_users_direct = [user for user in users_direct if user_resources[user].count < user_resources[user].capacity]
+    if available_users_direct:
+        userTask = random.choice(available_users_direct)
         with user_resources[userTask].request() as req:
             yield req
             min_time = {element.minimumTime}
@@ -49,20 +50,11 @@ def {element.id_bpmn}(env, name):
             yield env.timeout(time)
             user_resources[userTask].release(req)
     else:
-        time_standby_start = env.now
-        requests = {{user: user_resources[user].request() for user in possibleUsers}}
-        result = yield simpy.AnyOf(env, list(requests.values()))
-        for user, req in requests.items():
-            if req in result.events:
-                userTask = user
-                for other_user, other_req in requests.items():
-                    if other_user != userTask:
-                        other_req.cancel()
-                standby_end_time = env.now
-                standby_duration = standby_end_time - time_standby_start
-                with open('files/results_{next(iter(elements))}.txt', 'a') as f:
-                    f.write(f'''
-{{name}}: StandBy on task {{TaskName}}, start at {{time_standby_start}}, stops at {{standby_end_time}}, duration of {{standby_duration}}''')
+        available_users_roles = [user for user in users_roles if user_resources[user].count < user_resources[user].capacity]
+        if available_users_roles:
+            userTask = random.choice(available_users_roles)
+            with user_resources[userTask].request() as req:
+                yield req
                 min_time = {element.minimumTime}
                 max_time = {element.maximumTime}
                 mu = (min_time+max_time)/2
@@ -73,9 +65,43 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
                 yield env.timeout(time)
                 user_resources[userTask].release(req)
-                break
+        else:
+            time_standby_start = env.now
+            requests_direct = {{user: user_resources[user].request() for user in users_direct}}
+            requests_roles = {{user: user_resources[user].request() for user in users_roles}}
+            all_requests = list(requests_direct.values()) + list(requests_roles.values())
+            result = yield simpy.AnyOf(env, all_requests)
+            userTask = None
+            for user, req in requests_direct.items():
+                if req in result.events:
+                    userTask = user
+                    break
+            if userTask is None:
+                for user, req in requests_roles.items():
+                    if req in result.events:
+                        userTask = user
+                        break
+            for user, req in {{**requests_direct, **requests_roles}}.items():
+                if req not in result.events:
+                    req.cancel()
+
+            standby_end_time = env.now
+            standby_duration = standby_end_time - time_standby_start
+            with open('files/results_Process_1.txt', 'a') as f:
+                f.write(f'''
+{{name}}: StandBy on task {{TaskName}}, start at {{time_standby_start}}, stops at {{standby_end_time}}, duration of {{standby_duration}}''')
+            min_time = {element.minimumTime}
+            max_time = {element.maximumTime}
+            mu = (min_time+max_time)/2
+            sigma = (max_time-min_time)/6
+            time = sum(int(max(min_time, min(random.gauss(mu,sigma), max_time))) for _ in range({element.numberOfExecutions}))
+            with open('files/results_Process_1.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
+            yield env.timeout(time)
+            user_resources[userTask].release(req)
     return '{element.subTask}'
-    """
+"""
     return generateFunction(elements, element.subTask, script + functionStr)
 
 def manualTask(elements, element, script):
@@ -85,9 +111,10 @@ def {element.id_bpmn}(env, name):
     possibleUsers = {element.userTask}
     if possibleUsers is None:
         possibleUsers = userPool
-    available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    if available_users:
-        userTask = random.choice(available_users)
+    users_direct, users_roles = resolve_possible_users(possibleUsers)
+    available_users_direct = [user for user in users_direct if user_resources[user].count < user_resources[user].capacity]
+    if available_users_direct:
+        userTask = random.choice(available_users_direct)
         with user_resources[userTask].request() as req:
             yield req
             min_time = {element.minimumTime}
@@ -101,20 +128,11 @@ def {element.id_bpmn}(env, name):
             yield env.timeout(time)
             user_resources[userTask].release(req)
     else:
-        time_standby_start = env.now
-        requests = {{user: user_resources[user].request() for user in possibleUsers}}
-        result = yield simpy.AnyOf(env, list(requests.values()))
-        for user, req in requests.items():
-            if req in result.events:
-                userTask = user
-                for other_user, other_req in requests.items():
-                    if other_user != userTask:
-                        other_req.cancel()
-                standby_end_time = env.now
-                standby_duration = standby_end_time - time_standby_start
-                with open('files/results_{next(iter(elements))}.txt', 'a') as f:
-                    f.write(f'''
-{{name}}: StandBy on task {{TaskName}}, start at {{time_standby_start}}, stops at {{standby_end_time}}, duration of {{standby_duration}}''')
+        available_users_roles = [user for user in users_roles if user_resources[user].count < user_resources[user].capacity]
+        if available_users_roles:
+            userTask = random.choice(available_users_roles)
+            with user_resources[userTask].request() as req:
+                yield req
                 min_time = {element.minimumTime}
                 max_time = {element.maximumTime}
                 mu = (min_time+max_time)/2
@@ -125,9 +143,43 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
                 yield env.timeout(time)
                 user_resources[userTask].release(req)
-                break
+        else:
+            time_standby_start = env.now
+            requests_direct = {{user: user_resources[user].request() for user in users_direct}}
+            requests_roles = {{user: user_resources[user].request() for user in users_roles}}
+            all_requests = list(requests_direct.values()) + list(requests_roles.values())
+            result = yield simpy.AnyOf(env, all_requests)
+            userTask = None
+            for user, req in requests_direct.items():
+                if req in result.events:
+                    userTask = user
+                    break
+            if userTask is None:
+                for user, req in requests_roles.items():
+                    if req in result.events:
+                        userTask = user
+                        break
+            for user, req in {{**requests_direct, **requests_roles}}.items():
+                if req not in result.events:
+                    req.cancel()
+
+            standby_end_time = env.now
+            standby_duration = standby_end_time - time_standby_start
+            with open('files/results_Process_1.txt', 'a') as f:
+                f.write(f'''
+{{name}}: StandBy on task {{TaskName}}, start at {{time_standby_start}}, stops at {{standby_end_time}}, duration of {{standby_duration}}''')
+            min_time = {element.minimumTime}
+            max_time = {element.maximumTime}
+            mu = (min_time+max_time)/2
+            sigma = (max_time-min_time)/6
+            time = sum(int(max(min_time, min(random.gauss(mu,sigma), max_time))) for _ in range({element.numberOfExecutions}))
+            with open('files/results_Process_1.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
+            yield env.timeout(time)
+            user_resources[userTask].release(req)
     return '{element.subTask}'
-    """
+"""
     return generateFunction(elements, element.subTask, script + functionStr)
 
 def userTask(elements, element, script):
@@ -137,9 +189,10 @@ def {element.id_bpmn}(env, name):
     possibleUsers = {element.userTask}
     if possibleUsers is None:
         possibleUsers = userPool
-    available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    if available_users:
-        userTask = random.choice(available_users)
+    users_direct, users_roles = resolve_possible_users(possibleUsers)
+    available_users_direct = [user for user in users_direct if user_resources[user].count < user_resources[user].capacity]
+    if available_users_direct:
+        userTask = random.choice(available_users_direct)
         with user_resources[userTask].request() as req:
             yield req
             min_time = {element.minimumTime}
@@ -153,20 +206,11 @@ def {element.id_bpmn}(env, name):
             yield env.timeout(time)
             user_resources[userTask].release(req)
     else:
-        time_standby_start = env.now
-        requests = {{user: user_resources[user].request() for user in possibleUsers}}
-        result = yield simpy.AnyOf(env, list(requests.values()))
-        for user, req in requests.items():
-            if req in result.events:
-                userTask = user
-                for other_user, other_req in requests.items():
-                    if other_user != userTask:
-                        other_req.cancel()
-                standby_end_time = env.now
-                standby_duration = standby_end_time - time_standby_start
-                with open('files/results_{next(iter(elements))}.txt', 'a') as f:
-                    f.write(f'''
-{{name}}: StandBy on task {{TaskName}}, start at {{time_standby_start}}, stops at {{standby_end_time}}, duration of {{standby_duration}}''')
+        available_users_roles = [user for user in users_roles if user_resources[user].count < user_resources[user].capacity]
+        if available_users_roles:
+            userTask = random.choice(available_users_roles)
+            with user_resources[userTask].request() as req:
+                yield req
                 min_time = {element.minimumTime}
                 max_time = {element.maximumTime}
                 mu = (min_time+max_time)/2
@@ -177,9 +221,43 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
                 yield env.timeout(time)
                 user_resources[userTask].release(req)
-                break
+        else:
+            time_standby_start = env.now
+            requests_direct = {{user: user_resources[user].request() for user in users_direct}}
+            requests_roles = {{user: user_resources[user].request() for user in users_roles}}
+            all_requests = list(requests_direct.values()) + list(requests_roles.values())
+            result = yield simpy.AnyOf(env, all_requests)
+            userTask = None
+            for user, req in requests_direct.items():
+                if req in result.events:
+                    userTask = user
+                    break
+            if userTask is None:
+                for user, req in requests_roles.items():
+                    if req in result.events:
+                        userTask = user
+                        break
+            for user, req in {{**requests_direct, **requests_roles}}.items():
+                if req not in result.events:
+                    req.cancel()
+
+            standby_end_time = env.now
+            standby_duration = standby_end_time - time_standby_start
+            with open('files/results_Process_1.txt', 'a') as f:
+                f.write(f'''
+{{name}}: StandBy on task {{TaskName}}, start at {{time_standby_start}}, stops at {{standby_end_time}}, duration of {{standby_duration}}''')
+            min_time = {element.minimumTime}
+            max_time = {element.maximumTime}
+            mu = (min_time+max_time)/2
+            sigma = (max_time-min_time)/6
+            time = sum(int(max(min_time, min(random.gauss(mu,sigma), max_time))) for _ in range({element.numberOfExecutions}))
+            with open('files/results_Process_1.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
+            yield env.timeout(time)
+            user_resources[userTask].release(req)
     return '{element.subTask}'
-    """
+"""
     return generateFunction(elements, element.subTask, script + functionStr)
 
 def parallelGateway(elements, element, script):
@@ -297,8 +375,22 @@ import random
 
 nInstances = {elementProcess.instances}
 frequency = {elementProcess.frequency}
-userPool = {elementProcess.userPool}
+rolePool = {elementProcess.userWithRole}
+userWithRole = list(set(value for sublist in rolePool.values() for value in sublist))
+userWithoutRole = {elementProcess.userWithoutRole}
+userPool = userWithRole + userWithoutRole
 
+def resolve_possible_users(possibleUsers):
+    users_direct = []
+    users_roles = []
+    for item in possibleUsers:
+        if item in userWithRole:
+            users_roles.append(item)
+        elif item in rolePool:
+            users_roles.extend(rolePool[item])
+        elif item in userWithoutRole:
+            users_direct.append(item)
+    return users_direct, users_roles
 """
     global user_resources
     script += "user_resources = {}\n"
@@ -323,7 +415,7 @@ def main(env):
     global user_resources
     user_resources = {{user: simpy.Resource(env, capacity=1) for user in userPool}}
     with open('files/results_{next(iter(elements))}.txt', 'a') as f:
-        f.write(f'Element: [type={elementProcess.bpmn_type}, name={elementProcess.name}, id_bpmn={elementProcess.id_bpmn}, instances={{nInstances}}, frequency={{frequency}}, userPool="{", ".join(elementProcess.userPool)}"]')
+        f.write(f"Element: [type={elementProcess.bpmn_type}, name={elementProcess.name}, id_bpmn={elementProcess.id_bpmn}, instances={{nInstances}}, frequency={{frequency}}, userWithoutRole={elementProcess.userWithoutRole}, userWithRole=""" + '{' + f'{elementProcess.userWithRole}' + '}' + f"""]")
     for i in range(nInstances):
         with open('files/results_{next(iter(elements))}.txt', 'a') as f:
             f.write(f'''
