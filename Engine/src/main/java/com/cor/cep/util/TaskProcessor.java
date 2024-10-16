@@ -45,23 +45,9 @@ public class TaskProcessor {
                                 task -> task.getStartTime() != null ? task.getStartTime() : -1L, 
                                 TreeMap::new, Collectors.toList()));
                     // Procesar las tareas agrupadas
-                    for (Map.Entry<Long, List<Task>> entry : groupedTasks.entrySet()) {
-                        Long startTime = entry.getKey();
-                        List<Task> taskList = entry.getValue();
-    
-                        // Imprimir solo una vez el startTime o "Sin StartTime" si es nulo
-                        if (startTime == -1L) {
-                            LOG.info("Enviando tarea sin startTime, con security task activa:");
-                        } else {
-                            LOG.info("Enviando tarea con startTime: {}", startTime);
-                        }
-    
-                        // Imprimir cada tarea con la instancia correspondiente
-                        taskList.forEach(task -> 
-                            LOG.info("Instancia {}: {}", task.getInstance(), task));
-                    }
-    
+                    LOG.error("Puto: " + String.valueOf(tasks.size()));
                     // Manejar cada tarea individualmente para enviar eventos a Esper
+
                     for (Task task : tasks) {
                         taskEventHandler.handle(task);
                     }
@@ -70,6 +56,7 @@ public class TaskProcessor {
         } else {
             LOG.error("No files found in the directory: " + directoryPath);
         }
+        taskEventHandler.writeViolationsToFile("files/violations.txt");
     }    
     
     private List<Task> parseTaskFile(String filePath) {
