@@ -1,0 +1,57 @@
+
+---------------------------------
+- [STANDBY VIOLATION] Detected:
+Instance 3: StandBy on task Activity_00hhbho, start at 4, stops at 80, duration of 76
+---------------------------------
+---------------------------------
+- [STANDBY VIOLATION] Detected:
+Instance 4: StandBy on task Activity_00hhbho, start at 6, stops at 156, duration of 150
+---------------------------------
+---------------------------------
+- [STANDBY VIOLATION] Detected:
+Instance 5: StandBy on task Activity_00hhbho, start at 8, stops at 162, duration of 154
+---------------------------------
+---------------------------------
+- [STANDBY VIOLATION] Detected:
+Instance 2: StandBy on task Activity_1pfsy3u, start at 82, stops at 228, duration of 146
+---------------------------------
+---------------------------------
+- [BOD MONITOR] Binding of Duties violation detected:
+- Parent Task ID: Activity_0k8iux7
+- SubTask 1 ID: Activity_00hhbho
+- SubTask 2 ID: Activity_1pfsy3u
+- Instance: 2
+---------------------------------
+---------------------------------
+- [STANDBY VIOLATION] Detected:
+Instance 3: StandBy on task Activity_1pfsy3u, start at 156, stops at 238, duration of 82
+---------------------------------
+---------------------------------
+- [BOD MONITOR] Binding of Duties violation detected:
+- Parent Task ID: Activity_0k8iux7
+- SubTask 1 ID: Activity_00hhbho
+- SubTask 2 ID: Activity_1pfsy3u
+- Instance: 3
+---------------------------------
+---------------------------------
+- [STANDBY VIOLATION] Detected:
+Instance 4: StandBy on task Activity_1pfsy3u, start at 228, stops at 308, duration of 80
+---------------------------------
+---------------------------------
+- [BOD MONITOR] Binding of Duties violation detected:
+- Parent Task ID: Activity_0k8iux7
+- SubTask 1 ID: Activity_00hhbho
+- SubTask 2 ID: Activity_1pfsy3u
+- Instance: 4
+---------------------------------
+---------------------------------
+- [STANDBY VIOLATION] Detected:
+Instance 5: StandBy on task Activity_1pfsy3u, start at 238, stops at 314, duration of 76
+---------------------------------
+---------------------------------
+- [BOD MONITOR] Binding of Duties violation detected:
+- Parent Task ID: Activity_0k8iux7
+- SubTask 1 ID: Activity_00hhbho
+- SubTask 2 ID: Activity_1pfsy3u
+- Instance: 5
+---------------------------------

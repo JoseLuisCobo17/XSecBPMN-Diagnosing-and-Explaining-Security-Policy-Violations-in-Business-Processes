@@ -44,9 +44,6 @@ public class TaskProcessor {
                             .collect(Collectors.groupingBy(
                                 task -> task.getStartTime() != null ? task.getStartTime() : -1L, 
                                 TreeMap::new, Collectors.toList()));
-                    // Procesar las tareas agrupadas
-                    LOG.error("Puto: " + String.valueOf(tasks.size()));
-                    // Manejar cada tarea individualmente para enviar eventos a Esper
 
                     for (Task task : tasks) {
                         taskEventHandler.handle(task);
@@ -84,6 +81,7 @@ public class TaskProcessor {
         boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
         Integer nu = null, mth = null, instance = null;
         Long startTime = null; 
+        Long stopTime = null;
         Long time = null;
     
         // Comprobar si la línea contiene "Instance"
@@ -155,16 +153,21 @@ public class TaskProcessor {
                 case "startTime":
                     startTime = Long.parseLong(keyValue[1].trim());
                     break;
+                case "stopTime":  // Nueva propiedad stopTime
+                    stopTime = Long.parseLong(keyValue[1].trim());
+                    break;
                 case "time":
                     time = Long.parseLong(keyValue[1].trim());
                     break;
             }
         }
+
+        LOG.info("Parsed Task: stopTime={}", stopTime);
     
-        LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}",
-                  idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks);
+        LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}, stopTime={}",
+                  idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks, stopTime);
     
-        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, time, instance);
+        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, stopTime, time, instance); // Añadido stopTime
     }    
     
 }

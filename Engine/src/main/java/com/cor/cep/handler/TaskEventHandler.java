@@ -80,7 +80,40 @@ public class TaskEventHandler implements InitializingBean {
             List<Task> tasks = obtenerListaDeTareas();
             EPCompiler compiler = EPCompilerProvider.getCompiler();
             CompilerArguments args = new CompilerArguments(configuration);
-              
+   // Crear la consulta EPL para tareas de tipo StandBy con stopTime no nulo
+LOG.debug("Creating StandBy Check Expression");
+String standByEPL = "select * from Task where stopTime is not null";
+
+
+EPCompiled compiledStandBy = compiler.compile(standByEPL, args);
+EPDeployment deploymentStandBy = epRuntime.getDeploymentService().deploy(compiledStandBy);
+EPStatement statementStandBy = deploymentStandBy.getStatements()[0];
+
+statementStandBy.addListener((newData, oldData, stat, rt) -> {
+    
+    if (newData != null && newData.length > 0) {
+        String idBpmn = (String) newData[0].get("idBpmn");
+        Long startTime = (Long) newData[0].get("startTime");
+        Long stopTime = (Long) newData[0].get("stopTime");
+        Long time = (Long) newData[0].get("time");
+        Integer instance = (Integer) newData[0].get("instance");
+
+        // Generar el mensaje de violación
+        String violationMessage = String.format(
+            "Instance %d: StandBy on task %s, start at %d, stops at %d, duration of %d", 
+            instance, idBpmn, startTime, stopTime, time
+        );
+
+        // Añadir la violación al StringBuilder
+        sb.append("\n---------------------------------");
+        sb.append("\n- [STANDBY VIOLATION] Detected:");
+        sb.append("\n").append(violationMessage);
+        sb.append("\n---------------------------------");
+
+        LOG.info("StandBy violation detected and saved: {}", violationMessage);
+    }
+});
+
             // Crear la consulta EPL para BoD
             LOG.debug("Creating Generalized BoD Check Expression");
             String bodEPL = "select parent.idBpmn as parentId, " +
@@ -329,7 +362,16 @@ public void handleTasks(List<Task> tasks) {
         taskList.forEach(task -> {
             LOG.info("Instance {}: {}", task.getInstance(), task);
             epRuntime.getEventService().sendEventBean(task, "Task");
+            LOG.info("Sending task to Esper: {}", task);
+            epRuntime.getEventService().sendEventBean(task, "Task");
+
         });
+
+        tasks.forEach(task -> {
+            LOG.info("Sending task with stopTime: {}", task.getStopTime());
+            epRuntime.getEventService().sendEventBean(task, "Task");
+        });
+        
     });
 }
 
