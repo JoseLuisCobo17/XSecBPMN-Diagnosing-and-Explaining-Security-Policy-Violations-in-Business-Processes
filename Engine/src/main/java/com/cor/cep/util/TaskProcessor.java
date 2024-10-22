@@ -79,7 +79,7 @@ public class TaskProcessor {
         List<String> subTasks = new ArrayList<>();
         List<String> userTasks = new ArrayList<>();
         boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
-        Integer nu = null, mth = null, instance = null;
+        Integer nu = null, mth = null, instance = null, numberOfExecutions = 1; // Añadido numberOfExecutions
         Long startTime = null; 
         Long stopTime = null;
         Long time = null;
@@ -87,7 +87,7 @@ public class TaskProcessor {
         // Comprobar si la línea contiene "Instance"
         if (line.startsWith("Instance")) {
             int colonIndex = line.indexOf(":");
-            if (colonIndex != -1) {  // Verificar si existe el carácter ':'
+            if (colonIndex != -1) {
                 String instancePart = line.substring(0, colonIndex).trim();
                 String[] instanceParts = instancePart.split(" ");
                 if (instanceParts.length == 2) {
@@ -100,7 +100,7 @@ public class TaskProcessor {
                 line = line.substring(colonIndex + 1).trim();
             } else {
                 LOG.error("Instance format incorrect in line: {}", line);
-                return null;  // Saltar la línea si el formato es incorrecto
+                return null;
             }
         }
     
@@ -108,7 +108,7 @@ public class TaskProcessor {
         int closeBracketIndex = line.lastIndexOf("]");
         if (openBracketIndex == -1 || closeBracketIndex == -1) {
             LOG.error("Brackets not found in line: {}", line);
-            return null;  // Saltar la línea si no hay corchetes
+            return null;
         }
     
         String content = line.substring(openBracketIndex + 1, closeBracketIndex);
@@ -117,7 +117,7 @@ public class TaskProcessor {
         for (String part : parts) {
             String[] keyValue = part.split("=", 2);
             if (keyValue.length != 2) {
-                continue;  // Saltar partes que no coinciden con el patrón "key=value"
+                continue;
             }
             switch (keyValue[0].trim()) {
                 case "type":
@@ -153,21 +153,34 @@ public class TaskProcessor {
                 case "startTime":
                     startTime = Long.parseLong(keyValue[1].trim());
                     break;
-                case "stopTime":  // Nueva propiedad stopTime
+                case "stopTime":
                     stopTime = Long.parseLong(keyValue[1].trim());
                     break;
                 case "time":
                     time = Long.parseLong(keyValue[1].trim());
                     break;
+                case "numberOfExecutions":
+                    numberOfExecutions = Integer.parseInt(keyValue[1].trim());
+                    break;
             }
         }
+    
+        LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}, stopTime={}, numberOfExecutions={}",
+                  idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks, stopTime, numberOfExecutions);
+    
+        // Actualización para incluir numberOfExecutions en la llamada al constructor
+        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, stopTime, time, instance, numberOfExecutions);
+    }
 
-        LOG.info("Parsed Task: stopTime={}", stopTime);
+    public void sumNumberOfExecutionsByUser(List<Task> tasks, String userTask) {
+        int sum = 0;
     
-        LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}, stopTime={}",
-                  idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks, stopTime);
-    
-        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, stopTime, time, instance); // Añadido stopTime
-    }    
-    
+        for (Task task : tasks) {
+            if (task.getUserTasks() != null && task.getUserTasks().contains(userTask)) {
+                sum += task.getNumberOfExecutions();
+            }
+        }
+        LOG.info("Sum: " + String.valueOf(sum));
+    }
+        
 }

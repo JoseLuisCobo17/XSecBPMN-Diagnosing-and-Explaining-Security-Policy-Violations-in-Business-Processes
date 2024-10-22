@@ -1,57 +1,29 @@
 
 ---------------------------------
 - [STANDBY VIOLATION] Detected:
-Instance 3: StandBy on task Activity_00hhbho, start at 4, stops at 80, duration of 76
+Instance 3: StandBy on task Activity_0xgdtgn, start at 100, stops at 156, duration of 56
+---------------------------------
+---------------------------------
+- [UOC MONITOR] Usage of Control violation detected:
+- Parent Task ID: Activity_0itt264
+- SubTask ID: Activity_0xgdtgn
+- User(s): jl
+- Total number of executions: 2
+- Maximum allowed: 3
 ---------------------------------
 ---------------------------------
 - [STANDBY VIOLATION] Detected:
-Instance 4: StandBy on task Activity_00hhbho, start at 6, stops at 156, duration of 150
+Instance 4: StandBy on task Activity_0xgdtgn, start at 150, stops at 228, duration of 78
+---------------------------------
+---------------------------------
+- [UOC MONITOR] Usage of Control violation detected:
+- Parent Task ID: Activity_0itt264
+- SubTask ID: Activity_0xgdtgn
+- User(s): 
+- Total number of executions: 1
+- Maximum allowed: 3
 ---------------------------------
 ---------------------------------
 - [STANDBY VIOLATION] Detected:
-Instance 5: StandBy on task Activity_00hhbho, start at 8, stops at 162, duration of 154
----------------------------------
----------------------------------
-- [STANDBY VIOLATION] Detected:
-Instance 2: StandBy on task Activity_1pfsy3u, start at 82, stops at 228, duration of 146
----------------------------------
----------------------------------
-- [BOD MONITOR] Binding of Duties violation detected:
-- Parent Task ID: Activity_0k8iux7
-- SubTask 1 ID: Activity_00hhbho
-- SubTask 2 ID: Activity_1pfsy3u
-- Instance: 2
----------------------------------
----------------------------------
-- [STANDBY VIOLATION] Detected:
-Instance 3: StandBy on task Activity_1pfsy3u, start at 156, stops at 238, duration of 82
----------------------------------
----------------------------------
-- [BOD MONITOR] Binding of Duties violation detected:
-- Parent Task ID: Activity_0k8iux7
-- SubTask 1 ID: Activity_00hhbho
-- SubTask 2 ID: Activity_1pfsy3u
-- Instance: 3
----------------------------------
----------------------------------
-- [STANDBY VIOLATION] Detected:
-Instance 4: StandBy on task Activity_1pfsy3u, start at 228, stops at 308, duration of 80
----------------------------------
----------------------------------
-- [BOD MONITOR] Binding of Duties violation detected:
-- Parent Task ID: Activity_0k8iux7
-- SubTask 1 ID: Activity_00hhbho
-- SubTask 2 ID: Activity_1pfsy3u
-- Instance: 4
----------------------------------
----------------------------------
-- [STANDBY VIOLATION] Detected:
-Instance 5: StandBy on task Activity_1pfsy3u, start at 238, stops at 314, duration of 76
----------------------------------
----------------------------------
-- [BOD MONITOR] Binding of Duties violation detected:
-- Parent Task ID: Activity_0k8iux7
-- SubTask 1 ID: Activity_00hhbho
-- SubTask 2 ID: Activity_1pfsy3u
-- Instance: 5
+Instance 5: StandBy on task Activity_0xgdtgn, start at 200, stops at 296, duration of 96
 ---------------------------------

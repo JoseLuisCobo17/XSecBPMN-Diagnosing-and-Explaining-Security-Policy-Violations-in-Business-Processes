@@ -245,17 +245,17 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
 LOG.debug("Creating UoC Check Expression");
 
 String uocEPL = "select parent.idBpmn as parentId, " +
-    "sub.idBpmn as subTaskId, userTask as userTask, " +
-    "sum(sub.numberOfExecutions) as totalExecutions, " +
+    "sub1.idBpmn as subTaskId, " +
+    "sub1.userTasks as userTask, " +
+    "sub1.instance as instance1, " +
+    "sub1.numberOfExecutions as totalExecutions, " +
     "parent.mth as parentMth " +
-    "from Task#keepall as parent " +
-    "join Task#keepall as sub " +
-    "on sub.idBpmn in (parent.subTasks) " +
-    "and parent.uocSecurity = true " +
-    "and sub.userTasks is not null " +
-    "unpivot userTask for userTask in (sub.userTasks) " +
-    "group by parent.idBpmn, sub.idBpmn, userTask, parent.mth " +
-    "having sum(sub.numberOfExecutions) > parent.mth";
+    "from Task#keepall as parent, Task#keepall as sub1 " +
+    "where parent.uocSecurity = true " +  // Parent task has UoC enabled
+    "and sub1.idBpmn in (parent.subTasks) " +  // Ensure sub1 is a sub-task of parent
+    "and sub1.userTasks is not null " +  // Ensure userTasks is not null for sub1
+    "group by parent.idBpmn, sub1.idBpmn, parent.mth " +  // Added parent.mth to the GROUP BY clause
+    "having sum(sub1.numberOfExecutions) > parent.mth";  // Ensure the sum of executions exceeds parent.mth
 
 EPCompiled compiledUoc = compiler.compile(uocEPL, args);
 EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
@@ -265,8 +265,14 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
         String subTaskId = (String) newData[0].get("subTaskId");
-        String userTask = (String) newData[0].get("userTask");
-        Long totalExecutions = (Long) newData[0].get("totalExecutions");
+
+        // Obtener la lista de userTasks y manejarla como List
+        List<String> userTaskList = (List<String>) newData[0].get("userTask");
+
+        // Si necesitas convertir la lista de tareas de usuario a una cadena
+        String userTask = String.join(", ", userTaskList);
+
+        Integer totalExecutions = (Integer) newData[0].get("totalExecutions");
         Integer maxTimes = (Integer) newData[0].get("parentMth");
 
         // Generar una clave única para la violación
@@ -278,7 +284,7 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
             sb.append("\n- Parent Task ID: ").append(parentId);
             sb.append("\n- SubTask ID: ").append(subTaskId);
-            sb.append("\n- User: ").append(userTask);
+            sb.append("\n- User(s): ").append(userTask); 
             sb.append("\n- Total number of executions: ").append(totalExecutions);
             sb.append("\n- Maximum allowed: ").append(maxTimes != null ? maxTimes : "N/A");
             sb.append("\n---------------------------------");
