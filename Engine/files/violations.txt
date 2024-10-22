@@ -8,7 +8,7 @@ Instance 3: StandBy on task Activity_0xgdtgn, start at 100, stops at 156, durati
 - Parent Task ID: Activity_0itt264
 - SubTask ID: Activity_0xgdtgn
 - User(s): jl
-- Total number of executions: 2
+- Total number of executions (accumulated): 4
 - Maximum allowed: 3
 ---------------------------------
 ---------------------------------
@@ -20,10 +20,50 @@ Instance 4: StandBy on task Activity_0xgdtgn, start at 150, stops at 228, durati
 - Parent Task ID: Activity_0itt264
 - SubTask ID: Activity_0xgdtgn
 - User(s): 
-- Total number of executions: 1
+- Total number of executions (accumulated): 5
+- Maximum allowed: 3
+---------------------------------
+---------------------------------
+- [UOC MONITOR] Usage of Control violation detected:
+- Parent Task ID: Activity_0itt264
+- SubTask ID: Activity_0xgdtgn
+- User(s): jl
+- Total number of executions (accumulated): 7
+- Maximum allowed: 3
+---------------------------------
+---------------------------------
+- [UOC MONITOR] Usage of Control violation detected:
+- Parent Task ID: Activity_0itt264
+- SubTask ID: Activity_0xgdtgn
+- User(s): jl
+- Total number of executions (accumulated): 9
 - Maximum allowed: 3
 ---------------------------------
 ---------------------------------
 - [STANDBY VIOLATION] Detected:
 Instance 5: StandBy on task Activity_0xgdtgn, start at 200, stops at 296, duration of 96
+---------------------------------
+---------------------------------
+- [UOC MONITOR] Usage of Control violation detected:
+- Parent Task ID: Activity_0itt264
+- SubTask ID: Activity_0xgdtgn
+- User(s): 
+- Total number of executions (accumulated): 10
+- Maximum allowed: 3
+---------------------------------
+---------------------------------
+- [UOC MONITOR] Usage of Control violation detected:
+- Parent Task ID: Activity_0itt264
+- SubTask ID: Activity_0xgdtgn
+- User(s): jl
+- Total number of executions (accumulated): 12
+- Maximum allowed: 3
+---------------------------------
+---------------------------------
+- [UOC MONITOR] Usage of Control violation detected:
+- Parent Task ID: Activity_0itt264
+- SubTask ID: Activity_0xgdtgn
+- User(s): jl
+- Total number of executions (accumulated): 14
+- Maximum allowed: 3
 ---------------------------------

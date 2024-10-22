@@ -243,7 +243,7 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
 
 // Crear la consulta EPL para UoC
 LOG.debug("Creating UoC Check Expression");
-
+System.out.println("hola" );
 String uocEPL = "select parent.idBpmn as parentId, " +
     "sub1.idBpmn as subTaskId, " +
     "sub1.userTasks as userTask, " +
@@ -257,42 +257,64 @@ String uocEPL = "select parent.idBpmn as parentId, " +
     "group by parent.idBpmn, sub1.idBpmn, parent.mth " +  // Added parent.mth to the GROUP BY clause
     "having sum(sub1.numberOfExecutions) > parent.mth";  // Ensure the sum of executions exceeds parent.mth
 
-EPCompiled compiledUoc = compiler.compile(uocEPL, args);
-EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
-EPStatement statementUoc = deploymentUoc.getStatements()[0];
+    System.out.println("Compiling UoC EPL...");
+    EPCompiled compiledUoc = compiler.compile(uocEPL, args);
+    System.out.println("Deploying UoC EPL...");
+    EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
+    System.out.println("EPL Deployed Successfully!");
+    EPStatement statementUoc = deploymentUoc.getStatements()[0];
+
+// Map para acumular ejecuciones por sub-tarea
+Map<String, Integer> executionSums = new HashMap<>();  
+System.out.println("executionSums" + executionSums);
+
+// Map para almacenar el último valor reportado de ejecuciones acumuladas
+Map<String, Integer> reportedUocViolations = new HashMap<>();
 
 statementUoc.addListener((newData, oldData, stat, rt) -> {
+    System.out.println("adios" );
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
         String subTaskId = (String) newData[0].get("subTaskId");
-
+        System.out.println("Parent ID: " + parentId + ", SubTask ID: " + subTaskId );
+        
         // Obtener la lista de userTasks y manejarla como List
         List<String> userTaskList = (List<String>) newData[0].get("userTask");
 
         // Si necesitas convertir la lista de tareas de usuario a una cadena
         String userTask = String.join(", ", userTaskList);
 
-        Integer totalExecutions = (Integer) newData[0].get("totalExecutions");
+        // Número actual de ejecuciones reportadas para esta sub-tarea
+        Integer currentExecutions = (Integer) newData[0].get("totalExecutions");
+        // Número máximo permitido de ejecuciones (parent.mth)
         Integer maxTimes = (Integer) newData[0].get("parentMth");
 
-        // Generar una clave única para la violación
-        String violationKey = parentId + "|" + subTaskId + "|" + userTask;
+        // Generar una clave única para identificar el sub-task
+        String taskKey = parentId + "|" + subTaskId;
 
-        // Verificar si la violación ya ha sido reportada
-        if (!reportedUocViolations.contains(violationKey)) {
-            sb.append("\n---------------------------------");
-            sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
-            sb.append("\n- Parent Task ID: ").append(parentId);
-            sb.append("\n- SubTask ID: ").append(subTaskId);
-            sb.append("\n- User(s): ").append(userTask); 
-            sb.append("\n- Total number of executions: ").append(totalExecutions);
-            sb.append("\n- Maximum allowed: ").append(maxTimes != null ? maxTimes : "N/A");
-            sb.append("\n---------------------------------");
+        // Acumular el número de ejecuciones en el mapa
+        executionSums.put(taskKey, executionSums.getOrDefault(taskKey, 0) + currentExecutions);
+        System.out.println("executionSums2" + executionSums);
+        // Obtener el total acumulado
+        int accumulatedExecutions = executionSums.get(taskKey);
+        System.out.println("accumulatedExecutions" + accumulatedExecutions);
+        
+        // Verificar si el acumulado ya excede el máximo permitido
+        if (accumulatedExecutions > maxTimes) {
+            // Verificar si esta acumulación ya ha sido reportada
+            if (!reportedUocViolations.containsKey(taskKey) || accumulatedExecutions > reportedUocViolations.get(taskKey)) {
+                sb.append("\n---------------------------------");
+                sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
+                sb.append("\n- Parent Task ID: ").append(parentId);
+                sb.append("\n- SubTask ID: ").append(subTaskId);
+                sb.append("\n- User(s): ").append(userTask); 
+                sb.append("\n- Total number of executions (accumulated): ").append(accumulatedExecutions);
+                sb.append("\n- Maximum allowed: ").append(maxTimes != null ? maxTimes : "N/A");
+                sb.append("\n---------------------------------");
 
-            // Agregar la violación al conjunto
-            reportedUocViolations.add(violationKey);
-        } else {
-            LOG.debug("UoC violation already reported for key: " + violationKey);
+                // Actualizar el mapa con el último nivel reportado de ejecuciones acumuladas
+                reportedUocViolations.put(taskKey, accumulatedExecutions);
+            }
         }
     }
 });
