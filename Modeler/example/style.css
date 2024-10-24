@@ -277,3 +277,61 @@ body:not(.presentation-mode) .bts-notifications {
   background-color: darkred;
 }
 
+/* Estilos para el modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Fondo oscuro para overlay */
+  z-index: 999;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background-color: #EFEFEF; /* Fondo del modal */
+  color: #212121; /* Color del texto */
+  padding: 30px;
+  border-radius: 8px; /* Bordes redondeados */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4); /* Sombra del modal */
+  max-width: 80vw;
+  max-height: 80vh;
+  width: 80vw;
+  height: auto;
+  overflow-y: auto;
+}
+
+.modal pre {
+  white-space: pre-wrap; /* Ajuste para que el texto largo se ajuste */
+  background-color: #EFEFEF;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  color: #212121;
+  font-size: 14px;
+}
+
+.modal button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: var(--token-simulation-silver-darken-94, #EFEFEF); /* Fondo igual que el botón activo */
+  color: var(--token-simulation-grey-darken-30, #212121); /* Color de texto consistente */
+  cursor: pointer;
+  border: none; /* Sin borde */
+  border-radius: 6px; /* Bordes redondeados */
+  font-size: 16px; /* Tamaño de fuente */
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra ligera */
+}
+
+.modal button:hover {
+  color: var(--token-simulation-white, #FFFFFF); /* Texto en blanco al hacer hover */
+  background-color: var(--token-simulation-green-base-44, #10D070); /* Fondo verde al hacer hover */
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Sombra más fuerte al hacer hover */
+}
+

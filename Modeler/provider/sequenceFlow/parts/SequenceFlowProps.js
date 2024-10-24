@@ -28,7 +28,6 @@ function PercentageofBranchesFunction(props) {
       return '';
     }
     const value = element.businessObject.percentageOfBranches;
-    console.log('Current percentageOfBranches value (getValue):', value);
 
     // Si el valor es `NaN` o no es un número válido, retornar cadena vacía para permitir edición
     return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';

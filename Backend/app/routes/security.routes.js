@@ -26,4 +26,7 @@ module.exports = function(app) {
     // Delete a Security with securityId
     app.delete('/securities/:securityId', securities.delete);
 
+    // Ruta para obtener el contenido de violations.txt
+    app.get('/get-violations', securities.getViolations);
+
 };

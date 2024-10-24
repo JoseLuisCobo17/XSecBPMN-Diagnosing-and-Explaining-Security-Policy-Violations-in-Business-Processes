@@ -2,6 +2,19 @@ const Security = require('../models/security.model.js');
 const fs = require('fs');
 const path = require('path');
 
+exports.getViolations = (req, res) => {
+    const filePath = path.join(__dirname, '..', '..', '..', 'Modeler', 'example', 'src', 'files', 'violations.txt');
+    console.log('Ruta completa del archivo:', filePath);
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error al leer violations.txt:', err);
+            return res.status(500).send({ message: 'Error al leer violations.txt' });
+        }
+        res.send({ content: data });
+    });
+};
+
 // Create and Save a new Security task
 exports.create = function (req, res) {
     console.log('Received create request with body:', req.body);  // Depuración

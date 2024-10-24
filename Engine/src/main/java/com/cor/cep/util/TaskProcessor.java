@@ -53,7 +53,7 @@ public class TaskProcessor {
         } else {
             LOG.error("No files found in the directory: " + directoryPath);
         }
-        taskEventHandler.writeViolationsToFile("files/violations.txt");
+        taskEventHandler.writeViolationsToFile("../Modeler/example/src/files/violations.txt");
     }    
     
     private List<Task> parseTaskFile(String filePath) {

@@ -44,7 +44,6 @@ function UserFunction(props) {
       return ''; 
     }
     const value = element.businessObject.UserTask; 
-    console.log('Current UserTask value (getValue):', value);
     return value !== undefined ? value : ''; 
   };
 
@@ -132,7 +131,6 @@ function maximumTimeFunction(props) {
       return '';
     }
     const value = element.businessObject.maximumTime;
-    console.log('Current maximumTime value (getValue):', value);
     return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
@@ -196,7 +194,6 @@ function minimumTimeFunction(props) {
       return '';
     }
     const value = element.businessObject.minimumTime;
-    console.log('Current minimumTime value (getValue):', value);
     return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 

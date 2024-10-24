@@ -85,7 +85,6 @@ function MthFunction(props) {
       return '';
     }
     const value = element.businessObject.Mth;
-    console.log('Current Mth value (getValue):', value);
     return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 

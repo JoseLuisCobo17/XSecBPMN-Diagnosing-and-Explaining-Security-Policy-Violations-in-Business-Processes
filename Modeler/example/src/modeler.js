@@ -184,6 +184,28 @@ $('#js-download-esper').off('click').on('click', async function(e) {
   }
 });
 
+// Mostrar violaciones al hacer clic en el botón
+$('#js-show-violations').off('click').on('click', function(e) {
+  e.preventDefault();
+  
+  // Hacer la solicitud al servidor para obtener el archivo violations.txt
+  fetch('http://localhost:3000/get-violations')
+    .then(response => response.json())
+    .then(data => {
+        // Mostrar el contenido de las violaciones en el modal
+        document.querySelector('#modal-content').textContent = data.content;
+        document.querySelector('.modal-overlay').style.display = 'block'; // Mostrar el modal
+    })
+    .catch(err => {
+        console.error('Error al obtener violations.txt:', err);
+        alert('Error al obtener violations.txt');
+    });
+});
+
+// Cerrar el modal al hacer clic en el botón "Aceptar"
+document.getElementById('close-modal').addEventListener('click', function() {
+  document.querySelector('.modal-overlay').style.display = 'none'; // Ocultar el modal
+});
 
   // Función para descargar el diagrama como XML (BPMN)
   function downloadDiagram() {
