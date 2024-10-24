@@ -11,7 +11,18 @@ exports.getViolations = (req, res) => {
             console.error('Error al leer violations.txt:', err);
             return res.status(500).send({ message: 'Error al leer violations.txt' });
         }
+
+        // Enviar el contenido del archivo
         res.send({ content: data });
+
+        // Eliminar el archivo después de enviarlo
+        fs.unlink(filePath, (unlinkErr) => {
+            if (unlinkErr) {
+                console.error('Error al eliminar violations.txt:', unlinkErr);
+            } else {
+                console.log('violations.txt eliminado correctamente.');
+            }
+        });
     });
 };
 
