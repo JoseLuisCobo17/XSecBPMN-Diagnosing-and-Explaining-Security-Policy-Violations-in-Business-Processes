@@ -160,46 +160,39 @@ $('#js-download-esper').off('click').on('click', async function(e) {
   console.log('Guardado iniciado');
 
   try {
-    // Exportar el contenido a Esper
-    const content = await exportToEsper(bpmnModeler);
+      // Exportar el contenido a Esper
+      const content = await exportToEsper(bpmnModeler);
 
-    // Configura la solicitud POST para guardar el archivo
-    const saveResponse = await fetch('http://localhost:3000/save-esper-file', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ content, filename: 'esperTasks.txt' }),
-    });
+      // Configura la solicitud POST para guardar el archivo
+      const saveResponse = await fetch('http://localhost:3000/save-esper-file', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content, filename: 'esperTasks.txt' }),
+      }) 
+      .then(response => response.json())
+      .then(data => {
+          // Mostrar el contenido de las violaciones en el modal
+          document.querySelector('#modal-content').textContent = data.content;
+          document.querySelector('.modal-overlay').style.display = 'block'; // Mostrar el modal
+      })
+      .catch(err => {
+          console.error('Error al obtener violations.txt:', err);
+          alert('Error al obtener violations.txt');
+      });
 
-    if (!saveResponse.ok) {
-      throw new Error(`Error al guardar el archivo: ${saveResponse.statusText}`);
-    }
+      if (!saveResponse.ok) {
+          throw new Error(`Error al guardar el archivo: ${saveResponse.statusText}`);
+      }
 
-    console.log('Archivo guardado en la carpeta del proyecto');
+      console.log('Archivo guardado en la carpeta del proyecto');
+      
   } catch (err) {
-    console.error('Error al exportar a Esper:', err);
+      console.error('Error al exportar a Esper:', err);
   } finally {
-    console.log('Proceso de guardado completado');
+      console.log('Proceso de guardado completado');
   }
-});
-
-// Mostrar violaciones al hacer clic en el botón
-$('#js-show-violations').off('click').on('click', function(e) {
-  e.preventDefault();
-  
-  // Hacer la solicitud al servidor para obtener el archivo violations.txt
-  fetch('http://localhost:3000/get-violations')
-    .then(response => response.json())
-    .then(data => {
-        // Mostrar el contenido de las violaciones en el modal
-        document.querySelector('#modal-content').textContent = data.content;
-        document.querySelector('.modal-overlay').style.display = 'block'; // Mostrar el modal
-    })
-    .catch(err => {
-        console.error('Error al obtener violations.txt:', err);
-        alert('Error al obtener violations.txt');
-    });
 });
 
 // Cerrar el modal al hacer clic en el botón "Aceptar"

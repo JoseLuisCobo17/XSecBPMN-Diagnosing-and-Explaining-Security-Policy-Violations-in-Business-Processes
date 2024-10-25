@@ -27,6 +27,6 @@ module.exports = function(app) {
     app.delete('/securities/:securityId', securities.delete);
 
     // Ruta para obtener el contenido de violations.txt
-    app.get('/get-violations', securities.getViolations);
+    //app.get('/get-violations', securities.getViolations);
 
 };

@@ -2,30 +2,6 @@ const Security = require('../models/security.model.js');
 const fs = require('fs');
 const path = require('path');
 
-exports.getViolations = (req, res) => {
-    const filePath = path.join(__dirname, '..', '..', '..', 'Modeler', 'example', 'src', 'files', 'violations.txt');
-    console.log('Ruta completa del archivo:', filePath);
-
-    fs.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-            console.error('Error al leer violations.txt:', err);
-            return res.status(500).send({ message: 'Error al leer violations.txt' });
-        }
-
-        // Enviar el contenido del archivo
-        res.send({ content: data });
-
-        // Eliminar el archivo después de enviarlo
-        fs.unlink(filePath, (unlinkErr) => {
-            if (unlinkErr) {
-                console.error('Error al eliminar violations.txt:', unlinkErr);
-            } else {
-                console.log('violations.txt eliminado correctamente.');
-            }
-        });
-    });
-};
-
 // Create and Save a new Security task
 exports.create = function (req, res) {
     console.log('Received create request with body:', req.body);  // Depuración
@@ -233,6 +209,7 @@ exports.saveEsperFile = (req, res) => {
                     }
 
                     // Iterar sobre los archivos y eliminarlos
+                    
                     files.forEach(file => {
                         const filePath = path.join(FILES_DIRECTORY, file);
                         fs.unlink(filePath, (unlinkErr) => {
@@ -244,13 +221,34 @@ exports.saveEsperFile = (req, res) => {
                         });
                     });
 
-                    // Enviar la respuesta después de eliminar los archivos
-                    res.status(200).send({ message: 'Archivo guardado, simulador y mvn exec:java ejecutados exitosamente. Todos los archivos eliminados.' });
+                    const violationsFilePath = path.join(__dirname, '..', '..', '..', 'Modeler', 'example', 'src', 'files', 'violations.txt');
+                    console.log('Ruta completa del archivo violations.txt:', violationsFilePath);
+
+                    fs.readFile(violationsFilePath, 'utf8', (err, data) => {
+                        if (err) {
+                            console.error('Error al leer violations.txt:', err);
+                            return res.status(500).send({ message: 'Error al leer violations.txt' });
+                        }
+
+                        // Enviar el contenido del archivo
+                        res.send({ content: data });
+
+                        // Eliminar el archivo después de enviarlo
+                        
+                        fs.unlink(violationsFilePath, (unlinkErr) => {
+                            if (unlinkErr) {
+                                console.error('Error al eliminar violations.txt:', unlinkErr);
+                            } else {
+                                console.log('violations.txt eliminado correctamente.');
+                            }
+                        });
+                    });
                 });
             });
         });
     });
 };
+
 
 exports.findAll = async function (req, res) {
     try {
