@@ -227,7 +227,10 @@ function exportToEsper(bpmnModeler) {
           content += `mth=${element.Mth}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
-        } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask') {
+        } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask'
+          || element.type === 'bpmn:SendTask' || element.type === 'bpmn:RecieveTask' || element.type === 'bpmn:BussinesRuleTask'
+          || element.type === 'bpmn:ScriptTask' || element.type === 'bpmn:CallActivity'
+        ) {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
           content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
