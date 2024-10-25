@@ -123,6 +123,7 @@ function getAllRelevantTasks(bpmnModeler) {
     e.type === 'bpmn:EndEvent' ||
     e.type === 'bpmn:Process' ||
     e.type === 'bpmn:SequenceFlow' ||
+    e.type === 'bpmn:MessageFlow' || // Añadir MessageFlow
     e.type.startsWith('bpmn:')
   );
 
@@ -130,7 +131,7 @@ function getAllRelevantTasks(bpmnModeler) {
     var businessObject = e.businessObject;
 
     var subTasks = [];
-    if (e.type === 'bpmn:SequenceFlow') {
+    if (e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') { // Incluir MessageFlow
       subTasks = (businessObject.targetRef && businessObject.targetRef.$type.includes('Task')) ?
         [businessObject.targetRef.id] : [];
     } else {
@@ -138,19 +139,19 @@ function getAllRelevantTasks(bpmnModeler) {
     }
 
     var subElement = '';
-    if (e.type === 'bpmn:SequenceFlow' && businessObject.targetRef) {
+    if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.targetRef) { // Incluir MessageFlow
       subElement = businessObject.targetRef.id;
     }
 
     var superElement = [];
-    if (e.type !== 'bpmn:SequenceFlow' && businessObject.incoming) {
+    if (e.type !== 'bpmn:SequenceFlow' && e.type !== 'bpmn:MessageFlow' && businessObject.incoming) { // Excluir MessageFlow
       superElement = businessObject.incoming.map(flow => {
         if (flow.sourceRef) {
           return flow.sourceRef.id;
         }
         return null;
       }).filter(id => id !== null);
-    } else if (e.type === 'bpmn:SequenceFlow' && businessObject.sourceRef) {
+    } else if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.sourceRef) { // Incluir MessageFlow
       superElement = [businessObject.sourceRef.id];
     }
 
@@ -158,7 +159,7 @@ function getAllRelevantTasks(bpmnModeler) {
     const isUserTask = e.type === 'bpmn:UserTask';
     const isTask = e.type === 'bpmn:Task' || isUserTask;
     const isProcess = e.type === 'bpmn:Process';
-    const isSequenceFlow = e.type === 'bpmn:SequenceFlow';
+    const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow'; // Añadir MessageFlow
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
 
@@ -216,6 +217,13 @@ function exportToEsper(bpmnModeler) {
           const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
           content += `superElement="${superElement}", `;
           content += `subElement="${element.subElement || 'No Sub Element'}"]\n`;
+        } else if (element.type === 'bpmn:MessageFlow') {
+          content += `Element: [type=${element.type}, `;
+          content += `name=${element.name || 'Unnamed'}, `;
+          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+          const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
+          content += `superElement="${superElement}", `;
+          content += `subElement="${element.subElement || 'No Sub Element'}"]\n`;
         } else if (element.type === 'bpmn:ServiceTask') {
           content += `Element: [type=${element.type}, `;
           content += `name=${element.name || 'Unnamed'}, `;
@@ -247,12 +255,10 @@ function exportToEsper(bpmnModeler) {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
 
-          // Ajuste para userWithoutRole en formato array
           const userWithoutRole = element.userWithoutRole ? 
             element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') : '""';
           content += `userWithoutRole=[${userWithoutRole}], `;
 
-          // Ajuste para userWithRole en formato de objeto
           const userWithRole = element.userWithRole ? 
             Object.entries(element.userWithRole).map(([role, users]) => 
               `"${role}": [${users.split(', ').map(u => `"${u}"`).join(', ')}]`).join(', ') : '{}';
