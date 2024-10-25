@@ -314,8 +314,6 @@ exports.update = async function (req, res) {
         if (req.body.User !== undefined) security.User = req.body.User;
         if (req.body.Log !== undefined) security.Log = req.body.Log;
         if (req.body.SubTasks !== undefined) security.SubTasks = req.body.SubTasks;
-
-        // Nuevas propiedades añadidas
         if (req.body.NumberOfExecutions !== undefined) security.NumberOfExecutions = req.body.NumberOfExecutions;
         if (req.body.AverageTimeEstimate !== undefined) security.AverageTimeEstimate = req.body.AverageTimeEstimate;
         if (req.body.Instance !== undefined) security.Instance = req.body.Instance;

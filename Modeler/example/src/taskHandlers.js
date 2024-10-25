@@ -123,7 +123,8 @@ function getAllRelevantTasks(bpmnModeler) {
     e.type === 'bpmn:EndEvent' ||
     e.type === 'bpmn:Process' ||
     e.type === 'bpmn:SequenceFlow' ||
-    e.type === 'bpmn:MessageFlow' || // Añadir MessageFlow
+    e.type === 'bpmn:MessageFlow' ||
+    e.type === 'bpmn:IntermediateCatchEvent' ||
     e.type.startsWith('bpmn:')
   );
 
@@ -131,7 +132,7 @@ function getAllRelevantTasks(bpmnModeler) {
     var businessObject = e.businessObject;
 
     var subTasks = [];
-    if (e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') { // Incluir MessageFlow
+    if (e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') {
       subTasks = (businessObject.targetRef && businessObject.targetRef.$type.includes('Task')) ?
         [businessObject.targetRef.id] : [];
     } else {
@@ -139,19 +140,19 @@ function getAllRelevantTasks(bpmnModeler) {
     }
 
     var subElement = '';
-    if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.targetRef) { // Incluir MessageFlow
+    if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.targetRef) {
       subElement = businessObject.targetRef.id;
     }
 
     var superElement = [];
-    if (e.type !== 'bpmn:SequenceFlow' && e.type !== 'bpmn:MessageFlow' && businessObject.incoming) { // Excluir MessageFlow
+    if (e.type !== 'bpmn:SequenceFlow' && e.type !== 'bpmn:MessageFlow' && businessObject.incoming) {
       superElement = businessObject.incoming.map(flow => {
         if (flow.sourceRef) {
           return flow.sourceRef.id;
         }
         return null;
       }).filter(id => id !== null);
-    } else if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.sourceRef) { // Incluir MessageFlow
+    } else if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.sourceRef) {
       superElement = [businessObject.sourceRef.id];
     }
 
@@ -159,9 +160,17 @@ function getAllRelevantTasks(bpmnModeler) {
     const isUserTask = e.type === 'bpmn:UserTask';
     const isTask = e.type === 'bpmn:Task' || isUserTask;
     const isProcess = e.type === 'bpmn:Process';
-    const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow'; // Añadir MessageFlow
+    const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow'; 
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
+
+    let time = null;
+    if (businessObject.eventDefinitions && businessObject.eventDefinitions.length > 0) {
+      const timerEventDef = businessObject.eventDefinitions.find(def => def.$type === 'bpmn:TimerEventDefinition');
+      if (timerEventDef && timerEventDef.timeDuration) {
+        time = timerEventDef.timeDuration.body || '';
+      }
+    }
 
     const userTasks = Array.isArray(businessObject.UserTask) ? businessObject.UserTask : [businessObject.UserTask || ''];
     const numberOfExecutions = businessObject.NumberOfExecutions || 0;
@@ -194,6 +203,7 @@ function getAllRelevantTasks(bpmnModeler) {
       MinimumTime: minimumTime,
       MaximumTime: maximumTime,
       UserInstance: instance,
+      time: time,
       userWithoutRole: isProcess ? (businessObject.userWithoutRole || '') : '',
       userWithRole: userWithRole 
     };
@@ -207,27 +217,19 @@ function exportToEsper(bpmnModeler) {
 
       let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
-        if (element.type === 'bpmn:SequenceFlow') {
-          content += `Element: [type=${element.type}, `;
-          content += `name=${element.name || 'Unnamed'}, `;
-          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
-          if (element.PercentageOfBranches && element.PercentageOfBranches !== 'N/A') {
-            content += `percentageOfBranches=${element.PercentageOfBranches}, `;
-          }
-          const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
-          content += `superElement="${superElement}", `;
-          content += `subElement="${element.subElement || 'No Sub Element'}"]\n`;
-        } else if (element.type === 'bpmn:MessageFlow') {
-          content += `Element: [type=${element.type}, `;
-          content += `name=${element.name || 'Unnamed'}, `;
-          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+        content += `Element: [type=${element.type}, `;
+        content += `name=${element.name || 'Unnamed'}, `;
+        content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+
+        if (element.time) {
+          content += `time=${element.time}, `;
+        }
+
+        if (element.type === 'bpmn:SequenceFlow' || element.type === 'bpmn:MessageFlow') {
           const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
           content += `superElement="${superElement}", `;
           content += `subElement="${element.subElement || 'No Sub Element'}"]\n`;
         } else if (element.type === 'bpmn:ServiceTask') {
-          content += `Element: [type=${element.type}, `;
-          content += `name=${element.name || 'Unnamed'}, `;
-          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
           content += `sodSecurity=${element.Sod}, `;
           content += `bodSecurity=${element.Bod}, `;
           content += `uocSecurity=${element.Uoc}, `;
@@ -236,12 +238,9 @@ function exportToEsper(bpmnModeler) {
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask'
-          || element.type === 'bpmn:SendTask' || element.type === 'bpmn:RecieveTask' || element.type === 'bpmn:BussinesRuleTask'
+          || element.type === 'bpmn:SendTask' || element.type === 'bpmn:ReceiveTask' || element.type === 'bpmn:BusinessRuleTask'
           || element.type === 'bpmn:ScriptTask' || element.type === 'bpmn:CallActivity'
         ) {
-          content += `Element: [type=${element.type}, `;
-          content += `name=${element.name || 'Unnamed'}, `;
-          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
           content += `userTask="${element.UserTask || '""'}", `;
           content += `numberOfExecutions=${element.NumberOfExecutions}, `;
           content += `minimumTime=${element.MinimumTime}, `;
@@ -249,9 +248,6 @@ function exportToEsper(bpmnModeler) {
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Process') {
-          content += `Element: [type=${element.type}, `;
-          content += `name=${element.name || 'Unnamed'}, `;
-          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
 
@@ -264,9 +260,6 @@ function exportToEsper(bpmnModeler) {
               `"${role}": [${users.split(', ').map(u => `"${u}"`).join(', ')}]`).join(', ') : '{}';
           content += `userWithRole={${userWithRole}}]\n`;
         } else {
-          content += `Element: [type=${element.type}, `;
-          content += `name=${element.name || 'Unnamed'}, `;
-          content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         }
