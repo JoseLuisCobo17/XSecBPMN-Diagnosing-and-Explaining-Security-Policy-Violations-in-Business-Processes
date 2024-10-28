@@ -16,7 +16,6 @@ exports.create = function (req, res) {
         Bod: req.body.Bod === true,
         Sod: req.body.Sod === true,
         Uoc: req.body.Uoc === true,
-        Nu: Number(req.body.Nu),
         Mth: Number(req.body.Mth),
         P: Number(req.body.P),
         User: req.body.User || '',
@@ -308,7 +307,6 @@ exports.update = async function (req, res) {
         if (req.body.Bod !== undefined) security.Bod = req.body.Bod;
         if (req.body.Sod !== undefined) security.Sod = req.body.Sod;
         if (req.body.Uoc !== undefined) security.Uoc = req.body.Uoc;
-        if (req.body.Nu !== undefined) security.Nu = req.body.Nu;
         if (req.body.Mth !== undefined) security.Mth = req.body.Mth;
         if (req.body.P !== undefined) security.P = req.body.P;
         if (req.body.User !== undefined) security.User = req.body.User;

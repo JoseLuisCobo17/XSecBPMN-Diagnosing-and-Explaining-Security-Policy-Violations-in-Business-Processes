@@ -14,9 +14,9 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
   this.getGroups = function(element) {
     return function(groups) {
       if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'SoD') {
-        groups.push(createSoDGroup(element, translate));
+        return groups;
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'BoD') {
-        groups.push(createBoDGroup(element, translate));
+        return groups;
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'UoC') {
         groups.push(createUoCGroup(element, translate));
       } else if (is(element, 'bpmn:ManualTask') || is(element, 'bpmn:UserTask') || (is(element, 'bpmn:Task') 
@@ -41,30 +41,6 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
 }
 
 SecurityPropertiesProvider.$inject = ['propertiesPanel', 'translate'];
-
-// Crear el grupo personalizado para SoD
-function createSoDGroup(element, translate) {
-  const securityGroup = {
-    id: 'security-sod',
-    label: translate('SoD properties'),
-    entries: SecurityProps(element),
-    tooltip: translate('Ensure proper SoD management!')
-  };
-
-  return securityGroup;
-}
-
-// Crear el grupo personalizado para BoD
-function createBoDGroup(element, translate) {
-  const securityGroup = {
-    id: 'security-bod',
-    label: translate('BoD properties'),
-    entries: SecurityProps(element),
-    tooltip: translate('Ensure proper BoD management!')
-  };
-
-  return securityGroup;
-}
 
 // Crear el grupo personalizado para UoC
 function createUoCGroup(element, translate) {

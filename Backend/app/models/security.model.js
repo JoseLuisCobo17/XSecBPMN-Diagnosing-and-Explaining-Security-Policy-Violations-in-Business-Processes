@@ -12,7 +12,6 @@ var SecuritySchema = mongoose.Schema({
             UserTask: String  // Agregar el campo UserTask aquí
         }
     ],
-    Nu: Number,
     Mth: Number,
     P: Number,
     User: String,
