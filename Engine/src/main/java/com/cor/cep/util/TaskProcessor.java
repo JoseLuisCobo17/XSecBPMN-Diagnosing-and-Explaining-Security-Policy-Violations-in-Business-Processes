@@ -61,7 +61,8 @@ public class TaskProcessor {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.startsWith("Element:") || line.startsWith("Instance")) {
+                if (line.startsWith("Element:") || line.startsWith("Instance") 
+                || line.startsWith("Priority")) {
                     Task task = parseTaskLine(line);
                     if (task != null) {
                         tasks.add(task);
