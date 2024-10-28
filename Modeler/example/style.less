@@ -127,3 +127,60 @@ a:link {
     min-height:100%;
   }
 }
+
+/* Estilos para el modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Fondo más oscuro */
+  z-index: 999;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background-color: #EFEFEF; /* Fondo acorde al tema */
+  color: #212121; /* Color de texto consistente */
+  padding: 30px;
+  border-radius: 8px; /* Bordes más redondeados */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4); /* Sombra más suave y prominente */
+  max-width: 80vw;  /* Máximo 80% del ancho del viewport */
+  max-height: 80vh; /* Máximo 80% del alto del viewport */
+  width: 80vw;  /* Fijar el ancho al 80% del viewport */
+  height: 80vh; /* Fijar la altura al 80% del viewport */
+  overflow-y: auto; /* Scroll en el modal si el contenido es muy largo */
+}
+
+.modal pre {
+  white-space: pre-wrap; /* Ajuste de texto largo */
+  background-color: #EFEFEF; /* Fondo acorde */
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  color: #212121; /* Color del texto */
+  font-size: 14px; /* Tamaño de fuente ligeramente más grande */
+}
+
+.modal button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #EFEFEF; /* Fondo acorde */
+  color: #212121; /* Color del texto */
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: background-color 0.3s ease; /* Transición suave */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Sombra para el botón */
+}
+
+.modal button:hover {
+  background-color: #10D070; /* Cambio de color en hover */
+  color: #FFFFFF;
+}

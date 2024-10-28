@@ -146,7 +146,6 @@ function userWithoutRoleFunction(props) {
       return ''; 
     }
     const value = element.businessObject.userWithoutRole; 
-    console.log('Current userWithoutRole value (getValue):', value);
     return value !== undefined ? value : ''; 
   };
 
@@ -282,7 +281,6 @@ function userWithRoleFunction(props) {
 }
 
 function isNumberEntryEdited(element) {
-  console.log("element:", element.businessObject);
 
   if (!element || !element.businessObject) {
     return '';

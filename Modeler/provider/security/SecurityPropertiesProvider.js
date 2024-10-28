@@ -19,7 +19,10 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
         groups.push(createBoDGroup(element, translate));
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'UoC') {
         groups.push(createUoCGroup(element, translate));
-      } else if (is(element, 'bpmn:ManualTask') || is(element, 'bpmn:UserTask') || (is(element, 'bpmn:Task') && !is(element, 'bpmn:BusinessRuleTask') && !is(element, 'bpmn:ScriptTask') && !is(element, 'bpmn:ServiceTask') && !is(element, 'bpmn:SendTask') && !is(element, 'bpmn:ReceiveTask'))) {
+      } else if (is(element, 'bpmn:ManualTask') || is(element, 'bpmn:UserTask') || (is(element, 'bpmn:Task') 
+        || is(element, 'bpmn:BusinessRuleTask') || is(element, 'bpmn:ScriptTask') || is(element, 'bpmn:CallActivity') 
+        || is(element, 'bpmn:SendTask') || is(element, 'bpmn:ReceiveTask')
+        && !is(element, 'bpmn:ServiceTask'))) {
         groups.push(createUserGroup(element, translate));
       } else if (is(element, 'bpmn:SequenceFlow')) {
         const sourceElement = element.businessObject.sourceRef;

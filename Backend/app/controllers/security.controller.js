@@ -209,6 +209,7 @@ exports.saveEsperFile = (req, res) => {
                     }
 
                     // Iterar sobre los archivos y eliminarlos
+                    
                     files.forEach(file => {
                         const filePath = path.join(FILES_DIRECTORY, file);
                         fs.unlink(filePath, (unlinkErr) => {
@@ -220,13 +221,34 @@ exports.saveEsperFile = (req, res) => {
                         });
                     });
 
-                    // Enviar la respuesta después de eliminar los archivos
-                    res.status(200).send({ message: 'Archivo guardado, simulador y mvn exec:java ejecutados exitosamente. Todos los archivos eliminados.' });
+                    const violationsFilePath = path.join(__dirname, '..', '..', '..', 'Modeler', 'example', 'src', 'files', 'violations.txt');
+                    console.log('Ruta completa del archivo violations.txt:', violationsFilePath);
+
+                    fs.readFile(violationsFilePath, 'utf8', (err, data) => {
+                        if (err) {
+                            console.error('Error al leer violations.txt:', err);
+                            return res.status(500).send({ message: 'Error al leer violations.txt' });
+                        }
+
+                        // Enviar el contenido del archivo
+                        res.send({ content: data });
+
+                        // Eliminar el archivo después de enviarlo
+                        
+                        fs.unlink(violationsFilePath, (unlinkErr) => {
+                            if (unlinkErr) {
+                                console.error('Error al eliminar violations.txt:', unlinkErr);
+                            } else {
+                                console.log('violations.txt eliminado correctamente.');
+                            }
+                        });
+                    });
                 });
             });
         });
     });
 };
+
 
 exports.findAll = async function (req, res) {
     try {
@@ -292,8 +314,6 @@ exports.update = async function (req, res) {
         if (req.body.User !== undefined) security.User = req.body.User;
         if (req.body.Log !== undefined) security.Log = req.body.Log;
         if (req.body.SubTasks !== undefined) security.SubTasks = req.body.SubTasks;
-
-        // Nuevas propiedades añadidas
         if (req.body.NumberOfExecutions !== undefined) security.NumberOfExecutions = req.body.NumberOfExecutions;
         if (req.body.AverageTimeEstimate !== undefined) security.AverageTimeEstimate = req.body.AverageTimeEstimate;
         if (req.body.Instance !== undefined) security.Instance = req.body.Instance;

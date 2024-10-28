@@ -44,24 +44,7 @@ public class TaskProcessor {
                             .collect(Collectors.groupingBy(
                                 task -> task.getStartTime() != null ? task.getStartTime() : -1L, 
                                 TreeMap::new, Collectors.toList()));
-                    // Procesar las tareas agrupadas
-                    for (Map.Entry<Long, List<Task>> entry : groupedTasks.entrySet()) {
-                        Long startTime = entry.getKey();
-                        List<Task> taskList = entry.getValue();
-    
-                        // Imprimir solo una vez el startTime o "Sin StartTime" si es nulo
-                        if (startTime == -1L) {
-                            LOG.info("Enviando tarea sin startTime, con security task activa:");
-                        } else {
-                            LOG.info("Enviando tarea con startTime: {}", startTime);
-                        }
-    
-                        // Imprimir cada tarea con la instancia correspondiente
-                        taskList.forEach(task -> 
-                            LOG.info("Instancia {}: {}", task.getInstance(), task));
-                    }
-    
-                    // Manejar cada tarea individualmente para enviar eventos a Esper
+
                     for (Task task : tasks) {
                         taskEventHandler.handle(task);
                     }
@@ -70,6 +53,7 @@ public class TaskProcessor {
         } else {
             LOG.error("No files found in the directory: " + directoryPath);
         }
+        taskEventHandler.writeViolationsToFile("../Modeler/example/src/files/violations.txt");
     }    
     
     private List<Task> parseTaskFile(String filePath) {
@@ -95,14 +79,15 @@ public class TaskProcessor {
         List<String> subTasks = new ArrayList<>();
         List<String> userTasks = new ArrayList<>();
         boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
-        Integer nu = null, mth = null, instance = null;
+        Integer nu = null, mth = null, instance = null, numberOfExecutions = 1; // Añadido numberOfExecutions
         Long startTime = null; 
+        Long stopTime = null;
         Long time = null;
     
         // Comprobar si la línea contiene "Instance"
         if (line.startsWith("Instance")) {
             int colonIndex = line.indexOf(":");
-            if (colonIndex != -1) {  // Verificar si existe el carácter ':'
+            if (colonIndex != -1) {
                 String instancePart = line.substring(0, colonIndex).trim();
                 String[] instanceParts = instancePart.split(" ");
                 if (instanceParts.length == 2) {
@@ -115,7 +100,7 @@ public class TaskProcessor {
                 line = line.substring(colonIndex + 1).trim();
             } else {
                 LOG.error("Instance format incorrect in line: {}", line);
-                return null;  // Saltar la línea si el formato es incorrecto
+                return null;
             }
         }
     
@@ -123,7 +108,7 @@ public class TaskProcessor {
         int closeBracketIndex = line.lastIndexOf("]");
         if (openBracketIndex == -1 || closeBracketIndex == -1) {
             LOG.error("Brackets not found in line: {}", line);
-            return null;  // Saltar la línea si no hay corchetes
+            return null;
         }
     
         String content = line.substring(openBracketIndex + 1, closeBracketIndex);
@@ -132,7 +117,7 @@ public class TaskProcessor {
         for (String part : parts) {
             String[] keyValue = part.split("=", 2);
             if (keyValue.length != 2) {
-                continue;  // Saltar partes que no coinciden con el patrón "key=value"
+                continue;
             }
             switch (keyValue[0].trim()) {
                 case "type":
@@ -168,16 +153,34 @@ public class TaskProcessor {
                 case "startTime":
                     startTime = Long.parseLong(keyValue[1].trim());
                     break;
+                case "stopTime":
+                    stopTime = Long.parseLong(keyValue[1].trim());
+                    break;
                 case "time":
                     time = Long.parseLong(keyValue[1].trim());
+                    break;
+                case "numberOfExecutions":
+                    numberOfExecutions = Integer.parseInt(keyValue[1].trim());
                     break;
             }
         }
     
-        LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}",
-                  idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks);
+        LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}, stopTime={}, numberOfExecutions={}",
+                  idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks, stopTime, numberOfExecutions);
     
-        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, time, instance);
-    }    
+        // Actualización para incluir numberOfExecutions en la llamada al constructor
+        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, stopTime, time, instance, numberOfExecutions);
+    }
+
+    public void sumNumberOfExecutionsByUser(List<Task> tasks, String userTask) {
+        int sum = 0;
     
+        for (Task task : tasks) {
+            if (task.getUserTasks() != null && task.getUserTasks().contains(userTask)) {
+                sum += task.getNumberOfExecutions();
+            }
+        }
+        LOG.info("Sum: " + String.valueOf(sum));
+    }
+        
 }
