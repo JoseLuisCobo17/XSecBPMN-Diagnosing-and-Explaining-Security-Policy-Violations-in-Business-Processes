@@ -124,6 +124,10 @@ function getAllRelevantTasks(bpmnModeler) {
     e.type === 'bpmn:SequenceFlow' ||
     e.type === 'bpmn:MessageFlow' ||
     e.type === 'bpmn:IntermediateCatchEvent' ||
+    e.type === 'bpmn:DataObjectReference' ||
+    e.type === 'bpmn:BoundaryEvent' ||
+    e.type === 'bpmn:DataInputAssociation' ||
+    e.type === 'bpmn:DataOutputAssociation' ||
     e.type.startsWith('bpmn:')
   );
 
@@ -131,28 +135,26 @@ function getAllRelevantTasks(bpmnModeler) {
     var businessObject = e.businessObject;
 
     var subTasks = [];
-    if (e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') {
-      subTasks = (businessObject.targetRef && businessObject.targetRef.$type.includes('Task')) ?
-        [businessObject.targetRef.id] : [];
-    } else {
-      subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
-    }
-
     var subElement = '';
-    if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.targetRef) {
-      subElement = businessObject.targetRef.id;
-    }
-
     var superElement = [];
-    if (e.type !== 'bpmn:SequenceFlow' && e.type !== 'bpmn:MessageFlow' && businessObject.incoming) {
-      superElement = businessObject.incoming.map(flow => {
-        if (flow.sourceRef) {
-          return flow.sourceRef.id;
-        }
-        return null;
-      }).filter(id => id !== null);
-    } else if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.sourceRef) {
-      superElement = [businessObject.sourceRef.id];
+
+    // Si es BoundaryEvent, obtiene la tarea asociada
+    if (e.type === 'bpmn:BoundaryEvent' && businessObject.attachedToRef) {
+      const attachedTask = businessObject.attachedToRef;
+
+      // Propiedades subElement y superElement del BoundaryEvent desde la tarea principal
+      subElement = attachedTask.outgoing ? attachedTask.outgoing.map(flow => flow.targetRef.id).join(', ') : '';
+      superElement = attachedTask.incoming ? attachedTask.incoming.map(flow => flow.sourceRef.id) : [];
+
+    } else if (e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') {
+      // Manejo para SequenceFlow y MessageFlow
+      subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
+      superElement = businessObject.sourceRef ? [businessObject.sourceRef.id] : [];
+    } else {
+      // Caso general para otros elementos
+      subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
+      subElement = subTasks.join(', ');
+      superElement = businessObject.incoming ? businessObject.incoming.map(flow => flow.sourceRef.id) : [];
     }
 
     const isServiceTask = e.type === 'bpmn:ServiceTask';
@@ -223,7 +225,10 @@ function exportToEsper(bpmnModeler) {
           content += `time=${element.time}, `;
         }
 
-        if (element.type === 'bpmn:SequenceFlow' || element.type === 'bpmn:MessageFlow') {
+        if (element.type === 'bpmn:SequenceFlow' || element.type === 'bpmn:MessageFlow' ||
+          element.type === 'bpmn:DataObjectReference' || element.type === 'bpmn:BoundaryEvent' ||
+          element.type === 'bpmn:DataInputAssociation' || element.type === 'bpmn:DataOutputAssociation'
+        ) {
           const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
           content += `superElement="${superElement}", `;
           content += `subElement="${element.subElement || 'No Sub Element'}"]\n`;
