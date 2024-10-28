@@ -231,9 +231,15 @@ function exportToEsper(bpmnModeler) {
           content += `sodSecurity=${element.Sod}, `;
           content += `bodSecurity=${element.Bod}, `;
           content += `uocSecurity=${element.Uoc}, `;
-          content += `mth=${element.Mth}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
+        } else if (element.type === 'bpmn:ServiceTask' && element.businessObject.securityType === 'UoC') {
+          content += `sodSecurity=${element.Sod}, `;
+          content += `bodSecurity=${element.Bod}, `;
+          content += `uocSecurity=${element.Uoc}, `;
+          content += `mth=${element.Mth}, `;
+          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+          content += `subTask="${subTasks}"]\n`;       
         } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask'
           || element.type === 'bpmn:SendTask' || element.type === 'bpmn:ReceiveTask' || element.type === 'bpmn:BusinessRuleTask'
           || element.type === 'bpmn:ScriptTask' || element.type === 'bpmn:CallActivity'
