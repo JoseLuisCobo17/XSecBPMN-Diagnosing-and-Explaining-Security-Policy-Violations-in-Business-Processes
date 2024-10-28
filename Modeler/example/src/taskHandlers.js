@@ -88,7 +88,6 @@ function getSecurityTasks(bpmnModeler) {
       Bod: isBod ? true : false,
       Sod: isSod ? true : false,
       Uoc: isUoc ? true : false,
-      Nu: element.Nu || 0,
       Mth: element.Mth || 0,
       P: element.P || 0,
       User: element.User || '',
@@ -187,7 +186,6 @@ function getAllRelevantTasks(bpmnModeler) {
       Bod: securityType === 'BoD',
       Sod: securityType === 'SoD',
       Uoc: securityType === 'UoC',
-      Nu: isServiceTask ? (businessObject.Nu || 0) : 0,
       Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
       P: isServiceTask ? (businessObject.P || 0) : 0,
       User: isServiceTask ? (businessObject.User || '') : '',
@@ -233,7 +231,6 @@ function exportToEsper(bpmnModeler) {
           content += `sodSecurity=${element.Sod}, `;
           content += `bodSecurity=${element.Bod}, `;
           content += `uocSecurity=${element.Uoc}, `;
-          content += `nu=${element.Nu}, `;
           content += `mth=${element.Mth}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
@@ -427,7 +424,6 @@ function deployRules(bpmnModeler) {
         const sodEPL = ` "select parent.idBpmn as parentId, " 
     "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " 
     "sub1.user as user1, sub2.user as user2, " 
-    "parent.nu as nuValue, " 
     "count(distinct sub1.user) as distinctUserCount " 
     "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " 
     "where parent.sodSecurity = true " 
@@ -435,8 +431,6 @@ function deployRules(bpmnModeler) {
     "and sub1.idBpmn != sub2.idBpmn " 
     "and sub1.idBpmn in (parent.subTasks) " 
     "and sub2.idBpmn in (parent.subTasks) " 
-    "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, sub1.user, sub2.user, parent.nu " 
-    "having count(distinct sub1.user) < parent.nu"
     
     --------------------------------------
     `;

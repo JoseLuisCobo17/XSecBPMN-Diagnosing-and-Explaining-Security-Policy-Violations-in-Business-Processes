@@ -80,7 +80,7 @@ public class TaskProcessor {
         List<String> subTasks = new ArrayList<>();
         List<String> userTasks = new ArrayList<>();
         boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
-        Integer nu = null, mth = null, instance = null, numberOfExecutions = 1; // Añadido numberOfExecutions
+        Integer mth = null, instance = null, numberOfExecutions = 1; // Añadido numberOfExecutions
         Long startTime = null; 
         Long stopTime = null;
         Long time = null;
@@ -139,9 +139,6 @@ public class TaskProcessor {
                 case "uocSecurity":
                     uocSecurity = Boolean.parseBoolean(keyValue[1].trim().toLowerCase());
                     break;
-                case "nu":
-                    nu = Integer.parseInt(keyValue[1].trim());
-                    break;
                 case "mth":
                     mth = Integer.parseInt(keyValue[1].trim());
                     break;
@@ -169,8 +166,7 @@ public class TaskProcessor {
         LOG.debug("Task parsed: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTasks={}, stopTime={}, numberOfExecutions={}",
                   idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTasks, stopTime, numberOfExecutions);
     
-        // Actualización para incluir numberOfExecutions en la llamada al constructor
-        return new Task(type, name, idBpmn, nu, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, stopTime, time, instance, numberOfExecutions);
+        return new Task(type, name, idBpmn, mth, subTasks, userTasks, bodSecurity, sodSecurity, uocSecurity, startTime, stopTime, time, instance, numberOfExecutions);
     }
 
     public void sumNumberOfExecutionsByUser(List<Task> tasks, String userTask) {
