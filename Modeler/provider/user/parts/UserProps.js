@@ -63,7 +63,7 @@ function UserFunction(props) {
     element=${element}
     label=${translate('UserTask')}
     getValue=${getValue}
-    setValue=${debounce(setValue)}
+    setValue=${setValue}
     debounce=${debounce}
     tooltip=${translate('Enter a user task name.')} 
   />`;
@@ -114,7 +114,7 @@ function NumberOfExecutionsFunction(props) {
     element=${element}
     label=${translate('Number of executions')}
     getValue=${getValue}
-    setValue=${debounce(setValue)}
+    setValue=${setValue}
     debounce=${debounce}
     tooltip=${translate('Enter the number of different executions.')} 
   />`;
@@ -177,7 +177,7 @@ function maximumTimeFunction(props) {
     element=${element}
     label=${translate('Maximum time')}
     getValue=${getValue}
-    setValue=${debounce(setValue)}
+    setValue=${setValue}
     debounce=${debounce}
     tooltip=${translate('Enter the maximum time.')} 
   />`;
@@ -240,7 +240,7 @@ function minimumTimeFunction(props) {
     element=${element}
     label=${translate('Minimum time')}
     getValue=${getValue}
-    setValue=${debounce(setValue)}
+    setValue=${setValue}
     debounce=${debounce}
     tooltip=${translate('Enter the minimum time.')} 
   />`;

@@ -77,7 +77,7 @@ function instanceFunction(props) {
       element=${element}
       label=${translate('Number of instances')}
       getValue=${getValue}
-      setValue=${debounce(setValue)}
+      setValue=${setValue}
       debounce=${debounce}
       tooltip=${translate('Enter the number of different instances.')} 
     />`;
@@ -128,7 +128,7 @@ function frequencyFunction(props) {
       element=${element}
       label=${translate('Number of frequency')}
       getValue=${getValue}
-      setValue=${debounce(setValue)}
+      setValue=${setValue}
       debounce=${debounce}
       tooltip=${translate('Enter the number of different frequency.')} 
     />`;
@@ -165,7 +165,7 @@ function userWithoutRoleFunction(props) {
     element=${element}
     label=${translate('User without role')}
     getValue=${getValue}
-    setValue=${debounce(setValue)}
+    setValue=${setValue}
     debounce=${debounce}
     tooltip=${translate('Enter a user name without role.')} 
   />`;

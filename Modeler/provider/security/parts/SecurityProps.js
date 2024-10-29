@@ -57,14 +57,14 @@ function MthFunction(props) {
   };
 
   return html`<${TextFieldEntry}
-    id=${id}
-    element=${element}
-    label=${translate('Mth')}
-    getValue=${getValue}
-    setValue=${debounce(setValue)}
-    debounce=${debounce}
-    tooltip=${translate('Enter a numeric value.')}
-  />`;
+  id=${id}
+  element=${element}
+  label=${translate('Mth')}
+  getValue=${getValue}
+  setValue=${setValue}
+  debounce=${debounce}
+  tooltip=${translate('Ingrese un valor numérico.')}
+/>`;
 }
 
 function isNumberEntryEdited(element) {
