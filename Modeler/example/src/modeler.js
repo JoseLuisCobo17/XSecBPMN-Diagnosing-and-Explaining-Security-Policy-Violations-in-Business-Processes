@@ -170,11 +170,17 @@ $('#js-download-esper').off('click').on('click', async function(e) {
               'Content-Type': 'application/json',
           },
           body: JSON.stringify({ content, filename: 'esperTasks.txt' }),
-      }) 
+      })
       .then(response => response.json())
       .then(data => {
-          // Mostrar el contenido de las violaciones en el modal
-          document.querySelector('#modal-content').textContent = data.content;
+          // Verifica si el archivo de violaciones está vacío
+          if (!data.content.trim()) {
+              // Mostrar mensaje si no hay violaciones
+              document.querySelector('#modal-content').textContent = 'No violations found.';
+          } else {
+              // Mostrar el contenido de las violaciones en el modal
+              document.querySelector('#modal-content').textContent = data.content;
+          }
           document.querySelector('.modal-overlay').style.display = 'block'; // Mostrar el modal
       })
       .catch(err => {

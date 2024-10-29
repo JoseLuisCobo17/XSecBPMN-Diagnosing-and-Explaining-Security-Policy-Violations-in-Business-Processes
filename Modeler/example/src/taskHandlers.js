@@ -139,20 +139,14 @@ function getAllRelevantTasks(bpmnModeler) {
     var superElement = null;
 
     if (e.type === 'bpmn:DataInputAssociation') {
-      // El DataObjectReference actúa como superElement
       superElement = businessObject.sourceRef && businessObject.sourceRef.length > 0
         ? businessObject.sourceRef.map(source => source.id).join(', ')
         : 'No Super Element';
-      console.log("superElement en getAllRelevantTasks: " + superElement);
-      
-      // Buscar la Task que recibe este DataInputAssociation como subElement
       const targetTask = elementRegistry.find(el =>
         el.businessObject.dataInputAssociations &&
         el.businessObject.dataInputAssociations.some(assoc => assoc.id === businessObject.id)
       );
-    
       subElement = targetTask ? targetTask.businessObject.id : 'No Sub Element';
-      console.log("subElement en getAllRelevantTasks: " + subElement);
     } else if (e.type === 'bpmn:DataOutputAssociation') {
       subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
       const parentTask = elementRegistry.find(el =>
@@ -245,20 +239,11 @@ function exportToEsper(bpmnModeler) {
         if (element.type === 'bpmn:SequenceFlow' || element.type === 'bpmn:MessageFlow' ||
           element.type === 'bpmn:DataObjectReference' || element.type === 'bpmn:BoundaryEvent' ||
           element.type === 'bpmn:DataInputAssociation' || element.type === 'bpmn:DataOutputAssociation') {
-          
-          // Depuración para superElement y subElement
-          console.log(`Element ID: ${element.id_bpmn}, Type: ${element.type}`);
-          console.log(`Raw superElement, , "${element.type}":`, element.superElement);
-          console.log(`Raw subElement, , "${element.type}":`, element.subElement);
-          
-          // Asegúrate de que superElement y subElement sean cadenas
+
           const superElement = typeof element.superElement === 'string' 
             ? element.superElement 
             : (Array.isArray(element.superElement) ? element.superElement.join(', ') : 'No Super Element');
           const subElement = element.subElement || 'No Sub Element';
-      
-          console.log(`Formatted superElement, "${element.type}": "${superElement}"`);
-          console.log(`Formatted subElement , "${element.type}": "${subElement}"`);
           
           content += `superElement="${superElement}", `;
           content += `subElement="${subElement}"]\n`;      
