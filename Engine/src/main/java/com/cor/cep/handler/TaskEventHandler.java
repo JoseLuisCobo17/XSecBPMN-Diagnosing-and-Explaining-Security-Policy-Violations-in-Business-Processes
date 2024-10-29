@@ -190,7 +190,7 @@ LOG.debug("Creating Generalized SoD Check Expression");
 String sodEPL = "select parent.idBpmn as parentId, " +
                 "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
                 "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
-                "parent.nu as nuValue, sub1.instance as instance1 " +
+                "sub1.instance as instance1 " +
                 "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
                 "where parent.sodSecurity = true " +  // El padre tiene SoD habilitado
                 "and sub1.idBpmn != sub2.idBpmn " +  // Sub-tareas diferentes

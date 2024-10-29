@@ -14,11 +14,6 @@
       ],
       "properties": [
         {
-          "name": "Nu",
-          "isAttr": true,
-          "type": "Integer"
-        },
-        {
           "name": "Mth",
           "isAttr": true,
           "type": "Integer"

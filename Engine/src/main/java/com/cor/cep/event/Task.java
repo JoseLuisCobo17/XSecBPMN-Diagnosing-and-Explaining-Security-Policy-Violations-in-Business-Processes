@@ -6,7 +6,6 @@ public class Task {
     private String type;
     private String name;
     private String idBpmn;
-    private Integer nu;
     private Integer mth;
     private List<String> subTasks;
     private List<String> userTasks;
@@ -20,11 +19,10 @@ public class Task {
     private Integer numberOfExecutions;
 
     // Constructor
-    public Task(String type, String name, String idBpmn, Integer nu, Integer mth, List<String> subTasks, List<String> userTasks, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity, Long startTime, Long stopTime, Long time, Integer instance, Integer numberOfExecutions) {
+    public Task(String type, String name, String idBpmn, Integer mth, List<String> subTasks, List<String> userTasks, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity, Long startTime, Long stopTime, Long time, Integer instance, Integer numberOfExecutions) {
         this.type = type;
         this.name = name;
         this.idBpmn = idBpmn;
-        this.nu = nu;
         this.mth = mth;
         this.subTasks = subTasks;
         this.userTasks = userTasks;
@@ -61,14 +59,6 @@ public class Task {
 
     public void setIdBpmn(String idBpmn) {
         this.idBpmn = idBpmn;
-    }
-
-    public Integer getNu() {
-        return nu;
-    }
-
-    public void setNu(Integer nu) {
-        this.nu = nu;
     }
 
     public Integer getMth() {
@@ -161,7 +151,7 @@ public class Task {
 
     @Override
     public String toString() {
-        return "Task [type=" + type + ", name=" + name + ", idBpmn=" + idBpmn + ", nu=" + nu 
+        return "Task [type=" + type + ", name=" + name + ", idBpmn=" + idBpmn 
             + ", mth=" + mth + ", subTasks=" + subTasks + ", userTasks=" + userTasks
             + ", bodSecurity=" + bodSecurity + ", sodSecurity=" + sodSecurity
             + ", uocSecurity=" + uocSecurity + ", startTime=" + startTime + ", stopTime=" + stopTime 

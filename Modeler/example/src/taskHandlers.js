@@ -88,7 +88,6 @@ function getSecurityTasks(bpmnModeler) {
       Bod: isBod ? true : false,
       Sod: isSod ? true : false,
       Uoc: isUoc ? true : false,
-      Nu: element.Nu || 0,
       Mth: element.Mth || 0,
       P: element.P || 0,
       User: element.User || '',
@@ -125,6 +124,10 @@ function getAllRelevantTasks(bpmnModeler) {
     e.type === 'bpmn:SequenceFlow' ||
     e.type === 'bpmn:MessageFlow' ||
     e.type === 'bpmn:IntermediateCatchEvent' ||
+    e.type === 'bpmn:DataObjectReference' ||
+    e.type === 'bpmn:BoundaryEvent' ||
+    e.type === 'bpmn:DataInputAssociation' ||
+    e.type === 'bpmn:DataOutputAssociation' ||
     e.type.startsWith('bpmn:')
   );
 
@@ -132,35 +135,50 @@ function getAllRelevantTasks(bpmnModeler) {
     var businessObject = e.businessObject;
 
     var subTasks = [];
-    if (e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') {
-      subTasks = (businessObject.targetRef && businessObject.targetRef.$type.includes('Task')) ?
-        [businessObject.targetRef.id] : [];
+    var subElement = null;
+    var superElement = null;
+
+    if (e.type === 'bpmn:DataInputAssociation') {
+      // El DataObjectReference actúa como superElement
+      superElement = businessObject.sourceRef && businessObject.sourceRef.length > 0
+        ? businessObject.sourceRef.map(source => source.id).join(', ')
+        : 'No Super Element';
+      console.log("superElement en getAllRelevantTasks: " + superElement);
+      
+      // Buscar la Task que recibe este DataInputAssociation como subElement
+      const targetTask = elementRegistry.find(el =>
+        el.businessObject.dataInputAssociations &&
+        el.businessObject.dataInputAssociations.some(assoc => assoc.id === businessObject.id)
+      );
+    
+      subElement = targetTask ? targetTask.businessObject.id : 'No Sub Element';
+      console.log("subElement en getAllRelevantTasks: " + subElement);
+    } else if (e.type === 'bpmn:DataOutputAssociation') {
+      subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
+      const parentTask = elementRegistry.find(el =>
+        (el.type === 'bpmn:Task' || el.type === 'bpmn:UserTask' || el.type === 'bpmn:ServiceTask') &&
+        el.businessObject.dataOutputAssociations &&
+        el.businessObject.dataOutputAssociations.some(assoc => assoc.id === businessObject.id)
+      );
+      superElement = parentTask ? [parentTask.businessObject.id] : [];    
+    } else if (e.type === 'bpmn:BoundaryEvent' && businessObject.attachedToRef) {
+      const attachedTask = businessObject.attachedToRef;
+      subElement = attachedTask.outgoing ? attachedTask.outgoing.map(flow => flow.targetRef.id).join(', ') : '';
+      superElement = attachedTask.incoming ? attachedTask.incoming.map(flow => flow.sourceRef.id) : [];
+    } else if (e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') {
+      subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
+      superElement = businessObject.sourceRef ? [businessObject.sourceRef.id] : [];
     } else {
       subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
-    }
-
-    var subElement = '';
-    if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.targetRef) {
-      subElement = businessObject.targetRef.id;
-    }
-
-    var superElement = [];
-    if (e.type !== 'bpmn:SequenceFlow' && e.type !== 'bpmn:MessageFlow' && businessObject.incoming) {
-      superElement = businessObject.incoming.map(flow => {
-        if (flow.sourceRef) {
-          return flow.sourceRef.id;
-        }
-        return null;
-      }).filter(id => id !== null);
-    } else if ((e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') && businessObject.sourceRef) {
-      superElement = [businessObject.sourceRef.id];
+      subElement = subTasks.join(', ');
+      superElement = businessObject.incoming ? businessObject.incoming.map(flow => flow.sourceRef.id) : [];
     }
 
     const isServiceTask = e.type === 'bpmn:ServiceTask';
     const isUserTask = e.type === 'bpmn:UserTask';
     const isTask = e.type === 'bpmn:Task' || isUserTask;
     const isProcess = e.type === 'bpmn:Process';
-    const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow'; 
+    const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow';
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
 
@@ -187,7 +205,6 @@ function getAllRelevantTasks(bpmnModeler) {
       Bod: securityType === 'BoD',
       Sod: securityType === 'SoD',
       Uoc: securityType === 'UoC',
-      Nu: isServiceTask ? (businessObject.Nu || 0) : 0,
       Mth: isServiceTask ? (businessObject.Mth || 0) : 0,
       P: isServiceTask ? (businessObject.P || 0) : 0,
       User: isServiceTask ? (businessObject.User || '') : '',
@@ -225,18 +242,39 @@ function exportToEsper(bpmnModeler) {
           content += `time=${element.time}, `;
         }
 
-        if (element.type === 'bpmn:SequenceFlow' || element.type === 'bpmn:MessageFlow') {
-          const superElement = element.superElement ? element.superElement.join(', ') : 'No Super Element';
+        if (element.type === 'bpmn:SequenceFlow' || element.type === 'bpmn:MessageFlow' ||
+          element.type === 'bpmn:DataObjectReference' || element.type === 'bpmn:BoundaryEvent' ||
+          element.type === 'bpmn:DataInputAssociation' || element.type === 'bpmn:DataOutputAssociation') {
+          
+          // Depuración para superElement y subElement
+          console.log(`Element ID: ${element.id_bpmn}, Type: ${element.type}`);
+          console.log(`Raw superElement, , "${element.type}":`, element.superElement);
+          console.log(`Raw subElement, , "${element.type}":`, element.subElement);
+          
+          // Asegúrate de que superElement y subElement sean cadenas
+          const superElement = typeof element.superElement === 'string' 
+            ? element.superElement 
+            : (Array.isArray(element.superElement) ? element.superElement.join(', ') : 'No Super Element');
+          const subElement = element.subElement || 'No Sub Element';
+      
+          console.log(`Formatted superElement, "${element.type}": "${superElement}"`);
+          console.log(`Formatted subElement , "${element.type}": "${subElement}"`);
+          
           content += `superElement="${superElement}", `;
-          content += `subElement="${element.subElement || 'No Sub Element'}"]\n`;
+          content += `subElement="${subElement}"]\n`;      
         } else if (element.type === 'bpmn:ServiceTask') {
           content += `sodSecurity=${element.Sod}, `;
           content += `bodSecurity=${element.Bod}, `;
           content += `uocSecurity=${element.Uoc}, `;
-          content += `nu=${element.Nu}, `;
-          content += `mth=${element.Mth}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
+        } else if (element.type === 'bpmn:ServiceTask' && element.businessObject.securityType === 'UoC') {
+          content += `sodSecurity=${element.Sod}, `;
+          content += `bodSecurity=${element.Bod}, `;
+          content += `uocSecurity=${element.Uoc}, `;
+          content += `mth=${element.Mth}, `;
+          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+          content += `subTask="${subTasks}"]\n`;       
         } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask'
           || element.type === 'bpmn:SendTask' || element.type === 'bpmn:ReceiveTask' || element.type === 'bpmn:BusinessRuleTask'
           || element.type === 'bpmn:ScriptTask' || element.type === 'bpmn:CallActivity'
@@ -427,7 +465,6 @@ function deployRules(bpmnModeler) {
         const sodEPL = ` "select parent.idBpmn as parentId, " 
     "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " 
     "sub1.user as user1, sub2.user as user2, " 
-    "parent.nu as nuValue, " 
     "count(distinct sub1.user) as distinctUserCount " 
     "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " 
     "where parent.sodSecurity = true " 
@@ -435,8 +472,6 @@ function deployRules(bpmnModeler) {
     "and sub1.idBpmn != sub2.idBpmn " 
     "and sub1.idBpmn in (parent.subTasks) " 
     "and sub2.idBpmn in (parent.subTasks) " 
-    "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, sub1.user, sub2.user, parent.nu " 
-    "having count(distinct sub1.user) < parent.nu"
     
     --------------------------------------
     `;
