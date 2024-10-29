@@ -138,20 +138,23 @@ function getAllRelevantTasks(bpmnModeler) {
     var subElement = '';
     var superElement = [];
 
-    // Si es BoundaryEvent, obtiene la tarea asociada
-    if (e.type === 'bpmn:BoundaryEvent' && businessObject.attachedToRef) {
+    if (e.type === 'bpmn:DataOutputAssociation') {
+      subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
+      const parentTask = elementRegistry.find(el =>
+        (el.type === 'bpmn:Task' || el.type === 'bpmn:UserTask' || el.type === 'bpmn:ServiceTask') &&
+        el.businessObject.dataOutputAssociations &&
+        el.businessObject.dataOutputAssociations.some(assoc => assoc.id === businessObject.id)
+      );
+    
+      superElement = parentTask ? [parentTask.businessObject.id] : [];    
+    } else if (e.type === 'bpmn:BoundaryEvent' && businessObject.attachedToRef) {
       const attachedTask = businessObject.attachedToRef;
-
-      // Propiedades subElement y superElement del BoundaryEvent desde la tarea principal
       subElement = attachedTask.outgoing ? attachedTask.outgoing.map(flow => flow.targetRef.id).join(', ') : '';
       superElement = attachedTask.incoming ? attachedTask.incoming.map(flow => flow.sourceRef.id) : [];
-
     } else if (e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow') {
-      // Manejo para SequenceFlow y MessageFlow
       subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
       superElement = businessObject.sourceRef ? [businessObject.sourceRef.id] : [];
     } else {
-      // Caso general para otros elementos
       subTasks = businessObject.outgoing ? businessObject.outgoing.map(task => task.targetRef.id) : [];
       subElement = subTasks.join(', ');
       superElement = businessObject.incoming ? businessObject.incoming.map(flow => flow.sourceRef.id) : [];
@@ -161,7 +164,7 @@ function getAllRelevantTasks(bpmnModeler) {
     const isUserTask = e.type === 'bpmn:UserTask';
     const isTask = e.type === 'bpmn:Task' || isUserTask;
     const isProcess = e.type === 'bpmn:Process';
-    const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow'; 
+    const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow';
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
 
