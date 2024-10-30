@@ -193,12 +193,12 @@ function getAllRelevantTasks(bpmnModeler) {
     const minimumTime = businessObject.minimumTime || 0;
     const maximumTime = businessObject.maximumTime || 0;
 
-    let instance = ''; // Inicializar instancia vacía
+    let instance = ''; 
     let userWithRole = {};
-    let userWithoutRole = '';
+    let userWithoutRoleSet = new Set();
     let frequency = 0;
 
-    if (isCollaboration) {
+    if (e.type === 'bpmn:Collaboration') {
       const participants = businessObject.participants || [];
       participants.forEach(participant => {
         const processRef = participant.processRef;
@@ -211,9 +211,9 @@ function getAllRelevantTasks(bpmnModeler) {
           if (processRef.userWithRole) {
             userWithRole = { ...userWithRole, ...processRef.userWithRole };
           }
-          // Obtener 'userWithoutRole'
+          // Obtener 'userWithoutRole' sin duplicados
           if (processRef.userWithoutRole) {
-            userWithoutRole += processRef.userWithoutRole + ', ';
+            processRef.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
           }
           // Obtener 'frequency'
           if (processRef.frequency !== undefined) {
@@ -221,11 +221,7 @@ function getAllRelevantTasks(bpmnModeler) {
           }
         }
       });
-      // Remover coma y espacio adicionales al final de 'userWithoutRole'
-      if (userWithoutRole.endsWith(', ')) {
-        userWithoutRole = userWithoutRole.slice(0, -2);
-      }
-    } else if (isParticipant) {
+    } else if (e.type === 'bpmn:Participant') {
       const processRef = businessObject.processRef;
       if (processRef) {
         // Obtener 'instance'
@@ -236,16 +232,16 @@ function getAllRelevantTasks(bpmnModeler) {
         if (processRef.userWithRole) {
           userWithRole = processRef.userWithRole;
         }
-        // Obtener 'userWithoutRole'
+        // Obtener 'userWithoutRole' sin duplicados
         if (processRef.userWithoutRole) {
-          userWithoutRole = processRef.userWithoutRole;
+          processRef.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
         }
         // Obtener 'frequency'
         if (processRef.frequency !== undefined) {
           frequency = processRef.frequency;
         }
       }
-    } else if (isProcess) {
+    } else if (e.type === 'bpmn:Process') {
       // Para elementos de tipo 'Process'
       if (businessObject.instance !== undefined) {
         instance = businessObject.instance;
@@ -254,7 +250,7 @@ function getAllRelevantTasks(bpmnModeler) {
         userWithRole = businessObject.userWithRole;
       }
       if (businessObject.userWithoutRole) {
-        userWithoutRole = businessObject.userWithoutRole;
+        businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
       }
       if (businessObject.frequency !== undefined) {
         frequency = businessObject.frequency;
@@ -262,6 +258,9 @@ function getAllRelevantTasks(bpmnModeler) {
     } else {
       instance = businessObject.instance || '';
     }
+
+    // Convertir Set a cadena de texto sin duplicados
+    const userWithoutRole = Array.from(userWithoutRoleSet).join(', ');
 
     console.log("Instancia:", instance);
     console.log("userWithRole:", JSON.stringify(userWithRole, null, 2));
@@ -292,7 +291,7 @@ function getAllRelevantTasks(bpmnModeler) {
       MaximumTime: maximumTime,
       UserInstance: instance,
       time: time,
-      userWithoutRole: isProcess || isCollaboration || isParticipant ? (userWithoutRole || '') : '',
+      userWithoutRole: isProcess || isCollaboration || isParticipant ? userWithoutRole : '',
       userWithRole: userWithRole 
     };
   });

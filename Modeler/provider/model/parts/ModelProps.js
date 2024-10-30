@@ -184,22 +184,53 @@ function userWithoutRoleFunction(props) {
   const debounce = useService('debounceInput');
 
   const getValue = () => {
-    if (!element || !element.businessObject) {
-      return ''; 
+    if (!element || !element.businessObject) return '';
+
+    if (element.businessObject.participants) {
+      const firstParticipant = element.businessObject.participants[0];
+      if (firstParticipant.processRef) {
+        const value = firstParticipant.processRef.userWithoutRole;
+        console.log("Current userWithoutRole value in processRef:", value);
+        return value !== undefined ? value : '';
+      } else {
+        console.warn("processRef is missing for participant:", firstParticipant);
+      }
+    } else if (element.businessObject.userWithoutRole !== undefined) {
+      const value = element.businessObject.userWithoutRole;
+      console.log("Current userWithoutRole value:", value);
+      return value !== undefined ? value : '';
     }
-    const value = element.businessObject.userWithoutRole; 
-    return value !== undefined ? value : ''; 
+
+    return '';
   };
 
-  const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
-    }
+  const setValue = (value) => {
+    if (typeof value === 'undefined' || !element || !element.businessObject) return;
 
-    // Asegúrate de que la propiedad userWithoutRole está presente en el businessObject
-    modeling.updateProperties(element, {
-      userWithoutRole: value 
-    });
+    // Eliminar duplicados en el valor que se va a establecer
+    const uniqueValue = Array.from(new Set(value.split(',').map(v => v.trim()))).join(', ');
+
+    if (element.businessObject.participants) {
+      element.businessObject.participants.forEach(participant => {
+        if (participant.processRef && typeof participant.processRef === 'object') {
+          try {
+            modeling.updateModdleProperties(element, participant.processRef, {
+              userWithoutRole: uniqueValue
+            });
+            console.log("userWithoutRole value after update in processRef:", participant.processRef.userWithoutRole);
+          } catch (error) {
+            console.error("Failed to update properties for processRef:", error);
+          }
+        } else {
+          console.warn("processRef is missing or invalid for participant:", participant);
+        }
+      });
+    } else {
+      modeling.updateProperties(element, {
+        userWithoutRole: uniqueValue
+      });
+      console.log("userWithoutRole value after update:", element.businessObject.userWithoutRole);
+    }
   };
 
   return html`<${TextFieldEntry}
@@ -209,7 +240,7 @@ function userWithoutRoleFunction(props) {
     getValue=${getValue}
     setValue=${setValue}
     debounce=${debounce}
-    tooltip=${translate('Enter a user name without role.')} 
+    tooltip=${translate('Enter a user name without role.')}
   />`;
 }
 
