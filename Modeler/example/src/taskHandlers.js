@@ -134,23 +134,36 @@ function getAllRelevantTasks(bpmnModeler) {
   );
 
   return relevantElements.map(e => {
-    var businessObject = e.businessObject;
+    var businessObject = e.businessObject;  // Aseguramos que businessObject esté definido aquí
 
+    // Identifica si el elemento es un MessageStartEvent
     let isMessageStartEvent = e.type === 'bpmn:StartEvent' && 
         businessObject.eventDefinitions && 
         businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
+    // Identifica si el elemento es un TimerStartEvent
     let isTimerStartEvent = e.type === 'bpmn:StartEvent' && 
         businessObject.eventDefinitions && 
         businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
 
+    // Identifica si el elemento es un MessageIntermediateCatchEvent
+    let isMessageIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
+        businessObject.eventDefinitions && 
+        businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+
+    // Determina el tipo del elemento en base a los criterios
     let type = e.type;
     if (isMessageStartEvent) {
         type = 'bpmn:MessageStartEvent';
     } else if (isTimerStartEvent) {
         type = 'bpmn:TimerStartEvent';
+    } else if (isMessageIntermediateCatchEvent) {
+        type = 'bpmn:MessageIntermediateCatchEvent';
+        console.log(`Identificado como MessageIntermediateCatchEvent: ${e.id}`);
+    } else {
+        console.log(`Identificado como ${type}: ${e.id}`);
     }
-
+    
     var subTasks = [];
     var subElement = null;
     var superElement = null;
