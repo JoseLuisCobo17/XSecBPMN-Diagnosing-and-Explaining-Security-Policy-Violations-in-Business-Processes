@@ -250,10 +250,15 @@ function userWithRoleFunction(props) {
   const translate = useService('translate');
   const debounce = useService('debounceInput');
 
-  // Obtén el objeto userWithRole o un objeto vacío si no existe
+  // Obtén el objeto userWithRole o un objeto vacío si no existe, considerando si es un bpmn:Collaboration
   const getuserWithRole = () => {
-    if (!element || !element.businessObject) {
-      return {};
+    if (!element || !element.businessObject) return {};
+
+    if (element.businessObject.participants) {
+      const firstParticipant = element.businessObject.participants[0];
+      if (firstParticipant.processRef) {
+        return firstParticipant.processRef.userWithRole || {};
+      }
     }
     return element.businessObject.userWithRole || {};
   };
@@ -265,51 +270,85 @@ function userWithRoleFunction(props) {
 
     // Transferir los valores, cambiando el nombre del rol
     Object.keys(userWithRole).forEach(role => {
-      if (role === oldRole) {
-        updateduserWithRole[newRole] = userWithRole[role];
-      } else {
-        updateduserWithRole[role] = userWithRole[role];
-      }
+      updateduserWithRole[role === oldRole ? newRole : role] = userWithRole[role];
     });
 
-    // Actualizar el businessObject con el nuevo userWithRole
-    modeling.updateProperties(element, {
-      userWithRole: updateduserWithRole
-    });
+    // Actualizar en cada participante si es Collaboration
+    if (element.businessObject.participants) {
+      element.businessObject.participants.forEach(participant => {
+        if (participant.processRef) {
+          modeling.updateModdleProperties(element, participant.processRef, {
+            userWithRole: updateduserWithRole
+          });
+        }
+      });
+    } else {
+      modeling.updateProperties(element, {
+        userWithRole: updateduserWithRole
+      });
+    }
   };
 
-  // Función para actualizar el valor de un rol en el userWithRole
+  // Función para actualizar el valor de un rol en userWithRole
   const setuserWithRoleValue = (role, value) => {
     const userWithRole = getuserWithRole();
     const updateduserWithRole = { ...userWithRole, [role]: value };
 
-    // Actualizar el businessObject con el nuevo userWithRole
-    modeling.updateProperties(element, {
-      userWithRole: updateduserWithRole
-    });
+    if (element.businessObject.participants) {
+      element.businessObject.participants.forEach(participant => {
+        if (participant.processRef) {
+          modeling.updateModdleProperties(element, participant.processRef, {
+            userWithRole: updateduserWithRole
+          });
+        }
+      });
+    } else {
+      modeling.updateProperties(element, {
+        userWithRole: updateduserWithRole
+      });
+    }
   };
 
-  // Función para eliminar un rol y su valor asociado del userWithRole
-  const removeRole = (role) => {
+  // Función para eliminar un rol y su valor asociado
+  const removeRole = role => {
     const userWithRole = getuserWithRole();
     const updateduserWithRole = { ...userWithRole };
-    delete updateduserWithRole[role]; // Eliminar el rol específico
+    delete updateduserWithRole[role];
 
-    // Actualizar el businessObject con el nuevo userWithRole
-    modeling.updateProperties(element, {
-      userWithRole: updateduserWithRole
-    });
+    if (element.businessObject.participants) {
+      element.businessObject.participants.forEach(participant => {
+        if (participant.processRef) {
+          modeling.updateModdleProperties(element, participant.processRef, {
+            userWithRole: updateduserWithRole
+          });
+        }
+      });
+    } else {
+      modeling.updateProperties(element, {
+        userWithRole: updateduserWithRole
+      });
+    }
   };
 
-  // Función para añadir un nuevo rol al userWithRole
+  // Función para añadir un nuevo rol
   const addRole = () => {
     const userWithRole = getuserWithRole();
-    const newRole = `role${Object.keys(userWithRole).length + 1}`; // Crear una clave única para el nuevo rol
+    const newRole = `role${Object.keys(userWithRole).length + 1}`;
     const updateduserWithRole = { ...userWithRole, [newRole]: '' };
 
-    modeling.updateProperties(element, {
-      userWithRole: updateduserWithRole
-    });
+    if (element.businessObject.participants) {
+      element.businessObject.participants.forEach(participant => {
+        if (participant.processRef) {
+          modeling.updateModdleProperties(element, participant.processRef, {
+            userWithRole: updateduserWithRole
+          });
+        }
+      });
+    } else {
+      modeling.updateProperties(element, {
+        userWithRole: updateduserWithRole
+      });
+    }
   };
 
   // Renderizar las entradas clave-valor
@@ -318,7 +357,6 @@ function userWithRoleFunction(props) {
     return Object.keys(userWithRole).map(role => {
       return html`
         <div class="user-pool-item">
-          <!-- Entrada editable para el nombre del rol (clave) -->
           <input 
             type="text" 
             value=${role} 
@@ -326,14 +364,12 @@ function userWithRoleFunction(props) {
             placeholder="Role name" 
             style="margin-right: 10px;" 
           />
-          <!-- Entrada para el valor asociado al rol -->
           <input 
             type="text" 
             value=${userWithRole[role]} 
             onInput=${(event) => setuserWithRoleValue(role, event.target.value)} 
             placeholder="User name" 
           />
-          <!-- Botón para eliminar el rol -->
           <button 
             class="remove-role-button" 
             onClick=${() => removeRole(role)}
