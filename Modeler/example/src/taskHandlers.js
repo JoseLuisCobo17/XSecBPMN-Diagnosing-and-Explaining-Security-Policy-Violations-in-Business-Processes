@@ -121,6 +121,8 @@ function getAllRelevantTasks(bpmnModeler) {
     e.type === 'bpmn:StartEvent' ||
     e.type === 'bpmn:EndEvent' ||
     e.type === 'bpmn:Process' ||
+    e.type === 'bpmn:Collaboration' ||
+    e.type === 'bpmn:Participant' ||
     e.type === 'bpmn:SequenceFlow' ||
     e.type === 'bpmn:MessageFlow' ||
     e.type === 'bpmn:IntermediateCatchEvent' ||
@@ -172,6 +174,8 @@ function getAllRelevantTasks(bpmnModeler) {
     const isUserTask = e.type === 'bpmn:UserTask';
     const isTask = e.type === 'bpmn:Task' || isUserTask;
     const isProcess = e.type === 'bpmn:Process';
+    const isCollaboration = e.type === 'bpmn:Collaboration';
+    const isParticipant = e.type === 'bpmn:Participant';
     const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow';
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
@@ -188,8 +192,81 @@ function getAllRelevantTasks(bpmnModeler) {
     const numberOfExecutions = businessObject.NumberOfExecutions || 0;
     const minimumTime = businessObject.minimumTime || 0;
     const maximumTime = businessObject.maximumTime || 0;
-    const instance = businessObject.Instance || '';
-    const userWithRole = isProcess ? (businessObject.userWithRole || {}) : {};
+
+    let instance = ''; // Inicializar instancia vacía
+    let userWithRole = {};
+    let userWithoutRole = '';
+    let frequency = 0;
+
+    if (isCollaboration) {
+      const participants = businessObject.participants || [];
+      participants.forEach(participant => {
+        const processRef = participant.processRef;
+        if (processRef) {
+          // Obtener 'instance'
+          if (processRef.instance !== undefined) {
+            instance = processRef.instance;
+          }
+          // Obtener 'userWithRole'
+          if (processRef.userWithRole) {
+            userWithRole = { ...userWithRole, ...processRef.userWithRole };
+          }
+          // Obtener 'userWithoutRole'
+          if (processRef.userWithoutRole) {
+            userWithoutRole += processRef.userWithoutRole + ', ';
+          }
+          // Obtener 'frequency'
+          if (processRef.frequency !== undefined) {
+            frequency = processRef.frequency;
+          }
+        }
+      });
+      // Remover coma y espacio adicionales al final de 'userWithoutRole'
+      if (userWithoutRole.endsWith(', ')) {
+        userWithoutRole = userWithoutRole.slice(0, -2);
+      }
+    } else if (isParticipant) {
+      const processRef = businessObject.processRef;
+      if (processRef) {
+        // Obtener 'instance'
+        if (processRef.instance !== undefined) {
+          instance = processRef.instance;
+        }
+        // Obtener 'userWithRole'
+        if (processRef.userWithRole) {
+          userWithRole = processRef.userWithRole;
+        }
+        // Obtener 'userWithoutRole'
+        if (processRef.userWithoutRole) {
+          userWithoutRole = processRef.userWithoutRole;
+        }
+        // Obtener 'frequency'
+        if (processRef.frequency !== undefined) {
+          frequency = processRef.frequency;
+        }
+      }
+    } else if (isProcess) {
+      // Para elementos de tipo 'Process'
+      if (businessObject.instance !== undefined) {
+        instance = businessObject.instance;
+      }
+      if (businessObject.userWithRole) {
+        userWithRole = businessObject.userWithRole;
+      }
+      if (businessObject.userWithoutRole) {
+        userWithoutRole = businessObject.userWithoutRole;
+      }
+      if (businessObject.frequency !== undefined) {
+        frequency = businessObject.frequency;
+      }
+    } else {
+      instance = businessObject.instance || '';
+    }
+
+    console.log("Instancia:", instance);
+    console.log("userWithRole:", JSON.stringify(userWithRole, null, 2));
+    console.log("userWithoutRole:", userWithoutRole);
+    console.log("Frequency:", frequency);
 
     return {
       id_model: id_model,
@@ -207,15 +284,15 @@ function getAllRelevantTasks(bpmnModeler) {
       SubTasks: subTasks,
       subElement: subElement,
       superElement: superElement,
-      Instances: isProcess ? (businessObject.instance || 0) : 0,
-      Frequency: isProcess ? (businessObject.frequency || 0) : 0,
+      Instances: isProcess || isCollaboration || isParticipant ? (instance || 0) : 0,
+      Frequency: isProcess || isCollaboration || isParticipant ? (frequency || 0) : 0,
       PercentageOfBranches: percentageOfBranches,
       NumberOfExecutions: numberOfExecutions,
       MinimumTime: minimumTime,
       MaximumTime: maximumTime,
       UserInstance: instance,
       time: time,
-      userWithoutRole: isProcess ? (businessObject.userWithoutRole || '') : '',
+      userWithoutRole: isProcess || isCollaboration || isParticipant ? (userWithoutRole || '') : '',
       userWithRole: userWithRole 
     };
   });
@@ -270,7 +347,7 @@ function exportToEsper(bpmnModeler) {
           content += `maximumTime=${element.MaximumTime}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
-        } else if (element.type === 'bpmn:Process') {
+        } else if (element.type === 'bpmn:Process' || element.type === 'bpmn:Collaboration' || element.type === 'bpmn:Participant') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
 

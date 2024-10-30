@@ -33,54 +33,75 @@ export default function(element) {
 }
 
 function instanceFunction(props) {
-    const { element, id } = props;
-    const modeling = useService('modeling');
-    const translate = useService('translate');
-    const debounce = useService('debounceInput');
-  
-    const getValue = () => {
-      if (!element || !element.businessObject) {
-        return '';
+  const { element, id } = props;
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) return '';
+
+    // Acceder al valor en processRef de cada participante
+    if (element.businessObject.participants) {
+      const firstParticipant = element.businessObject.participants[0];
+      if (firstParticipant.processRef) {
+        const value = firstParticipant.processRef.instance;
+        console.log("Current instance value in processRef:", value);
+        return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
+      } else {
+        console.warn("processRef is missing for participant:", firstParticipant);
       }
+    } else if (element.businessObject.instance !== undefined) {
       const value = element.businessObject.instance;
+      console.log("Current instance value:", value);
       return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
-    };
-  
-    const setValue = value => {
-  
-      if (typeof value === 'undefined') {
-        return;
-      }
-  
-      if (!element || !element.businessObject) {
-        return;
-      }
-  
-      if (value.trim() === '') {
-        modeling.updateProperties(element, {
-          instance: ''
-        });
-        return;
-      }
-  
-      const newValue = parseInt(value, 10);
-      if (isNaN(newValue)) {
-        return;
-      }
-  
+    }
+
+    return '';
+  };
+
+  const setValue = (value) => {
+    if (typeof value === 'undefined' || !element || !element.businessObject) {
+      return;
+    }
+
+    const newValue = value.trim() === '' ? '' : parseInt(value, 10);
+    if (isNaN(newValue)) return;
+
+    // Si el elemento es Collaboration, verifica cada participant y su processRef
+    if (element.businessObject.participants) {
+      element.businessObject.participants.forEach(participant => {
+        if (participant.processRef && typeof participant.processRef === 'object') {
+          try {
+            modeling.updateModdleProperties(element, participant.processRef, {
+              instance: newValue
+            });
+            console.log("Instance value after update in processRef:", participant.processRef.instance);
+          } catch (error) {
+            console.error("Failed to update properties for processRef:", error);
+          }
+        } else {
+          console.warn("processRef is missing or invalid for participant:", participant);
+        }
+      });
+    } else {
+      // Actualización directa si no es un Collaboration
       modeling.updateProperties(element, {
         instance: newValue
       });
-    };
-    return html`<${TextFieldEntry}
-      id=${id}
-      element=${element}
-      label=${translate('Number of instances')}
-      getValue=${getValue}
-      setValue=${setValue}
-      debounce=${debounce}
-      tooltip=${translate('Enter the number of different instances.')} 
-    />`;
+      console.log("Instance value after update:", element.businessObject.instance);
+    }
+  };
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Number of instances')}
+    getValue=${getValue}
+    setValue=${setValue}
+    debounce=${debounce}
+    tooltip=${translate('Enter the number of different instances.')} 
+  />`;
 }
 
 function frequencyFunction(props) {
