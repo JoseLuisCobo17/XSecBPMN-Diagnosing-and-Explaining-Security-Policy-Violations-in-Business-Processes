@@ -135,21 +135,20 @@ function getAllRelevantTasks(bpmnModeler) {
 
   return relevantElements.map(e => {
     var businessObject = e.businessObject;
-    console.log(`Elemento: ${e.id}, Tipo: ${e.type}, businessObject:`, businessObject);
 
-    // Identifica si el elemento es un MessageStartEvent
     let isMessageStartEvent = e.type === 'bpmn:StartEvent' && 
         businessObject.eventDefinitions && 
         businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
-    // Si es un MessageStartEvent, cambia el tipo
-    let type = isMessageStartEvent ? 'bpmn:MessageStartEvent' : e.type;
-    
+    let isTimerStartEvent = e.type === 'bpmn:StartEvent' && 
+        businessObject.eventDefinitions && 
+        businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
+
+    let type = e.type;
     if (isMessageStartEvent) {
-      e.type = 'bpmn:MessageStartEvent'
-        console.log(`Identificado como MessageStartEvent: ${e.id}`);
-    } else {
-        console.log(`Identificado como ${type}: ${e.id}`);
+        type = 'bpmn:MessageStartEvent';
+    } else if (isTimerStartEvent) {
+        type = 'bpmn:TimerStartEvent';
     }
 
     var subTasks = [];
@@ -306,33 +305,15 @@ function exportToEsper(bpmnModeler) {
 
       let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
-        // Depuración: verifica si tiene businessObject y eventDefinitions
-        console.log(`Elemento: ${element.id_bpmn || element.id}, Tipo: ${element.type}`);
-        if (element.businessObject) {
-          console.log(`businessObject encontrado para ${element.businessObject || element.id}`);
-          if (element.businessObject.eventDefinitions) {
-            console.log(`eventDefinitions encontrados: `, element.businessObject.eventDefinitions);
-          } else {
-            console.log(`Sin eventDefinitions en ${element.id_bpmn || element.id}`);
-          }
-        } else {
-          console.log(`Sin businessObject en ${element.id_bpmn || element.id}`);
-        }
 
-        // Clasifica como MessageStartEvent si es un StartEvent con una MessageEventDefinition
-        if (element.type === 'bpmn:StartEvent') {
-          console.log(`aaa: ${element.businessObject}`)
-        }
         if (element.type === 'bpmn:StartEvent' && 
             element.businessObject &&
             element.businessObject.eventDefinitions &&
             element.businessObject.eventDefinitions.length > 0 &&
             element.businessObject.eventDefinitions[0].$type === 'bpmn:MessageEventDefinition') {
           content += `Element: [type=bpmn:MessageStartEvent, `;
-          console.log(` aaa Identificado como MessageStartEvent: ${element.id_bpmn || element.id}`);
         } else {
           content += `Element: [type=${element.type}, `;
-          console.log(`Identificado como ${element.type}: ${element.id_bpmn || element.id}`);
         }
 
         content += `name=${element.name || 'Unnamed'}, `;
