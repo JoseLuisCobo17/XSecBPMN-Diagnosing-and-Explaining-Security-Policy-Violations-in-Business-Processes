@@ -135,6 +135,22 @@ function getAllRelevantTasks(bpmnModeler) {
 
   return relevantElements.map(e => {
     var businessObject = e.businessObject;
+    console.log(`Elemento: ${e.id}, Tipo: ${e.type}, businessObject:`, businessObject);
+
+    // Identifica si el elemento es un MessageStartEvent
+    let isMessageStartEvent = e.type === 'bpmn:StartEvent' && 
+        businessObject.eventDefinitions && 
+        businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+
+    // Si es un MessageStartEvent, cambia el tipo
+    let type = isMessageStartEvent ? 'bpmn:MessageStartEvent' : e.type;
+    
+    if (isMessageStartEvent) {
+      e.type = 'bpmn:MessageStartEvent'
+        console.log(`Identificado como MessageStartEvent: ${e.id}`);
+    } else {
+        console.log(`Identificado como ${type}: ${e.id}`);
+    }
 
     var subTasks = [];
     var subElement = null;
@@ -203,19 +219,15 @@ function getAllRelevantTasks(bpmnModeler) {
       participants.forEach(participant => {
         const processRef = participant.processRef;
         if (processRef) {
-          // Obtener 'instance'
           if (processRef.instance !== undefined) {
             instance = processRef.instance;
           }
-          // Obtener 'userWithRole'
           if (processRef.userWithRole) {
             userWithRole = { ...userWithRole, ...processRef.userWithRole };
           }
-          // Obtener 'userWithoutRole' sin duplicados
           if (processRef.userWithoutRole) {
             processRef.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
           }
-          // Obtener 'frequency'
           if (processRef.frequency !== undefined) {
             frequency = processRef.frequency;
           }
@@ -224,25 +236,20 @@ function getAllRelevantTasks(bpmnModeler) {
     } else if (e.type === 'bpmn:Participant') {
       const processRef = businessObject.processRef;
       if (processRef) {
-        // Obtener 'instance'
         if (processRef.instance !== undefined) {
           instance = processRef.instance;
         }
-        // Obtener 'userWithRole'
         if (processRef.userWithRole) {
           userWithRole = processRef.userWithRole;
         }
-        // Obtener 'userWithoutRole' sin duplicados
         if (processRef.userWithoutRole) {
           processRef.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
         }
-        // Obtener 'frequency'
         if (processRef.frequency !== undefined) {
           frequency = processRef.frequency;
         }
       }
     } else if (e.type === 'bpmn:Process') {
-      // Para elementos de tipo 'Process'
       if (businessObject.instance !== undefined) {
         instance = businessObject.instance;
       }
@@ -259,13 +266,7 @@ function getAllRelevantTasks(bpmnModeler) {
       instance = businessObject.instance || '';
     }
 
-    // Convertir Set a cadena de texto sin duplicados
     const userWithoutRole = Array.from(userWithoutRoleSet).join(', ');
-
-    console.log("Instancia:", instance);
-    console.log("userWithRole:", JSON.stringify(userWithRole, null, 2));
-    console.log("userWithoutRole:", userWithoutRole);
-    console.log("Frequency:", frequency);
 
     return {
       id_model: id_model,
@@ -292,7 +293,8 @@ function getAllRelevantTasks(bpmnModeler) {
       UserInstance: instance,
       time: time,
       userWithoutRole: isProcess || isCollaboration || isParticipant ? userWithoutRole : '',
-      userWithRole: userWithRole 
+      userWithRole: userWithRole ,
+      type: type,
     };
   });
 }
@@ -304,7 +306,35 @@ function exportToEsper(bpmnModeler) {
 
       let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
-        content += `Element: [type=${element.type}, `;
+        // Depuración: verifica si tiene businessObject y eventDefinitions
+        console.log(`Elemento: ${element.id_bpmn || element.id}, Tipo: ${element.type}`);
+        if (element.businessObject) {
+          console.log(`businessObject encontrado para ${element.businessObject || element.id}`);
+          if (element.businessObject.eventDefinitions) {
+            console.log(`eventDefinitions encontrados: `, element.businessObject.eventDefinitions);
+          } else {
+            console.log(`Sin eventDefinitions en ${element.id_bpmn || element.id}`);
+          }
+        } else {
+          console.log(`Sin businessObject en ${element.id_bpmn || element.id}`);
+        }
+
+        // Clasifica como MessageStartEvent si es un StartEvent con una MessageEventDefinition
+        if (element.type === 'bpmn:StartEvent') {
+          console.log(`aaa: ${element.businessObject}`)
+        }
+        if (element.type === 'bpmn:StartEvent' && 
+            element.businessObject &&
+            element.businessObject.eventDefinitions &&
+            element.businessObject.eventDefinitions.length > 0 &&
+            element.businessObject.eventDefinitions[0].$type === 'bpmn:MessageEventDefinition') {
+          content += `Element: [type=bpmn:MessageStartEvent, `;
+          console.log(` aaa Identificado como MessageStartEvent: ${element.id_bpmn || element.id}`);
+        } else {
+          content += `Element: [type=${element.type}, `;
+          console.log(`Identificado como ${element.type}: ${element.id_bpmn || element.id}`);
+        }
+
         content += `name=${element.name || 'Unnamed'}, `;
         content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
 
@@ -320,9 +350,9 @@ function exportToEsper(bpmnModeler) {
             ? element.superElement 
             : (Array.isArray(element.superElement) ? element.superElement.join(', ') : 'No Super Element');
           const subElement = element.subElement || 'No Sub Element';
-          
+
           content += `superElement="${superElement}", `;
-          content += `subElement="${subElement}"]\n`;      
+          content += `subElement="${subElement}"]\n`;
         } else if (element.type === 'bpmn:ServiceTask') {
           content += `sodSecurity=${element.Sod}, `;
           content += `bodSecurity=${element.Bod}, `;
@@ -335,7 +365,7 @@ function exportToEsper(bpmnModeler) {
           content += `uocSecurity=${element.Uoc}, `;
           content += `mth=${element.Mth}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
-          content += `subTask="${subTasks}"]\n`;       
+          content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask'
           || element.type === 'bpmn:SendTask' || element.type === 'bpmn:ReceiveTask' || element.type === 'bpmn:BusinessRuleTask'
           || element.type === 'bpmn:ScriptTask' || element.type === 'bpmn:CallActivity'
