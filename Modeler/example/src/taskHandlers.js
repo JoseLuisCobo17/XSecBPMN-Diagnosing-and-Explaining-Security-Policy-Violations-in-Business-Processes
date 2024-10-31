@@ -172,28 +172,29 @@ if (isMessageStartEvent) {
     console.log(`Identificado como ${type}: ${e.id}`);
 }
 
-
     var subTasks = [];
     var subElement = null;
     var superElement = null;
 
     if (e.type === 'bpmn:DataInputAssociation') {
       superElement = businessObject.sourceRef && businessObject.sourceRef.length > 0
-        ? businessObject.sourceRef.map(source => source.id).join(', ')
-        : 'No Super Element';
+          ? businessObject.sourceRef.map(source => source.id).join(', ')
+          : 'No Super Element';
       const targetTask = elementRegistry.find(el =>
-        el.businessObject.dataInputAssociations &&
-        el.businessObject.dataInputAssociations.some(assoc => assoc.id === businessObject.id)
+          el.businessObject.dataInputAssociations &&
+          el.businessObject.dataInputAssociations.some(assoc => assoc.id === businessObject.id)
       );
       subElement = targetTask ? targetTask.businessObject.id : 'No Sub Element';
-    } else if (e.type === 'bpmn:DataOutputAssociation') {
+  } else if (e.type === 'bpmn:DataOutputAssociation') {
       subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
+  
       const parentTask = elementRegistry.find(el =>
-        (el.type === 'bpmn:Task' || el.type === 'bpmn:UserTask' || el.type === 'bpmn:ServiceTask') &&
-        el.businessObject.dataOutputAssociations &&
-        el.businessObject.dataOutputAssociations.some(assoc => assoc.id === businessObject.id)
+          el.businessObject.dataOutputAssociations &&
+          el.businessObject.dataOutputAssociations.some(assoc => assoc.id === businessObject.id)
       );
-      superElement = parentTask ? [parentTask.businessObject.id] : [];    
+      superElement = parentTask ? [parentTask.businessObject.id].join(', ') : 'No Super Element';
+  
+      console.log(`Elemento: ${businessObject.id}, superElement: ${superElement}, subElement: ${subElement}`);   
     } else if (e.type === 'bpmn:BoundaryEvent' && businessObject.attachedToRef) {
       const attachedTask = businessObject.attachedToRef;
       subElement = attachedTask.outgoing ? attachedTask.outgoing.map(flow => flow.targetRef.id).join(', ') : '';
