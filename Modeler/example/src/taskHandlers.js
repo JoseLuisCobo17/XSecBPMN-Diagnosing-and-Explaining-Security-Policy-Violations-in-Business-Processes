@@ -137,7 +137,7 @@ function getAllRelevantTasks(bpmnModeler) {
   return relevantElements.map(e => {
     var businessObject = e.businessObject;
 
-let isMessageStartEvent = e.type === 'bpmn:StartEvent' && 
+    let isMessageStartEvent = e.type === 'bpmn:StartEvent' && 
     businessObject.eventDefinitions && 
     businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
@@ -153,6 +153,10 @@ let isTimerIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' &&
     businessObject.eventDefinitions && 
     businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
 
+let isMessageIntermediateThrowEvent = e.type === 'bpmn:IntermediateThrowEvent' && 
+    businessObject.eventDefinitions && 
+    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+
 let type = e.type;
 if (isMessageStartEvent) {
     type = 'bpmn:MessageStartEvent';
@@ -162,7 +166,8 @@ if (isMessageStartEvent) {
     type = 'bpmn:MessageIntermediateCatchEvent';
 } else if (isTimerIntermediateCatchEvent) {
     type = 'bpmn:TimerIntermediateCatchEvent';
-} else {
+} else if (isMessageIntermediateThrowEvent) {
+    type = 'bpmn:MessageIntermediateThrowEvent';
 }
 
     var subTasks = [];
