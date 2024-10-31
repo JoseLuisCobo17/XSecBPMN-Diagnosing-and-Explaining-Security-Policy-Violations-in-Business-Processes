@@ -123,6 +123,7 @@ function getAllRelevantTasks(bpmnModeler) {
     e.type === 'bpmn:Process' ||
     e.type === 'bpmn:Collaboration' ||
     e.type === 'bpmn:Participant' ||
+    e.type === 'bpmn:Lane' ||
     e.type === 'bpmn:SequenceFlow' ||
     e.type === 'bpmn:MessageFlow' ||
     e.type === 'bpmn:IntermediateCatchEvent' ||
@@ -184,9 +185,7 @@ if (isMessageStartEvent) {
           el.businessObject.dataOutputAssociations &&
           el.businessObject.dataOutputAssociations.some(assoc => assoc.id === businessObject.id)
       );
-      superElement = parentTask ? [parentTask.businessObject.id].join(', ') : 'No Super Element';
-  
-      console.log(`Elemento: ${businessObject.id}, superElement: ${superElement}, subElement: ${subElement}`);   
+      superElement = parentTask ? [parentTask.businessObject.id].join(', ') : 'No Super Element';  
     } else if (e.type === 'bpmn:BoundaryEvent' && businessObject.attachedToRef) {
       const attachedTask = businessObject.attachedToRef;
       subElement = attachedTask.outgoing ? attachedTask.outgoing.map(flow => flow.targetRef.id).join(', ') : '';
@@ -206,6 +205,7 @@ if (isMessageStartEvent) {
     const isProcess = e.type === 'bpmn:Process';
     const isCollaboration = e.type === 'bpmn:Collaboration';
     const isParticipant = e.type === 'bpmn:Participant';
+    const isLane = e.type === 'bpmn:Lane';
     const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow';
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
@@ -242,18 +242,13 @@ if (isMessageStartEvent) {
           }
         }
       });
-    } else if (e.type === 'bpmn:Participant') {
+    } else if (e.type === 'bpmn:Lane') {
+      if (businessObject.userWithoutRole) {
+        businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
+      }
+    } else if (e.type === 'bpmn:Participant' && e.type === 'bpmn:Lane') {
       const processRef = businessObject.processRef;
       if (processRef) {
-        if (processRef.instance !== undefined) {
-          instance = processRef.instance;
-        }
-        if (processRef.userWithRole) {
-          userWithRole = processRef.userWithRole;
-        }
-        if (processRef.userWithoutRole) {
-          processRef.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
-        }
         if (processRef.frequency !== undefined) {
           frequency = processRef.frequency;
         }
@@ -293,8 +288,8 @@ if (isMessageStartEvent) {
       SubTasks: subTasks,
       subElement: subElement,
       superElement: superElement,
-      Instances: isProcess || isCollaboration || isParticipant ? (instance || 0) : 0,
-      Frequency: isProcess || isCollaboration || isParticipant ? (frequency || 0) : 0,
+      Instances: isProcess || isCollaboration ? (instance || 0) : 0,
+      Frequency: isProcess || isParticipant ? (frequency || 0) : 0,
       PercentageOfBranches: percentageOfBranches,
       NumberOfExecutions: numberOfExecutions,
       MinimumTime: minimumTime,
@@ -302,7 +297,7 @@ if (isMessageStartEvent) {
       UserInstance: instance,
       security: security,
       time: time,
-      userWithoutRole: isProcess || isCollaboration || isParticipant ? userWithoutRole : '',
+      userWithoutRole: isProcess || isLane ? userWithoutRole : '',
       userWithRole: userWithRole ,
       type: type,
     };
@@ -375,6 +370,10 @@ function exportToEsper(bpmnModeler) {
         } else if (element.type === 'bpmn:Collaboration') {
           content += `instances=${element.Instances}, `;
           content += `security=${element.security}]\n`;
+        } else if (element.type === 'bpmn:Lane') {
+          const userWithoutRole = element.userWithoutRole ? 
+            element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') : '""';
+          content += `userWithoutRole=[${userWithoutRole}]]\n`;  // Cierra con corchete          
         } else if (element.type === 'bpmn:Process' || element.type === 'bpmn:Participant') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
