@@ -250,19 +250,16 @@ if (isMessageStartEvent) {
           }
         }
       });
+    } else if (e.type === 'bpmn:Participant') {
+      if (businessObject.frequency !== undefined) {
+        frequency = businessObject.frequency;
+      }
     } else if (e.type === 'bpmn:Lane') {
       if (businessObject.userWithoutRole) {
         businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
       }
       const containedElements = businessObject.flowNodeRef ? 
         businessObject.flowNodeRef.map(node => node.id) : [];
-    } else if (e.type === 'bpmn:Participant' && e.type === 'bpmn:Lane') {
-      const processRef = businessObject.processRef;
-      if (processRef) {
-        if (processRef.frequency !== undefined) {
-          frequency = processRef.frequency;
-        }
-      }
     } else if (e.type === 'bpmn:Process') {
       if (businessObject.instance !== undefined) {
         instance = businessObject.instance;
@@ -278,7 +275,7 @@ if (isMessageStartEvent) {
       }
     } else {
       instance = businessObject.instance || '';
-    }
+    }    
 
     const userWithoutRole = Array.from(userWithoutRoleSet).join(', ');
 
@@ -390,7 +387,7 @@ function exportToEsper(bpmnModeler) {
             : '""';
         
           content += `userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;  // Cierra con corchete
-        } else if (element.type === 'bpmn:Process' || element.type === 'bpmn:Participant') {
+        } else if (element.type === 'bpmn:Process') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
 
@@ -402,7 +399,9 @@ function exportToEsper(bpmnModeler) {
             Object.entries(element.userWithRole).map(([role, users]) => 
               `"${role}": [${users.split(', ').map(u => `"${u}"`).join(', ')}]`).join(', ') : '{}';
           content += `userWithRole={${userWithRole}}]\n`;
-        } else {
+        }else if (element.type === 'bpmn:Participant') {
+        content += `frequency=${element.Frequency}]\n`;
+      }  else {
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         }

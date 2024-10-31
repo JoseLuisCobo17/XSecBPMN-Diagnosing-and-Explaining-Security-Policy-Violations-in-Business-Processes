@@ -4,6 +4,7 @@ import SequenceFlowProps from '../sequenceFlow/parts/SequenceFlowProps';
 import ModelProps from '../model/parts/ModelProps';
 import CollaborationProps from '../model/parts/CollaborationProps';
 import LaneProps from '../model/parts/LaneProps';
+import ParticipantProps from '../model/parts/ParticipantProps';
 
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
@@ -37,6 +38,8 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
         groups.push(createCollaborationGroup(element, translate));
       } else if ( is(element, 'bpmn:Lane')) {
         groups.push(createLaneGroup(element, translate));
+      } else if ( is(element, 'bpmn:Participant')) {
+        groups.push(createParticipantGroup(element, translate));
       }
       return groups;
     };
@@ -107,6 +110,17 @@ function createLaneGroup(element, translate) {
     id: 'model',
     label: translate('Model properties'),
     entries: LaneProps(element),
+    tooltip: translate('Manage model-level properties')
+  };
+
+  return laneGroup;
+}
+
+function createParticipantGroup(element, translate) {
+  const laneGroup = {
+    id: 'model',
+    label: translate('Model properties'),
+    entries: ParticipantProps(element),
     tooltip: translate('Manage model-level properties')
   };
 
