@@ -228,6 +228,9 @@ if (isMessageStartEvent) {
     let userWithRole = {};
     let userWithoutRoleSet = new Set();
     let frequency = 0;
+    const containedElements = businessObject.flowNodeRef 
+    ? businessObject.flowNodeRef.map(node => node.id) 
+    : [];
 
     if (e.type === 'bpmn:Collaboration') {
       const participants = businessObject.participants || [];
@@ -246,6 +249,8 @@ if (isMessageStartEvent) {
       if (businessObject.userWithoutRole) {
         businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
       }
+      const containedElements = businessObject.flowNodeRef ? 
+        businessObject.flowNodeRef.map(node => node.id) : [];
     } else if (e.type === 'bpmn:Participant' && e.type === 'bpmn:Lane') {
       const processRef = businessObject.processRef;
       if (processRef) {
@@ -300,6 +305,7 @@ if (isMessageStartEvent) {
       userWithoutRole: isProcess || isLane ? userWithoutRole : '',
       userWithRole: userWithRole ,
       type: type,
+      containedElements: containedElements,
     };
   });
 }
@@ -373,7 +379,12 @@ function exportToEsper(bpmnModeler) {
         } else if (element.type === 'bpmn:Lane') {
           const userWithoutRole = element.userWithoutRole ? 
             element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') : '""';
-          content += `userWithoutRole=[${userWithoutRole}]]\n`;  // Cierra con corchete          
+        
+          const containedElements = element.containedElements && element.containedElements.length > 0
+            ? element.containedElements.map(el => `"${el}"`).join(', ')
+            : '""';
+        
+          content += `userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;  // Cierra con corchete
         } else if (element.type === 'bpmn:Process' || element.type === 'bpmn:Participant') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
