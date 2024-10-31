@@ -2,6 +2,7 @@ import SecurityProps from './parts/SecurityProps';
 import UserProps from '../user/parts/UserProps';
 import SequenceFlowProps from '../sequenceFlow/parts/SequenceFlowProps';
 import ModelProps from '../model/parts/ModelProps';
+import CollaborationProps from '../model/parts/CollaborationProps';
 
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
@@ -29,9 +30,10 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
         if (sourceElement && is(sourceElement, 'bpmn:Gateway')) {
           groups.push(createSequenceFlowGroup(element, translate));
         }
-      } else if (is(element, 'bpmn:Process') || is(element, 'bpmn:Collaboration') 
-        || is(element, 'bpmn:Participant')) {
+      } else if (is(element, 'bpmn:Process')) {
         groups.push(createModelGroup(element, translate));
+      } else if ( is(element, 'bpmn:Collaboration')) {
+        groups.push(createCollaborationGroup(element, translate));
       }
       return groups;
     };
@@ -42,7 +44,6 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
 
 SecurityPropertiesProvider.$inject = ['propertiesPanel', 'translate'];
 
-// Crear el grupo personalizado para UoC
 function createUoCGroup(element, translate) {
   const securityGroup = {
     id: 'security-uoc',
@@ -54,7 +55,6 @@ function createUoCGroup(element, translate) {
   return securityGroup;
 }
 
-// Crear el grupo personalizado para UserTask
 function createUserGroup(element, translate) {
   const userGroup = {
     id: 'User',
@@ -77,14 +77,24 @@ function createSequenceFlowGroup(element, translate) {
   return sequenceFlowGroup;
 }
 
-// Crear el grupo personalizado para Model
 function createModelGroup(element, translate) {
   const modelGroup = {
     id: 'model',
     label: translate('Model properties'),
-    entries: ModelProps(element), // Llama a ModelProps, donde está gestionado userPool
+    entries: ModelProps(element),
     tooltip: translate('Manage model-level properties, including userPool.')
   };
 
   return modelGroup;
+}
+
+function createCollaborationGroup(element, translate) {
+  const collaborationGroup = {
+    id: 'model',
+    label: translate('Model properties'),
+    entries: CollaborationProps(element),
+    tooltip: translate('Manage model-level properties, including userPool.')
+  };
+
+  return collaborationGroup;
 }

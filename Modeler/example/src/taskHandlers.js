@@ -134,29 +134,24 @@ function getAllRelevantTasks(bpmnModeler) {
   );
 
   return relevantElements.map(e => {
-    var businessObject = e.businessObject;  // Aseguramos que businessObject esté definido aquí
+    var businessObject = e.businessObject;
 
-// Identifica si el elemento es un MessageStartEvent
 let isMessageStartEvent = e.type === 'bpmn:StartEvent' && 
     businessObject.eventDefinitions && 
     businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
-// Identifica si el elemento es un TimerStartEvent
 let isTimerStartEvent = e.type === 'bpmn:StartEvent' && 
     businessObject.eventDefinitions && 
     businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
 
-// Identifica si el elemento es un MessageIntermediateCatchEvent
 let isMessageIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
     businessObject.eventDefinitions && 
     businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
-// Identifica si el elemento es un TimerIntermediateCatchEvent
 let isTimerIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
     businessObject.eventDefinitions && 
     businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
 
-// Determina el tipo del elemento en base a los criterios
 let type = e.type;
 if (isMessageStartEvent) {
     type = 'bpmn:MessageStartEvent';
@@ -164,12 +159,9 @@ if (isMessageStartEvent) {
     type = 'bpmn:TimerStartEvent';
 } else if (isMessageIntermediateCatchEvent) {
     type = 'bpmn:MessageIntermediateCatchEvent';
-    console.log(`Identificado como MessageIntermediateCatchEvent: ${e.id}`);
 } else if (isTimerIntermediateCatchEvent) {
     type = 'bpmn:TimerIntermediateCatchEvent';
-    console.log(`Identificado como TimerIntermediateCatchEvent: ${e.id}`);
 } else {
-    console.log(`Identificado como ${type}: ${e.id}`);
 }
 
     var subTasks = [];
@@ -232,6 +224,7 @@ if (isMessageStartEvent) {
     const maximumTime = businessObject.maximumTime || 0;
 
     let instance = ''; 
+    let security = false; 
     let userWithRole = {};
     let userWithoutRoleSet = new Set();
     let frequency = 0;
@@ -244,14 +237,8 @@ if (isMessageStartEvent) {
           if (processRef.instance !== undefined) {
             instance = processRef.instance;
           }
-          if (processRef.userWithRole) {
-            userWithRole = { ...userWithRole, ...processRef.userWithRole };
-          }
-          if (processRef.userWithoutRole) {
-            processRef.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
-          }
-          if (processRef.frequency !== undefined) {
-            frequency = processRef.frequency;
+          if (processRef.security !== undefined) {
+            security = processRef.security;
           }
         }
       });
@@ -313,6 +300,7 @@ if (isMessageStartEvent) {
       MinimumTime: minimumTime,
       MaximumTime: maximumTime,
       UserInstance: instance,
+      security: security,
       time: time,
       userWithoutRole: isProcess || isCollaboration || isParticipant ? userWithoutRole : '',
       userWithRole: userWithRole ,
@@ -386,8 +374,8 @@ function exportToEsper(bpmnModeler) {
           content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Collaboration') {
           content += `instances=${element.Instances}, `;
-          content += `security={${userWithRole}}]\n`;
-        } else if (element.type === 'bpmn:Process' || element.type === 'bpmn:Collaboration' || element.type === 'bpmn:Participant') {
+          content += `security=${element.security}]\n`;
+        } else if (element.type === 'bpmn:Process' || element.type === 'bpmn:Participant') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
 
