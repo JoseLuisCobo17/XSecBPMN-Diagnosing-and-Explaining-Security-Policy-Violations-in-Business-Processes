@@ -327,8 +327,8 @@ function exportToEsper(bpmnModeler) {
           content += `Element: [type=${element.type}, `;
         }
 
-        content += `name=${element.name || 'Unnamed'}, `;
-        content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
+        content += `name="${element.name || 'Unnamed'}", `;
+        content += `id_bpmn="${element.id_bpmn || 'Unknown'}", `;        
 
         if (element.time) {
           content += `time=${element.time}, `;
