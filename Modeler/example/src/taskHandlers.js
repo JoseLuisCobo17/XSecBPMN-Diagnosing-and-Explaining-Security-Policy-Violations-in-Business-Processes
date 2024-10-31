@@ -121,6 +121,8 @@ function getAllRelevantTasks(bpmnModeler) {
     e.type === 'bpmn:StartEvent' ||
     e.type === 'bpmn:EndEvent' ||
     e.type === 'bpmn:Process' ||
+    e.type === 'bpmn:Collaboration' ||
+    e.type === 'bpmn:Participant' ||
     e.type === 'bpmn:SequenceFlow' ||
     e.type === 'bpmn:MessageFlow' ||
     e.type === 'bpmn:IntermediateCatchEvent' ||
@@ -132,35 +134,67 @@ function getAllRelevantTasks(bpmnModeler) {
   );
 
   return relevantElements.map(e => {
-    var businessObject = e.businessObject;
+    var businessObject = e.businessObject;  // Aseguramos que businessObject esté definido aquí
+
+// Identifica si el elemento es un MessageStartEvent
+let isMessageStartEvent = e.type === 'bpmn:StartEvent' && 
+    businessObject.eventDefinitions && 
+    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+
+// Identifica si el elemento es un TimerStartEvent
+let isTimerStartEvent = e.type === 'bpmn:StartEvent' && 
+    businessObject.eventDefinitions && 
+    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
+
+// Identifica si el elemento es un MessageIntermediateCatchEvent
+let isMessageIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
+    businessObject.eventDefinitions && 
+    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+
+// Identifica si el elemento es un TimerIntermediateCatchEvent
+let isTimerIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
+    businessObject.eventDefinitions && 
+    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
+
+// Determina el tipo del elemento en base a los criterios
+let type = e.type;
+if (isMessageStartEvent) {
+    type = 'bpmn:MessageStartEvent';
+} else if (isTimerStartEvent) {
+    type = 'bpmn:TimerStartEvent';
+} else if (isMessageIntermediateCatchEvent) {
+    type = 'bpmn:MessageIntermediateCatchEvent';
+    console.log(`Identificado como MessageIntermediateCatchEvent: ${e.id}`);
+} else if (isTimerIntermediateCatchEvent) {
+    type = 'bpmn:TimerIntermediateCatchEvent';
+    console.log(`Identificado como TimerIntermediateCatchEvent: ${e.id}`);
+} else {
+    console.log(`Identificado como ${type}: ${e.id}`);
+}
 
     var subTasks = [];
     var subElement = null;
     var superElement = null;
 
     if (e.type === 'bpmn:DataInputAssociation') {
-      // El DataObjectReference actúa como superElement
       superElement = businessObject.sourceRef && businessObject.sourceRef.length > 0
-        ? businessObject.sourceRef.map(source => source.id).join(', ')
-        : 'No Super Element';
-      console.log("superElement en getAllRelevantTasks: " + superElement);
-      
-      // Buscar la Task que recibe este DataInputAssociation como subElement
+          ? businessObject.sourceRef.map(source => source.id).join(', ')
+          : 'No Super Element';
       const targetTask = elementRegistry.find(el =>
-        el.businessObject.dataInputAssociations &&
-        el.businessObject.dataInputAssociations.some(assoc => assoc.id === businessObject.id)
+          el.businessObject.dataInputAssociations &&
+          el.businessObject.dataInputAssociations.some(assoc => assoc.id === businessObject.id)
       );
-    
       subElement = targetTask ? targetTask.businessObject.id : 'No Sub Element';
-      console.log("subElement en getAllRelevantTasks: " + subElement);
-    } else if (e.type === 'bpmn:DataOutputAssociation') {
+  } else if (e.type === 'bpmn:DataOutputAssociation') {
       subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
+  
       const parentTask = elementRegistry.find(el =>
-        (el.type === 'bpmn:Task' || el.type === 'bpmn:UserTask' || el.type === 'bpmn:ServiceTask') &&
-        el.businessObject.dataOutputAssociations &&
-        el.businessObject.dataOutputAssociations.some(assoc => assoc.id === businessObject.id)
+          el.businessObject.dataOutputAssociations &&
+          el.businessObject.dataOutputAssociations.some(assoc => assoc.id === businessObject.id)
       );
-      superElement = parentTask ? [parentTask.businessObject.id] : [];    
+      superElement = parentTask ? [parentTask.businessObject.id].join(', ') : 'No Super Element';
+  
+      console.log(`Elemento: ${businessObject.id}, superElement: ${superElement}, subElement: ${subElement}`);   
     } else if (e.type === 'bpmn:BoundaryEvent' && businessObject.attachedToRef) {
       const attachedTask = businessObject.attachedToRef;
       subElement = attachedTask.outgoing ? attachedTask.outgoing.map(flow => flow.targetRef.id).join(', ') : '';
@@ -178,6 +212,8 @@ function getAllRelevantTasks(bpmnModeler) {
     const isUserTask = e.type === 'bpmn:UserTask';
     const isTask = e.type === 'bpmn:Task' || isUserTask;
     const isProcess = e.type === 'bpmn:Process';
+    const isCollaboration = e.type === 'bpmn:Collaboration';
+    const isParticipant = e.type === 'bpmn:Participant';
     const isSequenceFlow = e.type === 'bpmn:SequenceFlow' || e.type === 'bpmn:MessageFlow';
     const securityType = businessObject.securityType || '';
     const percentageOfBranches = isSequenceFlow ? (businessObject.percentageOfBranches || 0) : 0;
@@ -194,8 +230,65 @@ function getAllRelevantTasks(bpmnModeler) {
     const numberOfExecutions = businessObject.NumberOfExecutions || 0;
     const minimumTime = businessObject.minimumTime || 0;
     const maximumTime = businessObject.maximumTime || 0;
-    const instance = businessObject.Instance || '';
-    const userWithRole = isProcess ? (businessObject.userWithRole || {}) : {};
+
+    let instance = ''; 
+    let userWithRole = {};
+    let userWithoutRoleSet = new Set();
+    let frequency = 0;
+
+    if (e.type === 'bpmn:Collaboration') {
+      const participants = businessObject.participants || [];
+      participants.forEach(participant => {
+        const processRef = participant.processRef;
+        if (processRef) {
+          if (processRef.instance !== undefined) {
+            instance = processRef.instance;
+          }
+          if (processRef.userWithRole) {
+            userWithRole = { ...userWithRole, ...processRef.userWithRole };
+          }
+          if (processRef.userWithoutRole) {
+            processRef.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
+          }
+          if (processRef.frequency !== undefined) {
+            frequency = processRef.frequency;
+          }
+        }
+      });
+    } else if (e.type === 'bpmn:Participant') {
+      const processRef = businessObject.processRef;
+      if (processRef) {
+        if (processRef.instance !== undefined) {
+          instance = processRef.instance;
+        }
+        if (processRef.userWithRole) {
+          userWithRole = processRef.userWithRole;
+        }
+        if (processRef.userWithoutRole) {
+          processRef.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
+        }
+        if (processRef.frequency !== undefined) {
+          frequency = processRef.frequency;
+        }
+      }
+    } else if (e.type === 'bpmn:Process') {
+      if (businessObject.instance !== undefined) {
+        instance = businessObject.instance;
+      }
+      if (businessObject.userWithRole) {
+        userWithRole = businessObject.userWithRole;
+      }
+      if (businessObject.userWithoutRole) {
+        businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
+      }
+      if (businessObject.frequency !== undefined) {
+        frequency = businessObject.frequency;
+      }
+    } else {
+      instance = businessObject.instance || '';
+    }
+
+    const userWithoutRole = Array.from(userWithoutRoleSet).join(', ');
 
     return {
       id_model: id_model,
@@ -213,16 +306,17 @@ function getAllRelevantTasks(bpmnModeler) {
       SubTasks: subTasks,
       subElement: subElement,
       superElement: superElement,
-      Instances: isProcess ? (businessObject.instance || 0) : 0,
-      Frequency: isProcess ? (businessObject.frequency || 0) : 0,
+      Instances: isProcess || isCollaboration || isParticipant ? (instance || 0) : 0,
+      Frequency: isProcess || isCollaboration || isParticipant ? (frequency || 0) : 0,
       PercentageOfBranches: percentageOfBranches,
       NumberOfExecutions: numberOfExecutions,
       MinimumTime: minimumTime,
       MaximumTime: maximumTime,
       UserInstance: instance,
       time: time,
-      userWithoutRole: isProcess ? (businessObject.userWithoutRole || '') : '',
-      userWithRole: userWithRole 
+      userWithoutRole: isProcess || isCollaboration || isParticipant ? userWithoutRole : '',
+      userWithRole: userWithRole ,
+      type: type,
     };
   });
 }
@@ -234,7 +328,17 @@ function exportToEsper(bpmnModeler) {
 
       let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
-        content += `Element: [type=${element.type}, `;
+
+        if (element.type === 'bpmn:StartEvent' && 
+            element.businessObject &&
+            element.businessObject.eventDefinitions &&
+            element.businessObject.eventDefinitions.length > 0 &&
+            element.businessObject.eventDefinitions[0].$type === 'bpmn:MessageEventDefinition') {
+          content += `Element: [type=bpmn:MessageStartEvent, `;
+        } else {
+          content += `Element: [type=${element.type}, `;
+        }
+
         content += `name=${element.name || 'Unnamed'}, `;
         content += `id_bpmn=${element.id_bpmn || 'Unknown'}, `;
 
@@ -245,23 +349,14 @@ function exportToEsper(bpmnModeler) {
         if (element.type === 'bpmn:SequenceFlow' || element.type === 'bpmn:MessageFlow' ||
           element.type === 'bpmn:DataObjectReference' || element.type === 'bpmn:BoundaryEvent' ||
           element.type === 'bpmn:DataInputAssociation' || element.type === 'bpmn:DataOutputAssociation') {
-          
-          // Depuración para superElement y subElement
-          console.log(`Element ID: ${element.id_bpmn}, Type: ${element.type}`);
-          console.log(`Raw superElement, , "${element.type}":`, element.superElement);
-          console.log(`Raw subElement, , "${element.type}":`, element.subElement);
-          
-          // Asegúrate de que superElement y subElement sean cadenas
+
           const superElement = typeof element.superElement === 'string' 
             ? element.superElement 
             : (Array.isArray(element.superElement) ? element.superElement.join(', ') : 'No Super Element');
           const subElement = element.subElement || 'No Sub Element';
-      
-          console.log(`Formatted superElement, "${element.type}": "${superElement}"`);
-          console.log(`Formatted subElement , "${element.type}": "${subElement}"`);
-          
+
           content += `superElement="${superElement}", `;
-          content += `subElement="${subElement}"]\n`;      
+          content += `subElement="${subElement}"]\n`;
         } else if (element.type === 'bpmn:ServiceTask') {
           content += `sodSecurity=${element.Sod}, `;
           content += `bodSecurity=${element.Bod}, `;
@@ -274,7 +369,7 @@ function exportToEsper(bpmnModeler) {
           content += `uocSecurity=${element.Uoc}, `;
           content += `mth=${element.Mth}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
-          content += `subTask="${subTasks}"]\n`;       
+          content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask'
           || element.type === 'bpmn:SendTask' || element.type === 'bpmn:ReceiveTask' || element.type === 'bpmn:BusinessRuleTask'
           || element.type === 'bpmn:ScriptTask' || element.type === 'bpmn:CallActivity'
@@ -285,7 +380,7 @@ function exportToEsper(bpmnModeler) {
           content += `maximumTime=${element.MaximumTime}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
-        } else if (element.type === 'bpmn:Process') {
+        } else if (element.type === 'bpmn:Process' || element.type === 'bpmn:Collaboration' || element.type === 'bpmn:Participant') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
 

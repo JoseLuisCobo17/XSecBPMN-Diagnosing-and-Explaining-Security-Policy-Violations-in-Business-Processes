@@ -102,7 +102,7 @@ function PercentageofBranchesFunction(props) {
     element=${element}
     label=${translate('Percentage of Branches')}
     getValue=${getValue}
-    setValue=${debounce(setValue)}
+    setValue=${setValue}
     debounce=${debounce}
     tooltip=${translate('Enter the percentage for this branch.')} 
   />`;

@@ -29,8 +29,8 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
         if (sourceElement && is(sourceElement, 'bpmn:Gateway')) {
           groups.push(createSequenceFlowGroup(element, translate));
         }
-      } else if (is(element, 'bpmn:Process')) {
-        // Aquí se llama a la función que maneja las propiedades del modelo, incluyendo userPool
+      } else if (is(element, 'bpmn:Process') || is(element, 'bpmn:Collaboration') 
+        || is(element, 'bpmn:Participant')) {
         groups.push(createModelGroup(element, translate));
       }
       return groups;
