@@ -233,9 +233,9 @@ if (isMessageStartEvent) {
     let userWithRole = {};
     let userWithoutRoleSet = new Set();
     let frequency = 0;
-    const containedElements = businessObject.flowNodeRef 
-    ? businessObject.flowNodeRef.map(node => node.id) 
-    : [];
+    let containedElements = businessObject.flowNodeRef 
+      ? businessObject.flowNodeRef.map(node => node.id) 
+      : [];
 
     if (e.type === 'bpmn:Collaboration') {
       const participants = businessObject.participants || [];
@@ -251,14 +251,33 @@ if (isMessageStartEvent) {
         }
       });
     } else if (e.type === 'bpmn:Participant') {
-      if (businessObject.frequency !== undefined) {
-        frequency = businessObject.frequency;
+      const processRef = businessObject.processRef;
+      if (processRef) {
+        if (processRef.frequency !== undefined) {
+          frequency = processRef.frequency;
+        }
+
+        if (processRef.flowElements) {
+          containedElements = processRef.flowElements.map(node => node.id);
+        }
+
+        if (containedElements.length === 0 && processRef.laneSets) {
+          processRef.laneSets.forEach(laneSet => {
+            laneSet.lanes.forEach(lane => {
+              if (lane.flowNodeRef) {
+                lane.flowNodeRef.forEach(node => {
+                  containedElements.push(node.id);
+                });
+              }
+            });
+          });
+        }
       }
     } else if (e.type === 'bpmn:Lane') {
       if (businessObject.userWithoutRole) {
         businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
       }
-      const containedElements = businessObject.flowNodeRef ? 
+      containedElements = businessObject.flowNodeRef ? 
         businessObject.flowNodeRef.map(node => node.id) : [];
     } else if (e.type === 'bpmn:Process') {
       if (businessObject.instance !== undefined) {
@@ -275,7 +294,7 @@ if (isMessageStartEvent) {
       }
     } else {
       instance = businessObject.instance || '';
-    }    
+    }
 
     const userWithoutRole = Array.from(userWithoutRoleSet).join(', ');
 
@@ -304,8 +323,8 @@ if (isMessageStartEvent) {
       UserInstance: instance,
       security: security,
       time: time,
-      userWithoutRole: isProcess || isLane ? userWithoutRole : '',
-      userWithRole: userWithRole ,
+      userWithoutRole: (e.type === 'bpmn:Process' || e.type === 'bpmn:Lane') ? userWithoutRole : '',
+      userWithRole: userWithRole,
       type: type,
       containedElements: containedElements,
     };
@@ -386,7 +405,7 @@ function exportToEsper(bpmnModeler) {
             ? element.containedElements.map(el => `"${el}"`).join(', ')
             : '""';
         
-          content += `userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;  // Cierra con corchete
+          content += `userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;
         } else if (element.type === 'bpmn:Process') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
@@ -399,8 +418,12 @@ function exportToEsper(bpmnModeler) {
             Object.entries(element.userWithRole).map(([role, users]) => 
               `"${role}": [${users.split(', ').map(u => `"${u}"`).join(', ')}]`).join(', ') : '{}';
           content += `userWithRole={${userWithRole}}]\n`;
-        }else if (element.type === 'bpmn:Participant') {
-        content += `frequency=${element.Frequency}]\n`;
+        } else if (element.type === 'bpmn:Participant') {
+          const containedElements = element.containedElements && element.containedElements.length > 0
+            ? element.containedElements.map(el => `"${el}"`).join(', ')
+            : '""';
+        
+          content += `frequency=${element.Frequency}, containedElements=[${containedElements}]]\n`; 
       }  else {
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
