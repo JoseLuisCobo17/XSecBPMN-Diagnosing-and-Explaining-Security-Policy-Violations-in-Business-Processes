@@ -350,6 +350,10 @@ function exportToEsper(bpmnModeler) {
           element.type === 'bpmn:DataObjectReference' || element.type === 'bpmn:BoundaryEvent' ||
           element.type === 'bpmn:DataInputAssociation' || element.type === 'bpmn:DataOutputAssociation') {
 
+            if (element.PercentageOfBranches && element.PercentageOfBranches !== 'N/A') {
+              content += `percentageOfBranches=${element.PercentageOfBranches}, `;
+            }
+          
           const superElement = typeof element.superElement === 'string' 
             ? element.superElement 
             : (Array.isArray(element.superElement) ? element.superElement.join(', ') : 'No Super Element');
@@ -380,6 +384,9 @@ function exportToEsper(bpmnModeler) {
           content += `maximumTime=${element.MaximumTime}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
+        } else if (element.type === 'bpmn:Collaboration') {
+          content += `instances=${element.Instances}, `;
+          content += `security={${userWithRole}}]\n`;
         } else if (element.type === 'bpmn:Process' || element.type === 'bpmn:Collaboration' || element.type === 'bpmn:Participant') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
