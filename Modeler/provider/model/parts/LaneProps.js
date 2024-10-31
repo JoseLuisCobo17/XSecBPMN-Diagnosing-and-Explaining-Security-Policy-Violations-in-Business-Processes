@@ -74,11 +74,11 @@ function userWithoutRoleFunction(props) {
   return html`<${TextFieldEntry}
     id=${id}
     element=${element}
-    label=${translate('User without role')}
+    label=${translate('User/s')}
     getValue=${getValue}
     setValue=${setValue}
     debounce=${debounce}
-    tooltip=${translate('Enter a user name without role.')}
+    tooltip=${translate('Enter a user/s name.')}
   />`;
 }
 
