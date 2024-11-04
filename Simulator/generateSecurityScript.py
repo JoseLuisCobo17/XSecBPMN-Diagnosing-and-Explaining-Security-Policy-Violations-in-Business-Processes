@@ -17,7 +17,7 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{selectedElement}}", startTime={{env.now}}]''')
     yield env.timeout(0)
     return selectedElement
-    """
+"""
     extendedScript = script + functionStr
     for elem in possibleElements:
         if ('def ' + elem + '(env, name)') not in script:
@@ -34,7 +34,7 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{strSelectedElements}}", startTime={{env.now}}]''')
     yield env.timeout(0)
     return {possibleElements}
-    """
+"""
     extendedScript = script + functionStr
     for elem in possibleElements:
         if ('def ' + elem + '(env, name)') not in script:
@@ -56,7 +56,7 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{strSelectedElements}}", startTime={{env.now}}]''')
     yield env.timeout(0)
     return selectedElements
-    """
+"""
     extendedScript = script + functionStr
     for elem in possibleElements:
         if ('def ' + elem + '(env, name)') not in script:
@@ -87,11 +87,11 @@ def {element.id_bpmn}(env, name):
                     proc.interrupt()
             break
     return next_task
-    """
+"""
     extendedScript = script + functionStr
     for elem in possibleElements:
         if ('def ' + elem + '(env, name') not in script:
-            extendedScript = generateFunction(elements, elem, extendedScript=True)
+            extendedScript = generateFunction(elements, elem, extendedScript)
     return extendedScript
 
 def generalTask(elements, element, script):
@@ -108,10 +108,19 @@ def {element.id_bpmn}(env, name):
                 f.write(f'''
 {{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}]''')
     start_standBy = env.now
+    if TaskName in security.keys():
+            secTasks = security[TaskName]
+            for secTask in secTasks.keys():
+                if (secTask, name) in security_events:
+                    while not security_events[(secTask, name)].triggered:
+                        yield env.timeout(1)
+                else:
+                    start_event = env.event()
+                    security_events[(secTask, name)] = start_event
     possibleUsers = {element.userTask}
     if possibleUsers is None:
         possibleUsers = userPool
-    possibleUsers = resolve_possible_users(possibleUsers, TaskName)
+    possibleUsers = resolve_possible_users(possibleUsers, TaskName, name)
     available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
     while not available_users:
         yield env.timeout(1)
@@ -119,6 +128,21 @@ def {element.id_bpmn}(env, name):
     if available_users:
         userTask = min(available_users, key=lambda u: user_assignments[u])
         user_assignments[userTask] += 1
+        if TaskName in security.keys():
+            secTasks = security[TaskName]
+            for secTask in secTasks.keys():
+                infoSecTask = secTasks[secTask]
+                if infoSecTask[0]:
+                    task_users[(secTask, name)].append(userTask)
+                if infoSecTask[1]:
+                    task_users[(secTask, name)] = userTask
+                if infoSecTask[2]:
+                    if userTask in task_users[(secTask, name)]:
+                        task_users[(secTask, name)][userTask] += {element.numberOfExecutions}
+                    else:
+                        task_users[(secTask, name)][userTask] = {element.numberOfExecutions}
+                if not security_events[(secTask, name)].triggered:
+                    security_events[(secTask, name)].succeed()
         request = user_resources[userTask].request()
         yield request
         try:
@@ -150,10 +174,19 @@ def sendTask(elements, element, script):
 def {element.id_bpmn}(env, name):
     TaskName = '{element.id_bpmn}'
     start_standBy = env.now
+    if TaskName in security.keys():
+            secTasks = security[TaskName]
+            for secTask in secTasks.keys():
+                if (secTask, name) in security_events:
+                    while not security_events[(secTask, name)].triggered:
+                        yield env.timeout(1)
+                else:
+                    start_event = env.event()
+                    security_events[(secTask, name)] = start_event
     possibleUsers = {element.userTask}
     if possibleUsers is None:
         possibleUsers = userPool
-    possibleUsers = resolve_possible_users(possibleUsers, TaskName)
+    possibleUsers = resolve_possible_users(possibleUsers, TaskName, name)
     available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
     while not available_users:
         yield env.timeout(1)
@@ -161,6 +194,21 @@ def {element.id_bpmn}(env, name):
     if available_users:
         userTask = min(available_users, key=lambda u: user_assignments[u])
         user_assignments[userTask] += 1
+        if TaskName in security.keys():
+            secTasks = security[TaskName]
+            for secTask in secTasks.keys():
+                infoSecTask = secTasks[secTask]
+                if infoSecTask[0]:
+                    task_users[(secTask, name)].append(userTask)
+                if infoSecTask[1]:
+                    task_users[(secTask, name)] = userTask
+                if infoSecTask[2]:
+                    if userTask in task_users[(secTask, name)]:
+                        task_users[(secTask, name)][userTask] += {element.numberOfExecutions}
+                    else:
+                        task_users[(secTask, name)][userTask] = {element.numberOfExecutions}
+                if not security_events[(secTask, name)].triggered:
+                    security_events[(secTask, name)].succeed()
         request = user_resources[userTask].request()
         yield request
         try:
@@ -196,10 +244,19 @@ def {element.id_bpmn}(env, name):
             f.write(f'''
 {{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}]''')
     start_standBy = env.now
+    if TaskName in security.keys():
+            secTasks = security[TaskName]
+            for secTask in secTasks.keys():
+                if (secTask, name) in security_events:
+                    while not security_events[(secTask, name)].triggered:
+                        yield env.timeout(1)
+                else:
+                    start_event = env.event()
+                    security_events[(secTask, name)] = start_event
     possibleUsers = {element.userTask}
     if possibleUsers is None:
         possibleUsers = userPool
-    possibleUsers = resolve_possible_users(possibleUsers, TaskName)
+    possibleUsers = resolve_possible_users(possibleUsers, TaskName, name)
     available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
     while not available_users:
         yield env.timeout(1)
@@ -207,6 +264,21 @@ def {element.id_bpmn}(env, name):
     if available_users:
         userTask = min(available_users, key=lambda u: user_assignments[u])
         user_assignments[userTask] += 1
+        if TaskName in security.keys():
+            secTasks = security[TaskName]
+            for secTask in secTasks.keys():
+                infoSecTask = secTasks[secTask]
+                if infoSecTask[0]:
+                    task_users[(secTask, name)].append(userTask)
+                if infoSecTask[1]:
+                    task_users[(secTask, name)] = userTask
+                if infoSecTask[2]:
+                    if userTask in task_users[(secTask, name)]:
+                        task_users[(secTask, name)][userTask] += {element.numberOfExecutions}
+                    else:
+                        task_users[(secTask, name)][userTask] = {element.numberOfExecutions}
+                if not security_events[(secTask, name)].triggered:
+                    security_events[(secTask, name)].succeed()
         request = user_resources[userTask].request()
         yield request
         try:
@@ -267,7 +339,7 @@ def {element.id_bpmn}(env, name):
     if (TaskName, '{element.messageDestiny}', name) not in message_events:
         message_events.append((TaskName, '{element.messageDestiny}', name))
     return '{element.subTask}'
-    """
+"""
     return generateFunction(elements, element.subTask, script + functionStr)
 
 def timerIntermediateCatchEvent(elements, element, script):
@@ -351,11 +423,11 @@ def checkServiceTasks(name):
         subtasks_str = ", ".join([activity for activity, found in activities.items() if found])
         new_line = f'''{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, sodSecurity={element.sodSecurity}, bodSecurity={element.bodSecurity}, uocSecurity={element.uocSecurity}, mth={element.mth}, subTask="{{subtasks_str}}"]\\n'''
         content.insert(last_activity_index + 1, new_line)
-    """
+"""
     script += f"""
     with open(f'files/results_{{processName}}.txt', 'w') as f:
         f.writelines(content)
-    """
+"""
     return script
 
 def generateScript(elements, process, starts, messageStarts, security):
@@ -376,6 +448,9 @@ user_task_count = {{}}
 user_assignments = {{user: 0 for user in userPool}}
 user_resources = {{}}
 message_events = []
+task_users = {{}}
+security = {elements['security']}
+security_events = {{}}
 generatedData = {elements['generatedData']}
 requiredData = {elements['requiredData']}
 dataInfo = {elements['dataInfo']}
@@ -399,7 +474,7 @@ def resolve_task_time(task_name, max_time, min_time, executions, user):
     user_task_count[user][task_name] += 1
     return round(time * reduction_factor)
 
-def resolve_possible_users(possibleUsers, taskName):
+def resolve_possible_users(possibleUsers, taskName, instance):
     users = []
     for item in possibleUsers:
         if item in rolePool:
@@ -408,8 +483,27 @@ def resolve_possible_users(possibleUsers, taskName):
             users.append(item)
         elif item in userWithRole:
             users.append(item)
+    if taskName in security:
+        secTasks = security[taskName]
+        for secTask in secTasks.keys():
+            infoTask = secTasks[secTask]
+            if infoTask[0]:
+                if (secTask, instance) in task_users.keys():
+                    for user in task_users[(secTask, instance)]:
+                        users.remove(user) if user in users else None
+                else:
+                    task_users[(secTask, instance)] = []
+            elif infoTask[1]:
+                if (secTask, instance) in task_users.keys():
+                    users = [task_users[(secTask, instance)]]
+            elif infoTask[2]:
+                if (secTask, instance) in task_users.keys():
+                    for user in task_users[(secTask, instance)].keys():
+                        if task_users[(secTask, instance)][user] >= infoTask[3]:
+                            users.remove(user) if user in users else None
+                else:
+                    task_users[(secTask, instance)] = {{}}
     return list(set(users))
-
 """
         startElements = {}
         messageStartElements = {}
@@ -471,7 +565,6 @@ Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartE
 env = simpy.Environment()
 env.process(main(env))
 env.run()"""
-#############################################################################################################################
     else:
         script = f"""
 import simpy
@@ -489,6 +582,9 @@ user_task_count = {{}}
 user_assignments = {{user: 0 for user in userPool}}
 user_resources = {{}}
 message_events = []
+task_users = {{}}
+security = {elements['security']}
+security_events = {{}}
 generatedData = {elements['generatedData']}
 requiredData = {elements['requiredData']}
 dataInfo = {elements['dataInfo']}
@@ -512,12 +608,32 @@ def resolve_task_time(task_name, max_time, min_time, executions, user):
     user_task_count[user][task_name] += 1
     return round(time * reduction_factor)
 
-def resolve_possible_users(possibleUsers, taskName):
+def resolve_possible_users(possibleUsers, taskName, instance):
     laneUsers = usersPerLane[elementsContainer[taskName]]
     users = []
     for item in possibleUsers:
         if item in laneUsers:
             users.append(item)
+    if taskName in security:
+        secTasks = security[taskName]
+        for secTask in secTasks.keys():
+            infoTask = secTasks[secTask]
+            if infoTask[0]:
+                if (secTask, instance) in task_users.keys():
+                    for user in task_users[(secTask, instance)]:
+                        users.remove(user) if user in users else None
+                else:
+                    task_users[(secTask, instance)] = []
+            elif infoTask[1]:
+                if (secTask, instance) in task_users.keys():
+                    users = [task_users[(secTask, instance)]]
+            elif infoTask[2]:
+                if (secTask, instance) in task_users.keys():
+                    for user in task_users[(secTask, instance)].keys():
+                        if task_users[(secTask, instance)][user] >= infoTask[3]:
+                            users.remove(user) if user in users else None
+                else:
+                    task_users[(secTask, instance)] = {{}}
     return list(set(users))
 
 """
