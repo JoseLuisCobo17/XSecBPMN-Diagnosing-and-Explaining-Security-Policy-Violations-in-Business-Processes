@@ -26,38 +26,20 @@ function instanceFunction(props) {
   const debounce = useService('debounceInput');
 
   const getValue = () => {
-    if (!element || !element.businessObject) return '';
-
-    if (element.businessObject.participants) {
-      const firstParticipant = element.businessObject.participants[0];
-      if (firstParticipant.processRef) {
-        const value = firstParticipant.processRef.instance;
-        return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
-      }
-    } else if (element.businessObject.instance !== undefined) {
-      const value = element.businessObject.instance;
-      return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
+    if (!element || !element.businessObject) {
+      return '';
     }
-    return '';
+    const value = element.businessObject.instance;
+    return typeof value === 'string' ? value : '';
   };
 
   const setValue = (value) => {
-    if (typeof value === 'undefined' || !element || !element.businessObject) {
+    if (!element || !element.businessObject) {
       return;
     }
-
-    const newValue = value.trim() === '' ? '' : parseInt(value, 10);
-    if (isNaN(newValue)) return;
-
-    if (element.businessObject.participants) {
-      element.businessObject.participants.forEach(participant => {
-        if (participant.processRef && typeof participant.processRef === 'object') {
-          modeling.updateModdleProperties(element, participant.processRef, { instance: newValue });
-        }
-      });
-    } else {
-      modeling.updateProperties(element, { instance: newValue });
-    }
+    modeling.updateModdleProperties(element, element.businessObject, {
+      instance: value.trim() !== '' ? value : undefined
+    });
   };
 
   return html`<${TextFieldEntry}

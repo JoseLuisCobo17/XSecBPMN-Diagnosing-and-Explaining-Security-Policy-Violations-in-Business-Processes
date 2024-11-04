@@ -237,19 +237,16 @@ if (isMessageStartEvent) {
       ? businessObject.flowNodeRef.map(node => node.id) 
       : [];
 
-    if (e.type === 'bpmn:Collaboration') {
-      const participants = businessObject.participants || [];
-      participants.forEach(participant => {
-        const processRef = participant.processRef;
-        if (processRef) {
-          if (processRef.instance !== undefined) {
-            instance = processRef.instance;
+      if (e.type === 'bpmn:Collaboration') {
+        console.log("businessObject: ", businessObject);
+        if (businessObject) {
+          if (businessObject.instance !== undefined) {
+            instance = businessObject.instance;
           }
-          if (processRef.security !== undefined) {
-            security = processRef.security;
+          if (businessObject.security !== undefined) {
+            security = businessObject.security;
           }
         }
-      });
     } else if (e.type === 'bpmn:Participant') {
       const processRef = businessObject.processRef;
       if (processRef) {
@@ -419,11 +416,15 @@ function exportToEsper(bpmnModeler) {
               `"${role}": [${users.split(', ').map(u => `"${u}"`).join(', ')}]`).join(', ') : '{}';
           content += `userWithRole={${userWithRole}}]\n`;
         } else if (element.type === 'bpmn:Participant') {
+          const userWithoutRole = element.userWithoutRole 
+            ? element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') 
+            : '""';
+        
           const containedElements = element.containedElements && element.containedElements.length > 0
             ? element.containedElements.map(el => `"${el}"`).join(', ')
             : '""';
         
-          content += `frequency=${element.Frequency}, containedElements=[${containedElements}]]\n`; 
+          content += `frequency=${element.Frequency}, userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;        
       }  else {
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
