@@ -222,7 +222,7 @@ def parse_bpmn_elements(file_content: str):
                 if re.search(r'mth=(\d+)', line):
                     mth = int(re.search(r'mth=(\d+)', line).group(1))
                 else:
-                    mth = None
+                    mth = 0
                 subTask = re.search(r'subTask="([^"]+)"', line).group(1).split(', ')
                 element = BPMNServiceTask(name, id_bpmn, bpmn_type, sodSecurity, bodSecurity, uocSecurity, mth, subTask)
                 for task in subTask:
