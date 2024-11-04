@@ -22,8 +22,8 @@ import sequenceFlowExtension from '../../descriptors/sequenceFlow.json';
 import modelExtension from '../../descriptors/model.json';
 import collaborationExtension from '../../descriptors/collaboration.json';
 import laneExtension from '../../descriptors/lane.json';
-import participantExtension from '../../descriptors/participant.json';
-//import participantWithoutLaneExtension from '../../descriptors/participantWithoutLane.json';
+//import participantExtension from '../../descriptors/participant.json';
+import participantWithoutLaneExtension from '../../descriptors/participantWithoutLane.json';
 
 import TokenSimulationModule from '../..';
 import AddExporter from '@bpmn-io/add-exporter';
@@ -61,8 +61,8 @@ $(function() {
       model: modelExtension,
       collaboration: collaborationExtension,
       lane: laneExtension,
-      participant: participantExtension,
-      //participantWithoutLane: participantWithoutLaneExtension
+      //participant: participantExtension,
+      participantWithoutLane: participantWithoutLaneExtension
     }
   });
 
