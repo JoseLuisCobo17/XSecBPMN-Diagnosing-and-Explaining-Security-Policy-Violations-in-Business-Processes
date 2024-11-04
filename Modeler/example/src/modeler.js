@@ -203,9 +203,6 @@ $('#js-download-esper').off('click').on('click', async function(e) {
       console.error('Error al exportar a Esper:', err);
   } finally {
       console.log('Proceso de guardado completado');
-      setTimeout(() => {
-          document.querySelector('.modal-overlay').style.display = 'none';
-      }, 2000);
   }
 });
 
