@@ -247,30 +247,36 @@ if (isMessageStartEvent) {
             security = businessObject.security;
           }
         }
-    } else if (e.type === 'bpmn:Participant') {
-      const processRef = businessObject.processRef;
-      if (processRef) {
-        if (processRef.frequency !== undefined) {
-          frequency = processRef.frequency;
+      } else if (e.type === 'bpmn:Participant') {
+        const processRef = businessObject.processRef;
+      
+        const participantFrequency = businessObject.frequency || businessObject.get('participantWithoutLane:frequency');
+        if (participantFrequency !== undefined) {
+          frequency = participantFrequency;
         }
-
-        if (processRef.flowElements) {
-          containedElements = processRef.flowElements.map(node => node.id);
-        }
-
-        if (containedElements.length === 0 && processRef.laneSets) {
-          processRef.laneSets.forEach(laneSet => {
-            laneSet.lanes.forEach(lane => {
-              if (lane.flowNodeRef) {
-                lane.flowNodeRef.forEach(node => {
-                  containedElements.push(node.id);
-                });
-              }
+      
+        if (processRef) {
+          if (processRef.flowElements) {
+            containedElements = processRef.flowElements.map(node => node.id);
+          }
+      
+          if (processRef.laneSets) {
+            processRef.laneSets.forEach(laneSet => {
+              laneSet.lanes.forEach(lane => {
+                if (lane.flowNodeRef) {
+                  lane.flowNodeRef.forEach(node => {
+                    containedElements.push(node.id);
+                  });
+                }
+              });
             });
-          });
+          }
         }
-      }
-    } else if (e.type === 'bpmn:Lane') {
+        if (businessObject.userWithoutRole) {
+          businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
+
+        }
+      } else if (e.type === 'bpmn:Lane') {
       if (businessObject.userWithoutRole) {
         businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
       }
@@ -320,7 +326,7 @@ if (isMessageStartEvent) {
       UserInstance: instance,
       security: security,
       time: time,
-      userWithoutRole: (e.type === 'bpmn:Process' || e.type === 'bpmn:Lane') ? userWithoutRole : '',
+      userWithoutRole: (e.type === 'bpmn:Process' || e.type === 'bpmn:Lane' || e.type === 'bpmn:Participant') ? userWithoutRole : '',
       userWithRole: userWithRole,
       type: type,
       containedElements: containedElements,
