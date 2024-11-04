@@ -5,6 +5,7 @@ import ModelProps from '../model/parts/ModelProps';
 import CollaborationProps from '../model/parts/CollaborationProps';
 import LaneProps from '../model/parts/LaneProps';
 import ParticipantProps from '../model/parts/ParticipantProps';
+import ParticipantWithoutLaneProps from '../model/parts/ParticipantWithoutLaneProps';
 
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
@@ -38,9 +39,17 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
         groups.push(createCollaborationGroup(element, translate));
       } else if ( is(element, 'bpmn:Lane')) {
         groups.push(createLaneGroup(element, translate));
-      } else if ( is(element, 'bpmn:Participant')) {
-        groups.push(createParticipantGroup(element, translate));
-      }
+      } else if (is(element, 'bpmn:Participant')) {
+        const processRef = element.businessObject.processRef;
+        const laneSets = processRef && processRef.laneSets;
+        const lanes = laneSets && laneSets[0] && laneSets[0].lanes;
+    
+        if (!lanes || lanes.length === 0) {
+            groups.push(createParticipantWithoutLaneGroup(element, translate));
+        } else {
+            groups.push(createParticipantGroup(element, translate));
+        }
+    }    
       return groups;
     };
   };
@@ -121,6 +130,17 @@ function createParticipantGroup(element, translate) {
     id: 'model',
     label: translate('Model properties'),
     entries: ParticipantProps(element),
+    tooltip: translate('Manage model-level properties')
+  };
+
+  return laneGroup;
+}
+
+function createParticipantWithoutLaneGroup(element, translate) {
+  const laneGroup = {
+    id: 'model',
+    label: translate('Model properties'),
+    entries: ParticipantWithoutLaneProps(element),
     tooltip: translate('Manage model-level properties')
   };
 
