@@ -14,7 +14,7 @@ def {element.id_bpmn}(env, name):
     selectedElement = random.choices({possibleElements}, {percents})[0]
     with open(f'files/results_{{processName}}.txt', 'a') as f:
         f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{selectedElement}}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{selectedElement}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
     return selectedElement
     """
@@ -31,7 +31,7 @@ def {element.id_bpmn}(env, name):
     strSelectedElements = ", ".join({possibleElements})
     with open(f'files/results_{{processName}}.txt', 'a') as f:
         f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{strSelectedElements}}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{strSelectedElements}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
     return {possibleElements}
     """
@@ -53,7 +53,7 @@ def {element.id_bpmn}(env, name):
     strSelectedElements = ", ".join(selectedElements)
     with open(f'files/results_{{processName}}.txt', 'a') as f:
         f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{strSelectedElements}}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{strSelectedElements}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
     return selectedElements
     """
@@ -81,7 +81,7 @@ def {element.id_bpmn}(env, name):
             selected_event = {possibleElements}[i]
             with open(f'files/results_{{processName}}.txt', 'a') as f:
                 f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{selected_event}}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{selected_event}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             for j, proc in enumerate(event_processes):
                 if j != i:
                     proc.interrupt()
@@ -106,7 +106,7 @@ def {element.id_bpmn}(env, name):
         if env.now > start_standBy_data:
             with open(f'files/results_{{processName}}.txt', 'a') as f:
                 f.write(f'''
-{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}]''')
+{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
     start_standBy = env.now
     possibleUsers = {element.userTask}
     if possibleUsers is None:
@@ -126,10 +126,10 @@ def {element.id_bpmn}(env, name):
             if env.now > start_standBy:
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
-{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}]''')
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
             with open(f'files/results_{{processName}}.txt', 'a') as f:
                 f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             yield env.timeout(time)
             if TaskName in generatedData.keys():
                 dataObjects = generatedData[TaskName]
@@ -137,7 +137,7 @@ def {element.id_bpmn}(env, name):
                     data.append((dataObject, name))
                     with open(f'files/results_{{processName}}.txt', 'a') as f:
                         f.write(f'''
-{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}]''')
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
         finally:
             user_resources[userTask].release(request)
     return '{element.subTask}'
@@ -168,10 +168,10 @@ def {element.id_bpmn}(env, name):
             if env.now > start_standBy:
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
-{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}]''')
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
             with open(f'files/results_{{processName}}.txt', 'a') as f:
                 f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             yield env.timeout(time)
             if (TaskName, '{element.messageDestiny}', name) not in message_events:
                 message_events.append((TaskName, '{element.messageDestiny}', name))
@@ -194,7 +194,7 @@ def {element.id_bpmn}(env, name):
     if duration_standby_message > 0:
         with open(f'files/results_{{processName}}.txt', 'a') as f:
             f.write(f'''
-{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}]''')
+{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
     start_standBy = env.now
     possibleUsers = {element.userTask}
     if possibleUsers is None:
@@ -214,10 +214,10 @@ def {element.id_bpmn}(env, name):
             if env.now > start_standBy:
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
-{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}]''')
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
             with open(f'files/results_{{processName}}.txt', 'a') as f:
                 f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             yield env.timeout(time)
         finally:
             user_resources[userTask].release(request)
@@ -230,7 +230,7 @@ def intermediateThrowEvent(elements, element, script):
 def {element.id_bpmn}(env, name):
     with open(f'files/results_{{processName}}.txt', 'a') as f:
         f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{element.subTask}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
     return '{element.subTask}'
     """
@@ -248,10 +248,10 @@ def {element.id_bpmn}(env, name):
     if duration_standby_message > 0:
         with open(f'files/results_{{processName}}.txt', 'a') as f:
             f.write(f'''
-{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}]''')
+{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
     with open(f'files/results_{{processName}}.txt', 'a') as f:
         f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{element.subTask}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     return '{element.subTask}'
 """
     return generateFunction(elements, element.subTask, script + functionStr)
@@ -262,7 +262,7 @@ def {element.id_bpmn}(env, name):
     TaskName = '{element.id_bpmn}'
     with open(f'files/results_{{processName}}.txt', 'a') as f:
         f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{element.subTask}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
     if (TaskName, '{element.messageDestiny}', name) not in message_events:
         message_events.append((TaskName, '{element.messageDestiny}', name))
@@ -275,7 +275,7 @@ def timerIntermediateCatchEvent(elements, element, script):
 def {element.id_bpmn}(env, name):
     with open(f'files/results_{{processName}}.txt', 'a') as f:
         f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, time={element.time}, subTask="{element.subTask}", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, time={element.time}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout({element.time})
     return '{element.subTask}'
 """
@@ -286,7 +286,7 @@ def endEvent(elements, element, script):
 def {element.id_bpmn}(env, name):
     with open(f'files/results_{{processName}}.txt', 'a') as f:
         f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="", startTime={{env.now}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
     """
     return script + functionStr
@@ -450,7 +450,7 @@ def main(env):
         for start in {starts}:
             with open(f'files/results_{{processName}}.txt', 'a') as f:
                 f.write(f'''
-Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1]}}, id_bpmn={{startEvents[start][2]}}, subTask="{{startEvents[start][3]}}", startTime={{env.now}}]''')
+Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1]}}, id_bpmn={{startEvents[start][2]}}, subTask="{{startEvents[start][3]}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             env.process(start_process(env, f'Instance {{i + 1}}', startEvents[start][3]))
         for start in {messageStarts}:
             start_standby_message = env.now
@@ -461,17 +461,16 @@ Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1
             if duration_standby_message > 0:
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
-Instance {{i + 1}}: [type=StandByMessage, id_bpmn={{start}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}]''')
+Instance {{i + 1}}: [type=StandByMessage, id_bpmn={{start}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
             with open(f'files/results_{{processName}}.txt', 'a') as f:
                 f.write(f'''
-Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartEvents[start][1]}}, id_bpmn={{messageStartEvents[start][2]}}, messageOrigin={{messageStartEvents[start][3]}}, subTask="{{messageStartEvents[start][4]}}", startTime={{env.now}}]''')
+Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartEvents[start][1]}}, id_bpmn={{messageStartEvents[start][2]}}, messageOrigin={{messageStartEvents[start][3]}}, subTask="{{messageStartEvents[start][4]}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             env.process(start_process(env, f'Instance {{i + 1}}', messageStartEvents[start][4]))
         yield env.timeout(frequency)
 
 env = simpy.Environment()
 env.process(main(env))
 env.run()"""
-#############################################################################################################################
     else:
         script = f"""
 import simpy
@@ -558,7 +557,7 @@ def participant_process(env, frequency, p):
             if startsParticipant[start] == p:
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
-Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1]}}, id_bpmn={{startEvents[start][2]}}, subTask="{{startEvents[start][3]}}", startTime={{env.now}}]''')
+Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1]}}, id_bpmn={{startEvents[start][2]}}, subTask="{{startEvents[start][3]}}", startTime={{env.now}}, instance={{i+1}}]''')
                 env.process(start_process(env, f'Instance {{i + 1}}', startEvents[start][3]))
         for start in {messageStarts}:
             if startsParticipant[start] == p:
@@ -570,10 +569,10 @@ Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1
                 if duration_standby_message > 0:
                     with open(f'files/results_{{processName}}.txt', 'a') as f:
                         f.write(f'''
-Instance {{i + 1}}: [type=StandByMessage, id_bpmn={{start}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}]''')
+Instance {{i + 1}}: [type=StandByMessage, id_bpmn={{start}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{i+1}}]''')
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
-Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartEvents[start][1]}}, id_bpmn={{messageStartEvents[start][2]}}, messageOrigin={{messageStartEvents[start][3]}}, subTask="{{messageStartEvents[start][4]}}", startTime={{env.now}}]''')
+Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartEvents[start][1]}}, id_bpmn={{messageStartEvents[start][2]}}, messageOrigin={{messageStartEvents[start][3]}}, subTask="{{messageStartEvents[start][4]}}", startTime={{env.now}}, instance={{i+1}}]''')
                 env.process(start_process(env, f'Instance {{i + 1}}', messageStartEvents[start][4]))
         yield env.timeout(frequency)
 
