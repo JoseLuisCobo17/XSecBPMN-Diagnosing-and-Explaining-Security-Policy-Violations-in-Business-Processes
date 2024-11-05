@@ -8,7 +8,7 @@ public class Task {
     private String idBpmn;
     private Integer mth;
     private List<String> subTasks;
-    private List<String> userTasks;
+    private String userTask;
     private boolean bodSecurity;
     private boolean sodSecurity;
     private boolean uocSecurity;
@@ -17,15 +17,16 @@ public class Task {
     private Long time;
     private Integer instance;
     private Integer numberOfExecutions;
+    private List<String> subTasksUserTasks; // Nuevo atributo
 
     // Constructor
-    public Task(String type, String name, String idBpmn, Integer mth, List<String> subTasks, List<String> userTasks, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity, Long startTime, Long stopTime, Long time, Integer instance, Integer numberOfExecutions) {
+    public Task(String type, String name, String idBpmn, Integer mth, List<String> subTasks, String userTask, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity, Long startTime, Long stopTime, Long time, Integer instance, Integer numberOfExecutions, List<String> subTasksUserTasks) {
         this.type = type;
         this.name = name;
         this.idBpmn = idBpmn;
         this.mth = mth;
         this.subTasks = subTasks;
-        this.userTasks = userTasks;
+        this.userTask = userTask;
         this.bodSecurity = bodSecurity;
         this.sodSecurity = sodSecurity;
         this.uocSecurity = uocSecurity;
@@ -34,6 +35,7 @@ public class Task {
         this.time = time;
         this.instance = instance;
         this.numberOfExecutions = numberOfExecutions;
+        this.subTasksUserTasks = subTasksUserTasks; // Inicializar el nuevo atributo
     }
 
     // Getters y Setters
@@ -77,12 +79,12 @@ public class Task {
         this.subTasks = subTasks;
     }
 
-    public List<String> getUserTasks() {
-        return userTasks;
+    public String getUserTask() {
+        return userTask;
     }
 
-    public void setUserTasks(List<String> userTasks) {
-        this.userTasks = userTasks;
+    public void setUserTask(String userTask) {
+        this.userTask = userTask;
     }
 
     public boolean isBodSecurity() {
@@ -149,12 +151,21 @@ public class Task {
         this.numberOfExecutions = numberOfExecutions;
     }
 
+    public List<String> getSubTasksUserTasks() {
+        return subTasksUserTasks;
+    }
+
+    public void setSubTasksUserTasks(List<String> subTasksUserTasks) {
+        this.subTasksUserTasks = subTasksUserTasks;
+    }
+
     @Override
     public String toString() {
         return "Task [type=" + type + ", name=" + name + ", idBpmn=" + idBpmn 
-            + ", mth=" + mth + ", subTasks=" + subTasks + ", userTasks=" + userTasks
+            + ", mth=" + mth + ", subTasks=" + subTasks + ", userTask=" + userTask
             + ", bodSecurity=" + bodSecurity + ", sodSecurity=" + sodSecurity
             + ", uocSecurity=" + uocSecurity + ", startTime=" + startTime + ", stopTime=" + stopTime 
-            + ", time=" + time + ", instance=" + instance + ", numberOfExecutions=" + numberOfExecutions + "]";
+            + ", time=" + time + ", instance=" + instance + ", numberOfExecutions=" + numberOfExecutions
+            + ", subTasksUserTasks=" + subTasksUserTasks + "]"; // Agregado subTasksUserTasks al toString
     }
 }

@@ -32,7 +32,12 @@
             "name": "userWithRole",
             "isAttr": false,
             "type": "Object"
-          }          
+          },
+          {
+            "name": "security",
+            "isAttr": true,
+            "type": "Boolean"
+          }            
         ]
       }
     ]
