@@ -173,7 +173,6 @@ statementStandBy.addListener((newData, oldData, stat, rt) -> {
     }
 });
          
-
 // Crear la consulta EPL para SoD
 LOG.debug("Creating Generalized SoD Check Expression");
 String sodEPL = "select parent.idBpmn as parentId, " +
@@ -188,6 +187,7 @@ String sodEPL = "select parent.idBpmn as parentId, " +
                 "and sub1.instance = sub2.instance " +  // Misma instancia
                 "and sub1.userTask is not null " +  // userTask no es nulo para sub1
                 "and sub2.userTask is not null " +  // userTask no es nulo para sub2
+                "and sub1.userTask = sub2.userTask " +  // Mismo usuario realiza ambas tareas
                 "and sub1.idBpmn < sub2.idBpmn";  // Evita pares simétricos
 
 EPCompiled compiledSod = compiler.compile(sodEPL, args);
@@ -200,30 +200,26 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
         String userTask1 = (String) newData[0].get("userTask1");
-        String userTask2 = (String) newData[0].get("userTask2");
         Integer instance1 = (Integer) newData[0].get("instance1");
 
-        // Generar una clave única para la violación
+        // Generar una clave única para evitar duplicados
         String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id + "|" + instance1;
 
-        // Verificar si la violación ya ha sido reportada
         if (!reportedSodViolations.contains(violationKey)) {
-            // Verificar si hay una violación de SoD
-            if (userTask1 != null && userTask2 != null && userTask1 != userTask2) {
-                // Si hay intersección, es una violación de SoD
-                sb.append("\n---------------------------------");
-                sb.append("\n- [SOD MONITOR] Segregation of Duties violation detected:");
-                sb.append("\n- Parent Task ID: ").append(parentId);
-                sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-                sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
-                sb.append("\n- Instance: ").append(instance1);
-                sb.append("\n---------------------------------");
+            reportedSodViolations.add(violationKey);
 
-                // Agregar la violación al conjunto
-                reportedSodViolations.add(violationKey);
-            } else {
-                LOG.info("No SoD violation: Users are disjoint.");
-            }
+            // Registrar la violación de SoD
+            sb.append("\n---------------------------------");
+            sb.append("\n- [SOD MONITOR] Segregation of Duties violation detected:");
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
+            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+            sb.append("\n- Executed By User: ").append(userTask1);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n---------------------------------");
+
+            System.out.println("Violación de SoD detectada entre " + subTask1Id + " y " + subTask2Id +
+                " por el usuario: " + userTask1);
         } else {
             LOG.debug("SoD violation already reported for key: " + violationKey);
         }
