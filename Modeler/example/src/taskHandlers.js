@@ -295,6 +295,9 @@ if (isMessageStartEvent) {
       if (businessObject.frequency !== undefined) {
         frequency = businessObject.frequency;
       }
+      if (businessObject.security !== undefined) {
+        security = businessObject.security;
+      }
     } else {
       instance = businessObject.instance || '';
     }
@@ -420,7 +423,8 @@ function exportToEsper(bpmnModeler) {
           const userWithRole = element.userWithRole ? 
             Object.entries(element.userWithRole).map(([role, users]) => 
               `"${role}": [${users.split(', ').map(u => `"${u}"`).join(', ')}]`).join(', ') : '{}';
-          content += `userWithRole={${userWithRole}}]\n`;
+          content += `userWithRole={${userWithRole}}, `;
+          content += `security=${element.security}]\n`;
         } else if (element.type === 'bpmn:Participant') {
           const userWithoutRole = element.userWithoutRole 
             ? element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') 

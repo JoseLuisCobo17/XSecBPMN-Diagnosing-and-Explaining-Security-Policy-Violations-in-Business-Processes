@@ -159,7 +159,6 @@ $(function() {
   let isDownloading = false;
   let hasDownloaded = false;
 
-// Manejador para guardar Esper en la carpeta del proyecto y ejecutar el comando
 $('#js-download-esper').off('click').on('click', async function(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -167,11 +166,12 @@ $('#js-download-esper').off('click').on('click', async function(e) {
 
   console.log('Guardado iniciado');
 
+  document.querySelector('.modal-overlay').style.display = 'block';
+  document.querySelector('#modal-content').textContent = 'Processing simulation...';
+
   try {
-      // Exportar el contenido a Esper
       const content = await exportToEsper(bpmnModeler);
 
-      // Configura la solicitud POST para guardar el archivo
       const saveResponse = await fetch('http://localhost:3000/save-esper-file', {
           method: 'POST',
           headers: {
@@ -181,15 +181,12 @@ $('#js-download-esper').off('click').on('click', async function(e) {
       })
       .then(response => response.json())
       .then(data => {
-          // Verifica si el archivo de violaciones está vacío
           if (!data.content.trim()) {
-              // Mostrar mensaje si no hay violaciones
               document.querySelector('#modal-content').textContent = 'No violations found.';
           } else {
-              // Mostrar el contenido de las violaciones en el modal
               document.querySelector('#modal-content').textContent = data.content;
           }
-          document.querySelector('.modal-overlay').style.display = 'block'; // Mostrar el modal
+          document.querySelector('.modal-overlay').style.display = 'block';
       })
       .catch(err => {
           console.error('Error al obtener violations.txt:', err);
