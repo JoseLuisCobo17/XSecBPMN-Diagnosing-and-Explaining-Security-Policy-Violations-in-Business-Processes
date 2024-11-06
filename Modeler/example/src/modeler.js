@@ -4,6 +4,7 @@ import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
 import '@bpmn-io/properties-panel/assets/properties-panel.css';
 import '../style.less';
 
+import svgPanZoom from 'svg-pan-zoom';
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from 'min-dash';
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
@@ -206,9 +207,54 @@ $('#js-download-esper').off('click').on('click', async function(e) {
   }
 });
 
+$('#js-heat-map').off('click').on('click', async function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  document.querySelector('.heatModal-overlay').style.display = 'block';
+  document.querySelector('#heatModal-content').textContent = 'Processing simulation...';
+
+  try {
+      const { xml: diagramXML } = await bpmnModeler.saveXML({format: true});
+      const content = await exportToEsper(bpmnModeler);
+      const saveResponse = await fetch('http://localhost:3000/heat-map', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content, diagramXML, filename: 'esperTasks.txt', diagramfilename: 'diagram.bpmn' }),
+      });
+      const data = await saveResponse.json();
+      if (data && data.content) {
+        await bpmnModeler.importXML(data.content);
+        const { svg } = await bpmnModeler.saveSVG();
+        await bpmnModeler.importXML(diagramXML);
+        document.querySelector('#heatModal-content').innerHTML = svg;
+        setTimeout(() => {
+          const svgElement = document.querySelector('#heatModal-content svg');
+          if (svgElement) {
+            svgPanZoom(svgElement, {
+              zoomEnabled: true,
+              controlIconsEnabled: true,
+              fit: true,
+              center: true,
+            });
+          }
+        }, 0);
+      } else {
+        console.error('No diagram XML received.');
+      }
+  } catch (err) {
+      console.error('Error al exportar a Esper:', err);
+  } finally {
+      console.log('Proceso de guardado completado');
+  }
+});
+
 // Cerrar el modal al hacer clic en el botón "Aceptar"
-document.getElementById('close-modal').addEventListener('click', function() {
-  document.querySelector('.modal-overlay').style.display = 'none'; // Ocultar el modal
+document.getElementById('close-heatModal').addEventListener('click', function() {
+  document.querySelector('.heatModal-overlay').style.display = 'none'; // Ocultar el modal
 });
 
   // Función para descargar el diagrama como XML (BPMN)

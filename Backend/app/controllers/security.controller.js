@@ -248,6 +248,47 @@ exports.saveEsperFile = (req, res) => {
     });
 };
 
+exports.getHeatMap = (req, res) => {
+    const { content, diagramXML, filename, diagramfilename } = req.body;
+    if (!content || !diagramXML || !filename) {
+        return res.status(400).send({ message: 'El contenido, el diagrama o el nombre del archivo faltan' });
+    }
+    const filePath = path.join(FILES_DIRECTORY, filename);
+    const diagramPath = path.join(FILES_DIRECTORY, diagramfilename);
+    fs.writeFile(filePath, content, 'utf8', (err) => {
+        if (err) {
+            console.error('Error al guardar el archivo:', err);
+            return res.status(500).send({ message: 'Error al guardar el archivo' });
+        }
+        fs.writeFile(diagramPath, diagramXML, 'utf8', (err) => {
+            if (err) {
+                console.error('Error al guardar el diagrama:', err);
+                return res.status(500).send({ message: 'Error al guardar el diagrama' });
+            }
+            exec(`python mainGenerateHeatMap.py`, { cwd: SIMULATOR_DIRECTORY }, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Error al ejecutar el simulador: ${error.message}`);
+                    return res.status(500).send({ message: 'Error al ejecutar el simulador' });
+                }
+                if (stderr) {
+                    console.error(`Error en el simulador: ${stderr}`);
+                }
+                fs.readFile(diagramPath, 'utf8', (err, data) => {
+                    if (err) {
+                        console.error('Error al leer diagram.bpmn:', err);
+                        return res.status(500).send({ message: 'Error al leer diagram.bpmn' });
+                    }
+                    res.send({ content: data });
+                    fs.unlink(diagramPath, (unlinkErr) => {
+                        if (unlinkErr) {
+                            console.error('Error al eliminar violations.txt:', unlinkErr);
+                        }
+                    });
+                });
+            });
+        });
+    });
+};
 
 exports.findAll = async function (req, res) {
     try {

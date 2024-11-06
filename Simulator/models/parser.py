@@ -41,6 +41,8 @@ def parse_bpmn_elements(file_content: str):
             if element_type == "Process":
                 process = id_bpmn
                 instances = int(re.search(r'instances=(\d+)', line).group(1))
+                if instances == 0:
+                    instances = 1
                 frequency = int(re.search(r'frequency=(\d+)', line).group(1))
                 userWithoutRole_match = re.search(r'userWithoutRole=(\[[^\]]*\])', line)
                 if userWithoutRole_match:
@@ -63,6 +65,8 @@ def parse_bpmn_elements(file_content: str):
             elif element_type == "Collaboration":
                 process = id_bpmn
                 instances = int(re.search(r'instances=(\d+)', line).group(1))
+                if instances == 0:
+                    instances = 1
                 security = re.search(r'security=(\w+)', line).group(1) == "true"
                 element = BPMNCollaboration(name, id_bpmn, bpmn_type, instances, security)
 

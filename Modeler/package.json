@@ -105,6 +105,7 @@
     "min-dom": "^4.2.1",
     "randomcolor": "^0.6.2",
     "stream-browserify": "^3.0.0",
+    "svg-pan-zoom": "^3.6.2",
     "tiny-svg": "^4.1.2"
   }
 }

@@ -11,6 +11,9 @@ module.exports = function(app) {
     // Save the Esper file to the project directory
     app.post('/save-esper-file', securities.saveEsperFile);
 
+    // Save the Esper file to the project directory
+    app.post('/heat-map', securities.getHeatMap);
+
     // Retrieve all Security tasks
     app.get('/securities', securities.findAll);
 
