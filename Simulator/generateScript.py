@@ -450,7 +450,7 @@ def main(env):
         for start in {starts}:
             with open(f'files/results_{{processName}}.txt', 'a') as f:
                 f.write(f'''
-Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1]}}, id_bpmn={{startEvents[start][2]}}, subTask="{{startEvents[start][3]}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1]}}, id_bpmn={{startEvents[start][2]}}, subTask="{{startEvents[start][3]}}", startTime={{env.now}}, instance={{i+1}}]''')
             env.process(start_process(env, f'Instance {{i + 1}}', startEvents[start][3]))
         for start in {messageStarts}:
             start_standby_message = env.now
@@ -461,10 +461,10 @@ Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1
             if duration_standby_message > 0:
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
-Instance {{i + 1}}: [type=StandByMessage, id_bpmn={{start}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
+Instance {{i + 1}}: [type=StandByMessage, id_bpmn={{start}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{i+1}}]''')
             with open(f'files/results_{{processName}}.txt', 'a') as f:
                 f.write(f'''
-Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartEvents[start][1]}}, id_bpmn={{messageStartEvents[start][2]}}, messageOrigin={{messageStartEvents[start][3]}}, subTask="{{messageStartEvents[start][4]}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartEvents[start][1]}}, id_bpmn={{messageStartEvents[start][2]}}, messageOrigin={{messageStartEvents[start][3]}}, subTask="{{messageStartEvents[start][4]}}", startTime={{env.now}}, instance={{i+1}}]''')
             env.process(start_process(env, f'Instance {{i + 1}}', messageStartEvents[start][4]))
         yield env.timeout(frequency)
 

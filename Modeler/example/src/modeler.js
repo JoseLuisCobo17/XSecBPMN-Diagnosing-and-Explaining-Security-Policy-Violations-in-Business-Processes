@@ -254,7 +254,11 @@ $('#js-heat-map').off('click').on('click', async function(e) {
 
 // Cerrar el modal al hacer clic en el botón "Aceptar"
 document.getElementById('close-heatModal').addEventListener('click', function() {
-  document.querySelector('.heatModal-overlay').style.display = 'none'; // Ocultar el modal
+  document.querySelector('.heatModal-overlay').style.display = 'none';
+});
+
+document.getElementById('close-modal').addEventListener('click', function() {
+  document.querySelector('.modal-overlay').style.display = 'none';
 });
 
   // Función para descargar el diagrama como XML (BPMN)
