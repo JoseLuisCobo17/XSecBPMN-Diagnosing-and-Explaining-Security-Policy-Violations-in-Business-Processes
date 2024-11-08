@@ -80,9 +80,7 @@ public class TaskEventHandler implements InitializingBean {
             EPCompiler compiler = EPCompilerProvider.getCompiler();
             CompilerArguments args = new CompilerArguments(configuration);
 
-            // Crear la consulta EPL para BoD
 LOG.debug("Creating Generalized BoD Check Expression");
-System.out.println("Hola");
 String bodEPL = "select parent.idBpmn as parentId, " +
     "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
     "sub1.userTask as user1, sub2.userTask as user2, " +
@@ -108,14 +106,6 @@ statementBod.addListener((newData, oldData, stat, rt) -> {
         String user1 = (String) newData[0].get("user1");
         String user2 = (String) newData[0].get("user2");
         Integer instance1 = (Integer) newData[0].get("instance1");
-
-        System.out.println("Evaluando posible violación de BoD:");
-        System.out.println("Parent ID: " + parentId);
-        System.out.println("SubTask1 ID: " + subTask1Id + ", User1: " + user1);
-        System.out.println("SubTask2 ID: " + subTask2Id + ", User2: " + user2);
-        System.out.println("Instance: " + instance1);
-
-        // Generar una clave única para evitar duplicados
         String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id + "|" + instance1;
 
         if (!reportedBodViolations.contains(violationKey)) {
@@ -130,9 +120,6 @@ statementBod.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n- Executed By Users: ").append(user1).append(" and ").append(user2);
             sb.append("\n- Instance: ").append(instance1);
             sb.append("\n---------------------------------");
-
-            System.out.println("Violación de BoD detectada entre " + subTask1Id + " y " + subTask2Id +
-                " por los usuarios: " + user1 + " y " + user2);
         } else {
             LOG.debug("BoD violation already reported for key: " + violationKey);
         }
@@ -217,9 +204,6 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n- Executed By User: ").append(userTask1);
             sb.append("\n- Instance: ").append(instance1);
             sb.append("\n---------------------------------");
-
-            System.out.println("Violación de SoD detectada entre " + subTask1Id + " y " + subTask2Id +
-                " por el usuario: " + userTask1);
         } else {
             LOG.debug("SoD violation already reported for key: " + violationKey);
         }
@@ -238,60 +222,35 @@ String uocEPL = "select parent.idBpmn as parentId, " +
     "where parent.uocSecurity = true " +  // Parent task has UoC enabled
     "and sub1.idBpmn in (parent.subTasks) " +  // Ensure sub1 is a sub-task of parent
     "and sub1.userTask is not null " +  // Ensure userTask is not null for sub1
-    "group by parent.idBpmn, sub1.idBpmn, parent.mth " +  // Added parent.mth to the GROUP BY clause
-    "having sum(sub1.numberOfExecutions) > parent.mth";  // Ensure the sum of executions exceeds parent.mth
+    "and sub1.numberOfExecutions > parent.mth " +  // Ensure numberOfExecutions exceeds parent.mth for the instance
+    "group by parent.idBpmn, sub1.idBpmn, parent.mth, sub1.instance";  // Group by instance to list only qualifying instances
 
     EPCompiled compiledUoc = compiler.compile(uocEPL, args);
     EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
     EPStatement statementUoc = deploymentUoc.getStatements()[0];
-
-// Map para acumular ejecuciones por sub-tarea
-Map<String, Integer> executionSums = new HashMap<>();  
-System.out.println("executionSums" + executionSums);
-
-// Map para almacenar el último valor reportado de ejecuciones acumuladas
-Map<String, Integer> reportedUocViolations = new HashMap<>();
+    Map<String, Integer> reportedUocViolations = new HashMap<>();
 
 statementUoc.addListener((newData, oldData, stat, rt) -> {
-    System.out.println("adios" );
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
         String subTaskId = (String) newData[0].get("subTaskId");
-        System.out.println("Parent ID: " + parentId + ", SubTask ID: " + subTaskId );
-        
-        // Obtener la lista de userTask y manejarla como List
         String userTask = (String) newData[0].get("userTask");
-
-        // Número actual de ejecuciones reportadas para esta sub-tarea
-        Integer currentExecutions = (Integer) newData[0].get("totalExecutions");
-        // Número máximo permitido de ejecuciones (parent.mth)
+        Integer totalExecutions = (Integer) newData[0].get("totalExecutions");
         Integer maxTimes = (Integer) newData[0].get("parentMth");
-
-        // Generar una clave única para identificar el sub-task
-        String taskKey = parentId + "|" + subTaskId;
-
-        // Acumular el número de ejecuciones en el mapa
-        executionSums.put(taskKey, executionSums.getOrDefault(taskKey, 0) + currentExecutions);
-        System.out.println("executionSums2" + executionSums);
-        // Obtener el total acumulado
-        int accumulatedExecutions = executionSums.get(taskKey);
-        System.out.println("accumulatedExecutions" + accumulatedExecutions);
-        
-        // Verificar si el acumulado ya excede el máximo permitido
-        if (accumulatedExecutions > maxTimes) {
-            // Verificar si esta acumulación ya ha sido reportada
-            if (!reportedUocViolations.containsKey(taskKey) || accumulatedExecutions > reportedUocViolations.get(taskKey)) {
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        String taskKey = parentId + "|" + subTaskId  + "|" + instance1;
+        if (totalExecutions > maxTimes) {
+            if (!reportedUocViolations.containsKey(taskKey)) {
                 sb.append("\n---------------------------------");
                 sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
                 sb.append("\n- Parent Task ID: ").append(parentId);
                 sb.append("\n- SubTask ID: ").append(subTaskId);
                 sb.append("\n- User(s): ").append(userTask); 
-                sb.append("\n- Total number of executions (accumulated): ").append(accumulatedExecutions);
+                sb.append("\n- Total number of executions (accumulated): ").append(totalExecutions);
                 sb.append("\n- Maximum allowed: ").append(maxTimes != null ? maxTimes : "N/A");
+                sb.append("\n- Instance: ").append(instance1);
                 sb.append("\n---------------------------------");
-
-                // Actualizar el mapa con el último nivel reportado de ejecuciones acumuladas
-                reportedUocViolations.put(taskKey, accumulatedExecutions);
+                reportedUocViolations.put(taskKey, totalExecutions);
             }
         }
     }
