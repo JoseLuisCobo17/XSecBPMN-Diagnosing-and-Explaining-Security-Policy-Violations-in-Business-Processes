@@ -377,17 +377,17 @@ function exportToEsper(bpmnModeler) {
 
           content += `superElement="${superElement}", `;
           content += `subElement="${subElement}"]\n`;
-        } else if (element.type === 'bpmn:ServiceTask') {
-          content += `sodSecurity=${element.Sod}, `;
-          content += `bodSecurity=${element.Bod}, `;
-          content += `uocSecurity=${element.Uoc}, `;
-          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
-          content += `subTask="${subTasks}"]\n`;
-        } else if (element.type === 'bpmn:ServiceTask' && element.businessObject.securityType === 'UoC') {
+        } else if (element.type === 'bpmn:ServiceTask' && element.Uoc) {
           content += `sodSecurity=${element.Sod}, `;
           content += `bodSecurity=${element.Bod}, `;
           content += `uocSecurity=${element.Uoc}, `;
           content += `mth=${element.Mth}, `;
+          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+          content += `subTask="${subTasks}"]\n`;
+        } else if (element.type === 'bpmn:ServiceTask') {
+          content += `sodSecurity=${element.Sod}, `;
+          content += `bodSecurity=${element.Bod}, `;
+          content += `uocSecurity=${element.Uoc}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask'
