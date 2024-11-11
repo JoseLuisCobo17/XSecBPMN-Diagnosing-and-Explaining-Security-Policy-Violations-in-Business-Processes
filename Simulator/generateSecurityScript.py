@@ -121,40 +121,54 @@ def {element.id_bpmn}(env, name):
     if possibleUsers is None:
         possibleUsers = userPool
     possibleUsers = resolve_possible_users(possibleUsers, TaskName, name)
-    available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    while not available_users:
-        yield env.timeout(1)
-        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    if available_users:
-        userTask = min(available_users, key=lambda u: user_assignments[u])
-        user_assignments[userTask] += 1
+    if isinstance(possibleUsers, dict):
+        available_users = {{user:possibleUsers[user] for user in possibleUsers.keys() if user_resources[user].count < user_resources[user].capacity}}
+        while sum(available_users.values()) < {element.numberOfExecutions}:
+            yield env.timeout(1)
+            available_users = {{user:possibleUsers[user] for user in possibleUsers.keys() if user_resources[user].count < user_resources[user].capacity}}
+        userTask = {{}}
+        n = 0
+        for user, value in sorted(available_users.items(), key=lambda x: -x[1]):
+            if n < {element.numberOfExecutions}:
+                if n + value > {element.numberOfExecutions}:
+                    userTask[user] = {element.numberOfExecutions} - n
+                else:
+                    userTask[user] = value
+                n += value 
+                user_assignments[user] += 1
+            else:
+                break
         if TaskName in security.keys():
             secTasks = security[TaskName]
             for secTask in secTasks.keys():
                 infoSecTask = secTasks[secTask]
                 if infoSecTask[0]:
-                    task_users[(secTask, name)].append(userTask)
+                    task_users[(secTask, name, TaskName)].append(userTask.keys()[0])
                 if infoSecTask[1]:
-                    task_users[(secTask, name)] = userTask
+                    task_users[(secTask, name, TaskName)] = userTask.keys()[0]
                 if infoSecTask[2]:
-                    if userTask in task_users[(secTask, name)]:
-                        task_users[(secTask, name)][userTask] += {element.numberOfExecutions}
-                    else:
-                        task_users[(secTask, name)][userTask] = {element.numberOfExecutions}
+                    for user in userTask.keys():
+                        if user in task_users[(secTask, name, TaskName)]:
+                            task_users[(secTask, name, TaskName)][user] += userTask[user]
+                        else:
+                            task_users[(secTask, name, TaskName)][user] = userTask[user]
                 if not security_events[(secTask, name)].triggered:
                     security_events[(secTask, name)].succeed()
-        request = user_resources[userTask].request()
-        yield request
+        requests = {{}}
+        for user in userTask.keys():
+            requests[user] = user_resources[user].request()
+        yield simpy.events.AllOf(env, requests.values())
         try:
-            time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
             if env.now > start_standBy:
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
-                f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
-            yield env.timeout(time)
+            for user in userTask.keys():
+                time = resolve_task_time('Activity_0qlrcb6', 20, 10, userTask[user], user)
+                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{user}}, numberOfExecutions={{userTask[user]}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
             if TaskName in generatedData.keys():
                 dataObjects = generatedData[TaskName]
                 for dataObject in dataObjects:
@@ -163,7 +177,52 @@ def {element.id_bpmn}(env, name):
                         f.write(f'''
 {{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
         finally:
-            user_resources[userTask].release(request)
+            for user in userTask.keys():
+                user_resources[user].release(requests[user])
+    else:
+        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
+            yield env.timeout(1)
+            available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users:
+            userTask = min(available_users, key=lambda u: user_assignments[u])
+            user_assignments[userTask] += 1
+            if TaskName in security.keys():
+                secTasks = security[TaskName]
+                for secTask in secTasks.keys():
+                    infoSecTask = secTasks[secTask]
+                    if infoSecTask[0]:
+                        task_users[(secTask, name)].append(userTask)
+                    if infoSecTask[1]:
+                        task_users[(secTask, name)] = userTask
+                    if infoSecTask[2]:
+                        if userTask in task_users[(secTask, name)]:
+                            task_users[(secTask, name)][userTask] += {element.numberOfExecutions}
+                        else:
+                            task_users[(secTask, name)][userTask] = {element.numberOfExecutions}
+                    if not security_events[(secTask, name)].triggered:
+                        security_events[(secTask, name)].succeed()
+            request = user_resources[userTask].request()
+            yield request
+            try:
+                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
+                if env.now > start_standBy:
+                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+                if TaskName in generatedData.keys():
+                    dataObjects = generatedData[TaskName]
+                    for dataObject in dataObjects:
+                        data.append((dataObject, name))
+                        with open(f'files/results_{{processName}}.txt', 'a') as f:
+                            f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
+            finally:
+                user_resources[userTask].release(request)
     return '{element.subTask}'
 """
     return generateFunction(elements, element.subTask, script + functionStr)
@@ -173,6 +232,15 @@ def sendTask(elements, element, script):
     functionStr = f"""
 def {element.id_bpmn}(env, name):
     TaskName = '{element.id_bpmn}'
+    if TaskName in requiredData.keys():
+        dataObjects = requiredData[TaskName]
+        start_standBy_data = env.now
+        while not all((dataObject, name) in data for dataObject in dataObjects):
+            yield env.timeout(1)
+        if env.now > start_standBy_data:
+            with open(f'files/results_{{processName}}.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
     start_standBy = env.now
     if TaskName in security.keys():
             secTasks = security[TaskName]
@@ -187,44 +255,110 @@ def {element.id_bpmn}(env, name):
     if possibleUsers is None:
         possibleUsers = userPool
     possibleUsers = resolve_possible_users(possibleUsers, TaskName, name)
-    available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    while not available_users:
-        yield env.timeout(1)
-        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    if available_users:
-        userTask = min(available_users, key=lambda u: user_assignments[u])
-        user_assignments[userTask] += 1
+    if isinstance(possibleUsers, dict):
+        available_users = {{user:possibleUsers[user] for user in possibleUsers.keys() if user_resources[user].count < user_resources[user].capacity}}
+        while sum(available_users.values()) < {element.numberOfExecutions}:
+            yield env.timeout(1)
+            available_users = {{user:possibleUsers[user] for user in possibleUsers.keys() if user_resources[user].count < user_resources[user].capacity}}
+        userTask = {{}}
+        n = 0
+        for user, value in sorted(available_users.items(), key=lambda x: -x[1]):
+            if n < {element.numberOfExecutions}:
+                if n + value > {element.numberOfExecutions}:
+                    userTask[user] = {element.numberOfExecutions} - n
+                else:
+                    userTask[user] = value
+                n += value 
+                user_assignments[user] += 1
+            else:
+                break
         if TaskName in security.keys():
             secTasks = security[TaskName]
             for secTask in secTasks.keys():
                 infoSecTask = secTasks[secTask]
                 if infoSecTask[0]:
-                    task_users[(secTask, name)].append(userTask)
+                    task_users[(secTask, name, TaskName)].append(userTask.keys()[0])
                 if infoSecTask[1]:
-                    task_users[(secTask, name)] = userTask
+                    task_users[(secTask, name, TaskName)] = userTask.keys()[0]
                 if infoSecTask[2]:
-                    if userTask in task_users[(secTask, name)]:
-                        task_users[(secTask, name)][userTask] += {element.numberOfExecutions}
-                    else:
-                        task_users[(secTask, name)][userTask] = {element.numberOfExecutions}
+                    for user in userTask.keys():
+                        if user in task_users[(secTask, name, TaskName)]:
+                            task_users[(secTask, name, TaskName)][user] += userTask[user]
+                        else:
+                            task_users[(secTask, name, TaskName)][user] = userTask[user]
                 if not security_events[(secTask, name)].triggered:
                     security_events[(secTask, name)].succeed()
-        request = user_resources[userTask].request()
-        yield request
+        requests = {{}}
+        for user in userTask.keys():
+            requests[user] = user_resources[user].request()
+        yield simpy.events.AllOf(env, requests.values())
         try:
-            time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
             if env.now > start_standBy:
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
-                f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
-            yield env.timeout(time)
-            if (TaskName, '{element.messageDestiny}', name) not in message_events:
-                message_events.append((TaskName, '{element.messageDestiny}', name))
+            for user in userTask.keys():
+                time = resolve_task_time('Activity_0qlrcb6', 20, 10, userTask[user], user)
+                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{user}}, numberOfExecutions={{userTask[user]}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+            if TaskName in generatedData.keys():
+                dataObjects = generatedData[TaskName]
+                for dataObject in dataObjects:
+                    data.append((dataObject, name))
+                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
         finally:
-            user_resources[userTask].release(request)
+            for user in userTask.keys():
+                user_resources[user].release(requests[user])
+    else:
+        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
+            yield env.timeout(1)
+            available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users:
+            userTask = min(available_users, key=lambda u: user_assignments[u])
+            user_assignments[userTask] += 1
+            if TaskName in security.keys():
+                secTasks = security[TaskName]
+                for secTask in secTasks.keys():
+                    infoSecTask = secTasks[secTask]
+                    if infoSecTask[0]:
+                        task_users[(secTask, name)].append(userTask)
+                    if infoSecTask[1]:
+                        task_users[(secTask, name)] = userTask
+                    if infoSecTask[2]:
+                        if userTask in task_users[(secTask, name)]:
+                            task_users[(secTask, name)][userTask] += {element.numberOfExecutions}
+                        else:
+                            task_users[(secTask, name)][userTask] = {element.numberOfExecutions}
+                    if not security_events[(secTask, name)].triggered:
+                        security_events[(secTask, name)].succeed()
+            request = user_resources[userTask].request()
+            yield request
+            try:
+                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
+                if env.now > start_standBy:
+                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+                if (TaskName, '{element.messageDestiny}', name) not in message_events:
+                    message_events.append((TaskName, '{element.messageDestiny}', name))
+                if TaskName in generatedData.keys():
+                    dataObjects = generatedData[TaskName]
+                    for dataObject in dataObjects:
+                        data.append((dataObject, name))
+                        with open(f'files/results_{{processName}}.txt', 'a') as f:
+                            f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
+            finally:
+                user_resources[userTask].release(request)
     return '{element.subTask}'
 """
     return generateFunction(elements, element.subTask, script + functionStr)
@@ -243,6 +377,15 @@ def {element.id_bpmn}(env, name):
         with open(f'files/results_{{processName}}.txt', 'a') as f:
             f.write(f'''
 {{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
+    if TaskName in requiredData.keys():
+        dataObjects = requiredData[TaskName]
+        start_standBy_data = env.now
+        while not all((dataObject, name) in data for dataObject in dataObjects):
+            yield env.timeout(1)
+        if env.now > start_standBy_data:
+            with open(f'files/results_{{processName}}.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
     start_standBy = env.now
     if TaskName in security.keys():
             secTasks = security[TaskName]
@@ -257,42 +400,108 @@ def {element.id_bpmn}(env, name):
     if possibleUsers is None:
         possibleUsers = userPool
     possibleUsers = resolve_possible_users(possibleUsers, TaskName, name)
-    available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    while not available_users:
-        yield env.timeout(1)
-        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    if available_users:
-        userTask = min(available_users, key=lambda u: user_assignments[u])
-        user_assignments[userTask] += 1
+    if isinstance(possibleUsers, dict):
+        available_users = {{user:possibleUsers[user] for user in possibleUsers.keys() if user_resources[user].count < user_resources[user].capacity}}
+        while sum(available_users.values()) < {element.numberOfExecutions}:
+            yield env.timeout(1)
+            available_users = {{user:possibleUsers[user] for user in possibleUsers.keys() if user_resources[user].count < user_resources[user].capacity}}
+        userTask = {{}}
+        n = 0
+        for user, value in sorted(available_users.items(), key=lambda x: -x[1]):
+            if n < {element.numberOfExecutions}:
+                if n + value > {element.numberOfExecutions}:
+                    userTask[user] = {element.numberOfExecutions} - n
+                else:
+                    userTask[user] = value
+                n += value 
+                user_assignments[user] += 1
+            else:
+                break
         if TaskName in security.keys():
             secTasks = security[TaskName]
             for secTask in secTasks.keys():
                 infoSecTask = secTasks[secTask]
                 if infoSecTask[0]:
-                    task_users[(secTask, name)].append(userTask)
+                    task_users[(secTask, name, TaskName)].append(userTask.keys()[0])
                 if infoSecTask[1]:
-                    task_users[(secTask, name)] = userTask
+                    task_users[(secTask, name, TaskName)] = userTask.keys()[0]
                 if infoSecTask[2]:
-                    if userTask in task_users[(secTask, name)]:
-                        task_users[(secTask, name)][userTask] += {element.numberOfExecutions}
-                    else:
-                        task_users[(secTask, name)][userTask] = {element.numberOfExecutions}
+                    for user in userTask.keys():
+                        if user in task_users[(secTask, name, TaskName)]:
+                            task_users[(secTask, name, TaskName)][user] += userTask[user]
+                        else:
+                            task_users[(secTask, name, TaskName)][user] = userTask[user]
                 if not security_events[(secTask, name)].triggered:
                     security_events[(secTask, name)].succeed()
-        request = user_resources[userTask].request()
-        yield request
+        requests = {{}}
+        for user in userTask.keys():
+            requests[user] = user_resources[user].request()
+        yield simpy.events.AllOf(env, requests.values())
         try:
-            time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
             if env.now > start_standBy:
                 with open(f'files/results_{{processName}}.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
-                f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
-            yield env.timeout(time)
+            for user in userTask.keys():
+                time = resolve_task_time('Activity_0qlrcb6', 20, 10, userTask[user], user)
+                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{user}}, numberOfExecutions={{userTask[user]}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+            if TaskName in generatedData.keys():
+                dataObjects = generatedData[TaskName]
+                for dataObject in dataObjects:
+                    data.append((dataObject, name))
+                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
         finally:
-            user_resources[userTask].release(request)
+            for user in userTask.keys():
+                user_resources[user].release(requests[user])
+    else:
+        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
+            yield env.timeout(1)
+            available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users:
+            userTask = min(available_users, key=lambda u: user_assignments[u])
+            user_assignments[userTask] += 1
+            if TaskName in security.keys():
+                secTasks = security[TaskName]
+                for secTask in secTasks.keys():
+                    infoSecTask = secTasks[secTask]
+                    if infoSecTask[0]:
+                        task_users[(secTask, name)].append(userTask)
+                    if infoSecTask[1]:
+                        task_users[(secTask, name)] = userTask
+                    if infoSecTask[2]:
+                        if userTask in task_users[(secTask, name)]:
+                            task_users[(secTask, name)][userTask] += {element.numberOfExecutions}
+                        else:
+                            task_users[(secTask, name)][userTask] = {element.numberOfExecutions}
+                    if not security_events[(secTask, name)].triggered:
+                        security_events[(secTask, name)].succeed()
+            request = user_resources[userTask].request()
+            yield request
+            try:
+                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
+                if env.now > start_standBy:
+                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+                if TaskName in generatedData.keys():
+                    dataObjects = generatedData[TaskName]
+                    for dataObject in dataObjects:
+                        data.append((dataObject, name))
+                        with open(f'files/results_{{processName}}.txt', 'a') as f:
+                            f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
+            finally:
+                user_resources[userTask].release(request)
     return '{element.subTask}'
 """
     return generateFunction(elements, element.subTask, script + functionStr)
@@ -483,27 +692,54 @@ def resolve_possible_users(possibleUsers, taskName, instance):
             users.append(item)
         elif item in userWithRole:
             users.append(item)
+    users = list(set(users))
     if taskName in security:
         secTasks = security[taskName]
         for secTask in secTasks.keys():
             infoTask = secTasks[secTask]
             if infoTask[0]:
                 if (secTask, instance) in task_users.keys():
-                    for user in task_users[(secTask, instance)]:
-                        users.remove(user) if user in users else None
+                    if isinstance(users, dict):
+                        for user in task_users[(secTask, instance)]:
+                            users.pop(user) if user in users.keys() else None
+                    else:
+                        for user in task_users[(secTask, instance)]:
+                            users.remove(user) if user in users else None
                 else:
                     task_users[(secTask, instance)] = []
             elif infoTask[1]:
                 if (secTask, instance) in task_users.keys():
-                    users = [task_users[(secTask, instance)]]
+                    if isinstance(users, dict):
+                        n = users[task_users[(secTask, instance)]]
+                        users.clear()
+                        users[task_users[(secTask, instance)]] = n
+                    else:
+                        users = [task_users[(secTask, instance)]]
             elif infoTask[2]:
-                if (secTask, instance) in task_users.keys():
-                    for user in task_users[(secTask, instance)].keys():
-                        if task_users[(secTask, instance)][user] >= infoTask[3]:
-                            users.remove(user) if user in users else None
+                if (secTask, instance, taskName) in task_users.keys():
+                    if isinstance(users, dict):
+                        for user in task_users[(secTask, instance, taskName)].keys():
+                            if task_users[(secTask, instance, taskName)][user] >= infoTask[3]:
+                                users.pop(user) if user in users.keys() else None
+                            else:
+                                if user in users.keys():
+                                    executionsDone = task_users[(secTask, instance, taskName)][user]
+                                    maxExecutions = infoTask[3] - executionsDone
+                                    if users[user] < maxExecutions:
+                                        users[user] = maxExecutions
+                    else:
+                        usersUoC = {{}}
+                        for user in task_users[(secTask, instance, taskName)].keys():
+                            if task_users[(secTask, instance, taskName)][user] < infoTask[3]:
+                                usersUoC[user] = infoTask[3] - task_users[(secTask, instance, taskName)][user]
+                        users = usersUoC
                 else:
-                    task_users[(secTask, instance)] = {{}}
-    return list(set(users))
+                    task_users[(secTask, instance, taskName)] = {{}}
+                    usersUoC = {{}}
+                    for user in users:
+                        usersUoC[user] = infoTask[3]
+                    users = usersUoC
+    return users
 """
         startElements = {}
         messageStartElements = {}
@@ -614,28 +850,54 @@ def resolve_possible_users(possibleUsers, taskName, instance):
     for item in possibleUsers:
         if item in laneUsers:
             users.append(item)
+    users = list(set(users))
     if taskName in security:
         secTasks = security[taskName]
         for secTask in secTasks.keys():
             infoTask = secTasks[secTask]
             if infoTask[0]:
                 if (secTask, instance) in task_users.keys():
-                    for user in task_users[(secTask, instance)]:
-                        users.remove(user) if user in users else None
+                    if isinstance(users, dict):
+                        for user in task_users[(secTask, instance)]:
+                            users.pop(user) if user in users.keys() else None
+                    else:
+                        for user in task_users[(secTask, instance)]:
+                            users.remove(user) if user in users else None
                 else:
                     task_users[(secTask, instance)] = []
             elif infoTask[1]:
                 if (secTask, instance) in task_users.keys():
-                    users = [task_users[(secTask, instance)]]
+                    if isinstance(users, dict):
+                        n = users[task_users[(secTask, instance)]]
+                        users.clear()
+                        users[task_users[(secTask, instance)]] = n
+                    else:
+                        users = [task_users[(secTask, instance)]]
             elif infoTask[2]:
-                if (secTask, instance) in task_users.keys():
-                    for user in task_users[(secTask, instance)].keys():
-                        if task_users[(secTask, instance)][user] >= infoTask[3]:
-                            users.remove(user) if user in users else None
+                if (secTask, instance, taskName) in task_users.keys():
+                    if isinstance(users, dict):
+                        for user in task_users[(secTask, instance, taskName)].keys():
+                            if task_users[(secTask, instance, taskName)][user] >= infoTask[3]:
+                                users.pop(user) if user in users.keys() else None
+                            else:
+                                if user in users.keys():
+                                    executionsDone = task_users[(secTask, instance, taskName)][user]
+                                    maxExecutions = infoTask[3] - executionsDone
+                                    if users[user] < maxExecutions:
+                                        users[user] = maxExecutions
+                    else:
+                        usersUoC = {{}}
+                        for user in task_users[(secTask, instance, taskName)].keys():
+                            if task_users[(secTask, instance, taskName)][user] < infoTask[3]:
+                                usersUoC[user] = infoTask[3] - task_users[(secTask, instance, taskName)][user]
+                        users = usersUoC
                 else:
-                    task_users[(secTask, instance)] = {{}}
-    return list(set(users))
-
+                    task_users[(secTask, instance, taskName)] = {{}}
+                    usersUoC = {{}}
+                    for user in users:
+                        usersUoC[user] = infoTask[3]
+                    users = usersUoC
+    return users
 """
         startElements = {}
         messageStartElements = {}

@@ -149,6 +149,15 @@ def sendTask(elements, element, script):
     functionStr = f"""
 def {element.id_bpmn}(env, name):
     TaskName = '{element.id_bpmn}'
+    if TaskName in requiredData.keys():
+        dataObjects = requiredData[TaskName]
+        start_standBy_data = env.now
+        while not all((dataObject, name) in data for dataObject in dataObjects):
+            yield env.timeout(1)
+        if env.now > start_standBy_data:
+            with open(f'files/results_{{processName}}.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
     start_standBy = env.now
     possibleUsers = {element.userTask}
     if possibleUsers is None:
@@ -173,6 +182,13 @@ def {element.id_bpmn}(env, name):
                 f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             yield env.timeout(time)
+            if TaskName in generatedData.keys():
+                dataObjects = generatedData[TaskName]
+                for dataObject in dataObjects:
+                    data.append((dataObject, name))
+                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
             if (TaskName, '{element.messageDestiny}', name) not in message_events:
                 message_events.append((TaskName, '{element.messageDestiny}', name))
         finally:
@@ -186,6 +202,15 @@ def receiveTask(elements, element, script):
     functionStr = f"""
 def {element.id_bpmn}(env, name):
     TaskName = '{element.id_bpmn}'
+    if TaskName in requiredData.keys():
+        dataObjects = requiredData[TaskName]
+        start_standBy_data = env.now
+        while not all((dataObject, name) in data for dataObject in dataObjects):
+            yield env.timeout(1)
+        if env.now > start_standBy_data:
+            with open(f'files/results_{{processName}}.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
     start_standby_message = env.now
     while not ('{element.messageOrigin}', TaskName, name) in message_events:
         yield env.timeout(1)
@@ -219,6 +244,13 @@ def {element.id_bpmn}(env, name):
                 f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             yield env.timeout(time)
+            if TaskName in generatedData.keys():
+                dataObjects = generatedData[TaskName]
+                for dataObject in dataObjects:
+                    data.append((dataObject, name))
+                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
         finally:
             user_resources[userTask].release(request)
     return '{element.subTask}'
