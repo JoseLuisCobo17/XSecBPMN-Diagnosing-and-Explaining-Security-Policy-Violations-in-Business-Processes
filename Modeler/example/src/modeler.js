@@ -10,6 +10,10 @@ import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js
 import fileOpen from 'file-open';
 import download from 'downloadjs';
 import exampleXML from '../resources/example.bpmn';
+import model1XML from '../resources/model1.bpmn';
+import model2XML from '../resources/model2.bpmn';
+import model3XML from '../resources/model3.bpmn';
+import model4XML from '../resources/model4.bpmn';
 import $ from 'jquery';
 
 import securityDrawModule from '../../lib/security/draw';
@@ -84,9 +88,26 @@ $(function() {
     }
   }
 
-  // Cargar el diagrama inicial al abrir la aplicación
-  async function createNewDiagram() {
-    openDiagram(exampleXML); // Asegúrate de que este XML esté correctamente referenciado
+  async function createNewDiagram(modelFile) {
+    switch (modelFile) {
+      case "example":
+        openDiagram(exampleXML);
+        break;
+      case "model1":
+        openDiagram(model1XML);
+        break;
+      case "model2":
+        openDiagram(model2XML);
+        break;
+      case "model3":
+        openDiagram(model3XML);
+        break;
+      case "model4":
+        openDiagram(model4XML);
+        break;
+      default:
+        openDiagram(exampleXML);
+    }
   }
 
   // Función para registrar el arrastre y soltar archivos
@@ -137,7 +158,13 @@ $(function() {
     container.get(0).appendChild(fileInput);
   }
 
-  createNewDiagram();
+  function getQueryParam(param) {
+    var urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+  }
+  var modelFile = getQueryParam('model') || 'example';
+
+  createNewDiagram(modelFile);
   registerFileDrop($('#canvas'), openDiagram);
 
   function setEncoded(link, name, data) {
@@ -303,7 +330,13 @@ document.getElementById('close-modal').addEventListener('click', function() {
     }
   });
 
-  createNewDiagram();
+  function getQueryParam(param) {
+    var urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+  }
+  var modelFile = getQueryParam('model') || 'example';
+
+  createNewDiagram(modelFile);
   registerFileDrop($('#canvas'), openDiagram);
 
   $('#js-download-diagram').click(function() {
