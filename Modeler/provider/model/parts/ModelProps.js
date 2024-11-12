@@ -52,14 +52,12 @@ function instanceFunction(props) {
       const firstParticipant = element.businessObject.participants[0];
       if (firstParticipant.processRef) {
         const value = firstParticipant.processRef.instance;
-        console.log("Current instance value in processRef:", value);
         return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
       } else {
         console.warn("processRef is missing for participant:", firstParticipant);
       }
     } else if (element.businessObject.instance !== undefined) {
       const value = element.businessObject.instance;
-      console.log("Current instance value:", value);
       return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
     }
 
@@ -124,14 +122,12 @@ function frequencyFunction(props) {
       const firstParticipant = element.businessObject.participants[0];
       if (firstParticipant.processRef) {
         const value = firstParticipant.processRef.frequency;
-        console.log("Current frequency value in processRef:", value);
         return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
       } else {
         console.warn("processRef is missing for participant:", firstParticipant);
       }
     } else if (element.businessObject.frequency !== undefined) {
       const value = element.businessObject.frequency;
-      console.log("Current frequency value:", value);
       return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
     }
 
@@ -196,14 +192,12 @@ function userWithoutRoleFunction(props) {
       const firstParticipant = element.businessObject.participants[0];
       if (firstParticipant.processRef) {
         const value = firstParticipant.processRef.userWithoutRole;
-        console.log("Current userWithoutRole value in processRef:", value);
         return value !== undefined ? value : '';
       } else {
         console.warn("processRef is missing for participant:", firstParticipant);
       }
     } else if (element.businessObject.userWithoutRole !== undefined) {
       const value = element.businessObject.userWithoutRole;
-      console.log("Current userWithoutRole value:", value);
       return value !== undefined ? value : '';
     }
 
