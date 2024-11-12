@@ -578,19 +578,22 @@ function deployRules(bpmnModeler) {
       if (bodElements.length > 0) {
         console.log("Creando expresión generalizada de BoD");
 
-        const bodEPL = `"select parent.idBpmn as parentId, " 
-    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " 
-    "sub1.user as user1, sub2.user as user2 " 
-    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " 
-    "where parent.bodSecurity = true " 
-    "and sub1.user is not null and sub2.user is not null " 
-    "and sub1.user = sub2.user " 
-    "and sub1.idBpmn != sub2.idBpmn " 
-    "and sub1.idBpmn in (parent.subTasks) " 
-    "and sub2.idBpmn in (parent.subTasks)"
-    
-    --------------------------------------
-    `;
+        const bodEPL = `"select parent.idBpmn as parentId, "
+  "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, "
+  "sub1.userTask as user1, sub2.userTask as user2, "
+  "sub1.instance as instance1 "
+  "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 "
+  "where parent.bodSecurity = true "
+  "and sub1.userTask is not null and sub2.userTask is not null "
+  "and sub1.userTask != sub2.userTask "
+  "and sub1.idBpmn != sub2.idBpmn "
+  "and sub1.idBpmn in (parent.subTasks) "
+  "and sub2.idBpmn in (parent.subTasks) "
+  "and sub1.instance = sub2.instance"
+
+--------------------------------------
+
+`;
 
         eplStatements += bodEPL;
       }
@@ -600,19 +603,24 @@ function deployRules(bpmnModeler) {
       if (sodElements.length > 0) {
         console.log("Creando expresión generalizada de SoD");
 
-        const sodEPL = ` "select parent.idBpmn as parentId, " 
-    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " 
-    "sub1.user as user1, sub2.user as user2, " 
-    "count(distinct sub1.user) as distinctUserCount " 
-    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " 
-    "where parent.sodSecurity = true " 
-    "and sub1.user = sub2.user " 
-    "and sub1.idBpmn != sub2.idBpmn " 
-    "and sub1.idBpmn in (parent.subTasks) " 
-    "and sub2.idBpmn in (parent.subTasks) " 
-    
-    --------------------------------------
-    `;
+        const sodEPL = `"select parent.idBpmn as parentId, "
+  "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, "
+  "sub1.userTask as userTask1, sub2.userTask as userTask2, "
+  "sub1.instance as instance1 "
+  "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 "
+  "where parent.sodSecurity = true "
+  "and sub1.idBpmn != sub2.idBpmn "
+  "and sub1.idBpmn in (parent.subTasks) "
+  "and sub2.idBpmn in (parent.subTasks) "
+  "and sub1.instance = sub2.instance "
+  "and sub1.userTask is not null "
+  "and sub2.userTask is not null "
+  "and sub1.userTask = sub2.userTask "
+  "and sub1.idBpmn < sub2.idBpmn"
+
+--------------------------------------
+
+`;
 
         eplStatements += sodEPL;
       }
@@ -622,12 +630,22 @@ function deployRules(bpmnModeler) {
       if (uocElements.length > 0) {
         console.log("Creando expresión de UoC");
 
-        const uocEPL = `"select user as userId, count(*) as taskCount " 
-    "from Task#time(1 min) " 
-    "where uocSecurity = true and mth >= 4"
-    
-    --------------------------------------
-    `;
+        const uocEPL = `"select parent.idBpmn as parentId, "
+  "sub1.idBpmn as subTaskId, "
+  "sub1.userTask as userTask, "
+  "sub1.instance as instance1, "
+  "sub1.numberOfExecutions as totalExecutions, "
+  "parent.mth as parentMth "
+  "from Task#keepall as parent, Task#keepall as sub1 "
+  "where parent.uocSecurity = true "
+  "and sub1.idBpmn in (parent.subTasks) "
+  "and sub1.userTask is not null "
+  "and sub1.numberOfExecutions > parent.mth "
+  "group by parent.idBpmn, sub1.idBpmn, parent.mth, sub1.instance"
+
+--------------------------------------
+
+`;
 
         eplStatements += uocEPL;
       }
