@@ -359,8 +359,6 @@ $('#button3').off('click').on('click', async function(e) {
   if (isDownloading) return;
   isDownloading = true;
 
-  console.log('Descarga de Esper Rules (JSON) iniciada');
-
   try {
     const content = await esperRules(bpmnModeler);
 
@@ -379,7 +377,6 @@ $('#button3').off('click').on('click', async function(e) {
     console.log('Error al exportar Esper Rules (JSON):', err);
   } finally {
     isDownloading = false;
-    console.log('Descarga completada');
   }
 });
 
