@@ -190,7 +190,7 @@ exports.saveEsperFile = (req, res) => {
             console.log(`Resultado del simulador: ${stdout}`);
 
             // Ejecutar el comando mvn exec:java
-            exec('mvn clean install && mvn exec:java', { cwd: ENGINE_DIRECTORY }, (mvnError, mvnStdout, mvnStderr) => {
+            exec('mvn clean install && mvn exec:java', { cwd: ENGINE_DIRECTORY, maxBuffer: 1024 * 1024 * 10 }, (mvnError, mvnStdout, mvnStderr) => {
                 if (mvnError) {
                     console.error(`Error al ejecutar mvn exec:java: ${mvnError.message}`);
                     return res.status(500).send({ message: 'Error al ejecutar mvn exec:java' });
@@ -198,7 +198,6 @@ exports.saveEsperFile = (req, res) => {
                 if (mvnStderr) {
                     console.error(`Error en mvn exec:java: ${mvnStderr}`);
                 }
-                console.log(`Resultado de mvn exec:java: ${mvnStdout}`);
 
                 // Eliminar todos los archivos de la carpeta "files"
                 fs.readdir(FILES_DIRECTORY, (err, files) => {

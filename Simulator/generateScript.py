@@ -1,11 +1,20 @@
 def getPercentOfBranches(elements, gateway):
-    possibleElements = []
-    percents = []
+    possibleElements = {}
+    none_elements = []
     for element in elements.values():
         if type(element).__name__ == "BPMNSequenceFlow" and element.superElement == gateway:
-            possibleElements.append(element.subElement)
-            percents.append(element.percentageOfBranches / 100)
-    return possibleElements, percents
+            if element.percentageOfBranches is None:
+                possibleElements[element.subElement] = None
+                none_elements.append(element.subElement)
+            else:
+                possibleElements[element.subElement] = element.percentageOfBranches / 100
+    total_assigned_percent = sum([v for v in possibleElements.values() if v is not None])
+    remaining_percent = 1 - total_assigned_percent
+    if none_elements:
+        equal_percent = remaining_percent / len(none_elements)
+        for sub_element in none_elements:
+            possibleElements[sub_element] = equal_percent
+    return list(possibleElements.keys()), list(possibleElements.values())
 
 def exclusiveGateway(elements, element, script):
     possibleElements, percents = getPercentOfBranches(elements, element.id_bpmn)
@@ -140,6 +149,12 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
         finally:
             user_resources[userTask].release(request)
+    for key, values in gatewayConnections.items():
+        if TaskName in values:
+            if (key, name) in gatewayOccurrences.keys():
+                gatewayOccurrences[(key, name)]++
+            else:
+                gatewayOccurrences[(key, name)] = 1
     return '{element.subTask}'
 """
     return generateFunction(elements, element.subTask, script + functionStr)
@@ -193,6 +208,12 @@ def {element.id_bpmn}(env, name):
                 message_events.append((TaskName, '{element.messageDestiny}', name))
         finally:
             user_resources[userTask].release(request)
+    for key, values in gatewayConnections.items():
+        if TaskName in values:
+            if (key, name) in gatewayOccurrences.keys():
+                gatewayOccurrences[(key, name)]++
+            else:
+                gatewayOccurrences[(key, name)] = 1
     return '{element.subTask}'
 """
     return generateFunction(elements, element.subTask, script + functionStr)
@@ -253,6 +274,12 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
         finally:
             user_resources[userTask].release(request)
+    for key, values in gatewayConnections.items():
+        if TaskName in values:
+            if (key, name) in gatewayOccurrences.keys():
+                gatewayOccurrences[(key, name)]++
+            else:
+                gatewayOccurrences[(key, name)] = 1
     return '{element.subTask}'
 """
     return generateFunction(elements, element.subTask, script + functionStr)
@@ -413,6 +440,9 @@ requiredData = {elements['requiredData']}
 dataInfo = {elements['dataInfo']}
 defaultData = {elements['defaultData']}
 data = []
+gatewayConnections = {elements['gatewayConnections']}
+gatewayOcurrences = {{}}
+gatewayProcessed = set()
 for i in range(nInstances):
     for dataObject in defaultData:
         data.append((dataObject, f'Instance {{i + 1}}'))
@@ -464,9 +494,22 @@ def process_task(env, name, task_name):
     if result:
         if isinstance(result, list):
             for next_task in result:
-                env.process(process_task(env, name, next_task))
+                if next_task in gatewayConnections.keys():
+                    if (next_task, name) in gatewayOccurrences.keys() and gatewayOccurrences[(next_task, name)] == len(gatewayConnections[next_task]):
+                        if (next_task, name) not in gatewayProcessed:
+                            gatewayProcessed.add((next_task, name))
+                            env.process(process_task(env, name, next_task))
+                else:
+                    env.process(process_task(env, name, next_task))
         else:
-            env.process(process_task(env, name, result))
+            if result in gatewayConnections.keys():
+                if (result, name) in gatewayOccurrences.keys() and gatewayOccurrences[(result, name)] == len(gatewayConnections[result]):
+                    if (result, name) not in gatewayProcessed:
+                        gatewayProcessed.add((result, name))
+                        env.process(process_task(env, name, result))
+            else:
+                env.process(process_task(env, name, result))
+
 
 def start_process(env, name, nextTask):
     yield env.process(process_task(env, name, nextTask))
@@ -525,6 +568,7 @@ requiredData = {elements['requiredData']}
 dataInfo = {elements['dataInfo']}
 defaultData = {elements['defaultData']}
 data = []
+gatewayConnections = {elements['gatewayConnections']}
 for i in range(nInstances):
     for dataObject in defaultData:
         data.append((dataObject, f'Instance {{i + 1}}'))
@@ -573,9 +617,22 @@ def process_task(env, name, task_name):
     if result:
         if isinstance(result, list):
             for next_task in result:
-                env.process(process_task(env, name, next_task))
+                if next_task in gatewayConnections.keys():
+                    if (next_task, name) in gatewayOccurrences.keys() and gatewayOccurrences[(next_task, name)] == len(gatewayConnections[next_task]):
+                        if (next_task, name) not in gatewayProcessed:
+                            gatewayProcessed.add((next_task, name))
+                            env.process(process_task(env, name, next_task))
+                else:
+                    env.process(process_task(env, name, next_task))
         else:
-            env.process(process_task(env, name, result))
+            if result in gatewayConnections.keys():
+                if (result, name) in gatewayOccurrences.keys() and gatewayOccurrences[(result, name)] == len(gatewayConnections[result]):
+                    if (result, name) not in gatewayProcessed:
+                        gatewayProcessed.add((result, name))
+                        env.process(process_task(env, name, result))
+            else:
+                env.process(process_task(env, name, result))
+
 
 def start_process(env, name, nextTask):
     yield env.process(process_task(env, name, nextTask))

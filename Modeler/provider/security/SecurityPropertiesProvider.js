@@ -29,8 +29,9 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
         && !is(element, 'bpmn:ServiceTask'))) {
         groups.push(createUserGroup(element, translate));
       } else if (is(element, 'bpmn:SequenceFlow')) {
+        const lengthSubTask = element.businessObject.sourceRef.outgoing.length;
         const sourceElement = element.businessObject.sourceRef;
-        if (sourceElement && is(sourceElement, 'bpmn:Gateway')) {
+        if (sourceElement && is(sourceElement, 'bpmn:Gateway') && lengthSubTask > 1) {
           groups.push(createSequenceFlowGroup(element, translate));
         }
       } else if (is(element, 'bpmn:Process')) {
