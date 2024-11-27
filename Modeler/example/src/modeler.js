@@ -28,8 +28,6 @@ import collaborationExtension from '../../descriptors/collaboration.json';
 import laneExtension from '../../descriptors/lane.json';
 //import participantExtension from '../../descriptors/participant.json';
 import participantWithoutLaneExtension from '../../descriptors/participantWithoutLane.json';
-
-import TokenSimulationModule from '../..';
 import AddExporter from '@bpmn-io/add-exporter';
 
 import {
@@ -51,7 +49,6 @@ $(function() {
       securityPaletteModule,
       securityDrawModule,
       resizeAllModule,
-      TokenSimulationModule,
       AddExporter,
     ],
     exporter: {
@@ -65,17 +62,13 @@ $(function() {
       model: modelExtension,
       collaboration: collaborationExtension,
       lane: laneExtension,
-      //participant: participantExtension,
       participantWithoutLane: participantWithoutLaneExtension
     }
   });
 
-  // Función para abrir un diagrama dado su XML
   async function openDiagram(xml) {
-    console.log('Opening diagram...');
     try {
       await bpmnModeler.importXML(xml);
-      console.log('Diagram imported successfully.');
       $('#canvas')
         .removeClass('with-error')
         .addClass('with-diagram');
@@ -110,7 +103,6 @@ $(function() {
     }
   }
 
-  // Función para registrar el arrastre y soltar archivos
   function registerFileDrop(container, callback) {
     function handleFileSelect(e) {
       e.stopPropagation();
@@ -144,15 +136,14 @@ $(function() {
     function handleDragOver(e) {
       e.stopPropagation();
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy'; // Cambia el cursor para indicar que es posible soltar
+      e.dataTransfer.dropEffect = 'copy';
     }
     container.get(0).addEventListener('dragover', handleDragOver, false);
     container.get(0).addEventListener('drop', handleFileSelect, false);
 
-    // También agregamos soporte para abrir el archivo mediante un input
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = '.bpmn, .xml'; // Especificamos los tipos de archivos permitidos
+    fileInput.accept = '.bpmn, .xml';
     fileInput.style.display = 'none';
     fileInput.addEventListener('change', handleFileSelect, false);
     container.get(0).appendChild(fileInput);
@@ -179,7 +170,6 @@ $(function() {
     }
   }
 
-  // Enlaces de descarga
   var downloadLink = $('#js-download-diagram');
   var downloadSvgLink = $('#js-download-svg');
 
@@ -191,54 +181,44 @@ $('#js-download-esper').off('click').on('click', async function(e) {
   e.stopPropagation();
   e.stopImmediatePropagation();
 
-  console.log('Guardado iniciado');
-
   document.querySelector('.modal-overlay').style.display = 'block';
   document.querySelector('#modal-content').textContent = 'Processing simulation...';
 
   try {
-      const content = await exportToEsper(bpmnModeler);
+    const content = await exportToEsper(bpmnModeler);
 
-      const saveResponse = await fetch('http://localhost:3000/save-esper-file', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ content, filename: 'esperTasks.txt' }),
-      })
-      .then(response => response.json())
-      .then(data => {
-          if (!data.content.trim()) {
-              document.querySelector('#modal-content').textContent = 'No violations found.';
-          } else {
-              document.querySelector('#modal-content').textContent = data.content;
-          }
-          document.querySelector('.modal-overlay').style.display = 'block';
-      })
-      .catch(err => {
-          console.error('Error al obtener violations.txt:', err);
-          alert('Error al obtener violations.txt');
-      });
+    const response = await fetch('http://localhost:3000/save-esper-file', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content, filename: 'esperTasks.txt' }),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Server error:', errorText);
+      throw new Error(`Error when obtaining violations.txt: ${response.statusText}`);
+    }
 
-      if (!saveResponse.ok) {
-          throw new Error(`Error al guardar el archivo: ${saveResponse.statusText}`);
-      }
+    const data = await response.json();
 
-      console.log('Archivo guardado en la carpeta del proyecto');
+    if (!data.content.trim()) {
+      document.querySelector('#modal-content').textContent = 'No violations found.';
+    } else {
+      document.querySelector('#modal-content').textContent = data.content;
+    }
+    document.querySelector('.modal-overlay').style.display = 'block';
       
   } catch (err) {
       console.error('Error al exportar a Esper:', err);
   } finally {
-      console.log('Proceso de guardado completado');
   }
 });
 
-// Cerrar el modal al hacer clic en el botón "Aceptar"
 document.getElementById('close-modal').addEventListener('click', function() {
-  document.querySelector('.modal-overlay').style.display = 'none'; // Ocultar el modal
+  document.querySelector('.modal-overlay').style.display = 'none'; 
 });
 
-  // Función para descargar el diagrama como XML (BPMN)
   function downloadDiagram() {
     bpmnModeler.saveXML({ format: true }).then(({ xml }) => {
       download(xml, 'diagram.bpmn', 'application/xml');
@@ -246,31 +226,6 @@ document.getElementById('close-modal').addEventListener('click', function() {
       console.error('Error al guardar BPMN:', err);
     });
   }
-
-  // Función para exportar el diagrama como SVG
-  async function exportSvg() {
-    try {
-      const { svg } = await bpmnModeler.saveSVG();
-      const blob = new Blob([ svg ], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = url;
-      downloadLink.download = 'diagram.svg';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(url);
-
-      console.log('SVG descargado correctamente');
-    } catch (err) {
-      console.error('Error al exportar SVG:', err);
-    }
-  }
-
-  // Agregar el evento de clic para descargar el SVG
-  $('#js-download-svg').click(function() {
-    exportSvg();
-  });
 
   function openFile(files) {
     if (!files.length) return;
@@ -284,7 +239,6 @@ document.getElementById('close-modal').addEventListener('click', function() {
     reader.readAsText(file);
   }
 
-  // Manejar eventos de teclas para descarga rápida y abrir archivo
   document.body.addEventListener('keydown', function(event) {
     if (event.code === 'KeyS' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
@@ -297,12 +251,6 @@ document.getElementById('close-modal').addEventListener('click', function() {
     }
   });
 
-  // Manejar el clic en el botón de descarga
-  document.querySelector('#download-button').addEventListener('click', function(event) {
-    downloadDiagram();
-  });
-
-  // Función debounced para exportar artefactos (incluyendo SVG y XML )
   var exportArtifacts = debounce(async function() {
     try {
       const { svg } = await bpmnModeler.saveSVG();
@@ -312,12 +260,11 @@ document.getElementById('close-modal').addEventListener('click', function() {
       setEncoded(downloadSvgLink, 'diagram.svg', null);
     }
 
-    // Exportar XML
     try {
       const { xml } = await bpmnModeler.saveXML({ format: true });
       setEncoded(downloadLink, 'diagram.bpmn', xml);
     } catch (err) {
-      console.log('Error al guardar XML: ', err);
+      console.error('Error al guardar XML: ', err);
       setEncoded(downloadLink, 'diagram.bpmn', null);
     }
   }, 500);
@@ -326,7 +273,7 @@ document.getElementById('close-modal').addEventListener('click', function() {
     try {
       exportArtifacts();
     } catch (err) {
-      console.log('Error al exportar artefactos:', err);
+      console.error('Error al exportar artefactos:', err);
     }
   });
 
@@ -347,10 +294,8 @@ document.getElementById('close-modal').addEventListener('click', function() {
     exportArtifacts();
   });
 
-  // Variable para evitar descargas múltiples simultáneas
 let isDownloading2 = false;
 
-// Manejador para la descarga de Deploy Rules cuando se presione el botón "Deploy Rules"
 $('#button2').off('click').on('click', async function(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -358,8 +303,6 @@ $('#button2').off('click').on('click', async function(e) {
 
   if (isDownloading2) return;
   isDownloading2 = true;
-
-  console.log('Descarga de Deploy Rules (JSON) iniciada');
 
   try {
     const content = await deployRules(bpmnModeler);
@@ -376,44 +319,12 @@ $('#button2').off('click').on('click', async function(e) {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   } catch (err) {
-    console.log('Error al exportar Deploy Rules (JSON):', err);
+    console.error('Error al exportar Deploy Rules (JSON):', err);
   } finally {
     isDownloading2 = false;
-    console.log('Descarga completada');
   }
 });
 
-  // Manejador para la descarga de Esper cuando se presione el botón "Esper Rules"
-$('#button3').off('click').on('click', async function(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  e.stopImmediatePropagation();
-
-  if (isDownloading) return;
-  isDownloading = true;
-
-  try {
-    const content = await esperRules(bpmnModeler);
-
-    const blob = new Blob([content], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'esperRules.json';
-
-    document.body.appendChild(link);
-    link.click();
-
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  } catch (err) {
-    console.log('Error al exportar Esper Rules (JSON):', err);
-  } finally {
-    isDownloading = false;
-  }
-});
-
-  // Verificar compatibilidad del navegador
   if (!window.FileList || !window.FileReader) {
     window.alert(
       'Parece que usas un navegador antiguo que no soporta arrastrar y soltar. ' +

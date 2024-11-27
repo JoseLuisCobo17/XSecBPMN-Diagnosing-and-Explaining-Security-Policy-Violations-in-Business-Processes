@@ -26,11 +26,10 @@ const HIGH_PRIORITY = 1500;
 
 
 export default function PauseSimulation(
-    eventBus, tokenSimulationPalette,
+    eventBus,
     notifications, canvas) {
 
   this._eventBus = eventBus;
-  this._tokenSimulationPalette = tokenSimulationPalette;
   this._notifications = notifications;
 
   this.canvasParent = canvas.getContainer().parentNode;
@@ -67,8 +66,6 @@ PauseSimulation.prototype._init = function() {
   `);
 
   domEvent.bind(this.paletteEntry, 'click', this.toggle.bind(this));
-
-  this._tokenSimulationPalette.addEntry(this.paletteEntry, 1);
 };
 
 PauseSimulation.prototype.toggle = function() {
@@ -133,7 +130,6 @@ PauseSimulation.prototype.deactivate = function() {
 
 PauseSimulation.$inject = [
   'eventBus',
-  'tokenSimulationPalette',
   'notifications',
   'canvas'
 ];

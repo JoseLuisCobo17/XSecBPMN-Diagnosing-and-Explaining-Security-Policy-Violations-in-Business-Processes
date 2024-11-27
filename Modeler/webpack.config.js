@@ -66,14 +66,10 @@ module.exports = (env, argv) => {
     plugins: [
       new CopyWebpackPlugin({
         patterns: [
-          { from: './assets', to: 'dist/vendor/bpmn-js-token-simulation/assets' },
           { from: 'bpmn-js/dist/assets', context: 'node_modules', to: 'dist/vendor/bpmn-js/assets' },
           { from: '@bpmn-io/properties-panel/dist/assets', context: 'node_modules', to: 'dist/vendor/bpmn-js-properties-panel/assets' }
         ]
       }),
-      new DefinePlugin({
-        'process.env.TOKEN_SIMULATION_VERSION': JSON.stringify(require('./package.json').version)
-      })
     ],
     devtool: isDevMode ? 'eval-source-map' : 'source-map',
     devServer: {
@@ -81,7 +77,8 @@ module.exports = (env, argv) => {
       compress: true,
       port: 9000,
       hot: true,
-      open: true
+      open: true,
+      liveReload: false
     }
   };
 };

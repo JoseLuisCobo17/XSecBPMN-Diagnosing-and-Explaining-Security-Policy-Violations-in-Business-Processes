@@ -1,5 +1,3 @@
-import TokenSimulationModule from '../../lib/viewer';
-
 import BpmnViewer from 'bpmn-js/lib/NavigatedViewer';
 
 import fileDrop from 'file-drops';
@@ -54,19 +52,6 @@ const ExampleModule = {
         });
       }
 
-      if ('history' in window) {
-        eventBus.on('tokenSimulation.toggleMode', event => {
-
-          if (event.active) {
-            url.searchParams.set('e', '1');
-          } else {
-            url.searchParams.delete('e');
-          }
-
-          history.replaceState({}, document.title, url.toString());
-        });
-      }
-
       eventBus.on('diagram.init', 500, () => {
         toggleMode.toggleMode(active);
       });
@@ -77,8 +62,7 @@ const ExampleModule = {
 const viewer = new BpmnViewer({
   container: '#canvas',
   additionalModules: [
-    ExampleModule,
-    TokenSimulationModule
+    ExampleModule
   ],
   keyboard: {
     bindTo: document
@@ -109,7 +93,6 @@ if (presentationMode) {
 
 function openFile(files) {
 
-  // files = [ { name, contents }, ... ]
 
   if (!files.length) {
     return;

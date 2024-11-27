@@ -109,7 +109,6 @@ function PercentageofBranchesFunction(props) {
 }
 
 function isNumberEntryEdited(element) {
-  console.log("element:", element.businessObject);
 
   if (!element || !element.businessObject) {
     return '';

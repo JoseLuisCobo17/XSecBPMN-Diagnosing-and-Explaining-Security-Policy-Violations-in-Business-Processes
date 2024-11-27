@@ -4,14 +4,10 @@ function getSecurityTasks(bpmnModeler) {
   var elementRegistry = bpmnModeler.get('elementRegistry');
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
-
-  // Filtra solo las tareas relevantes
   var serviceTasks = elementRegistry.filter(e => e.type === 'bpmn:ServiceTask');
   var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
-
   var res = [];
 
-  // Procesa cada tarea de servicio para capturar sus propiedades
   serviceTaskBusinessObjects.forEach(function(element) {
     var list = element.outgoing;
     var subTasks = [];
@@ -19,35 +15,23 @@ function getSecurityTasks(bpmnModeler) {
     if (!list || list.length === 0) {
       console.warn(`No hay conexiones salientes (outgoing) para la tarea: ${element.id}`);
     } else {
-      console.log(`Conexiones salientes para la tarea ${element.id}:`, list);
       list.forEach(function(task) {
         if (task.targetRef) {
           const subTaskElement = elementRegistry.get(task.targetRef.id);
 
           if (subTaskElement && subTaskElement.businessObject) {
             const targetType = subTaskElement.businessObject.$type;
-            console.log('Tipo de tarea objetivo (targetType):', targetType); // Depuración para ver el tipo
 
             let userTask = '""';
             let numberOfExecutions = '1';
             let averageTimeEstimate = 'N/A';
             let instance = 'N/A';
-
-            // Actualizamos la lógica para verificar si el objeto contiene el UserTask, NumberOfExecutions, AverageTimeEstimate e Instance
             if (targetType === 'bpmn:UserTask' || targetType === 'bpmn:Task') {
               const bo = subTaskElement.businessObject;
-              console.log('Encontrado Task:', bo); // Depuración completa de la sub-tarea
-
-              // Intentamos acceder a las diferentes propiedades
               userTask = bo.userTask || bo.UserTask || bo.assignee || bo.candidateUsers || bo.name || 'Unknown';
               numberOfExecutions = bo.numberOfExecutions || 'N/A';
               averageTimeEstimate = bo.averageTimeEstimate || 'N/A';
               instance = bo.instance || 'N/A';
-
-              console.log('UserTask detectado:', userTask); // Depuración para ver el valor de userTask
-              console.log('NumberOfExecutions detectado:', numberOfExecutions); // Depuración para ver el valor de numberOfExecutions
-              console.log('AverageTimeEstimate detectado:', averageTimeEstimate); // Depuración para ver el valor de averageTimeEstimate
-              console.log('Instance detectado:', instance); // Depuración para ver el valor de instance
             }
 
             subTasks.push({
@@ -73,15 +57,9 @@ function getSecurityTasks(bpmnModeler) {
       });
     }
 
-    // Mostrar todas las propiedades del elemento
-    console.log('ServiceTask BusinessObject completo:', JSON.stringify(element, null, 2));
-
-    // Verifica el securityType y lo traduce a BoD, SoD y UoC
     var isBod = element.securityType === 'BoD';
     var isSod = element.securityType === 'SoD';
     var isUoc = element.securityType === 'UoC';
-
-    // Verifica y asigna correctamente las propiedades de seguridad, incluyendo las nuevas propiedades
     var st = {
       id_model: id_model,
       id_bpmn: element.id,
@@ -97,14 +75,8 @@ function getSecurityTasks(bpmnModeler) {
       Instance: element.instance || 'N/A',
       SubTasks: subTasks.length > 0 ? subTasks : []
     };
-
-    console.log('Tarea de seguridad procesada:', JSON.stringify(st, null, 2));
-
     res.push(st);
   });
-
-  console.log('Security Tasks para enviar:', JSON.stringify(res, null, 2));
-
   return res;
 }
 
@@ -238,7 +210,6 @@ if (isMessageStartEvent) {
       : [];
 
       if (e.type === 'bpmn:Collaboration') {
-        console.log("businessObject: ", businessObject);
         if (businessObject) {
           if (businessObject.instance !== undefined) {
             instance = businessObject.instance;
@@ -540,11 +511,8 @@ function deployRules(bpmnModeler) {
 
       let eplStatements = "";
 
-      // BoD rules
       const bodElements = elements.filter(element => element.Bod === true);
       if (bodElements.length > 0) {
-        console.log("Creando expresión generalizada de BoD");
-
         const bodEPL = `"select parent.idBpmn as parentId, "
   "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, "
   "sub1.userTask as user1, sub2.userTask as user2, "
@@ -565,11 +533,8 @@ function deployRules(bpmnModeler) {
         eplStatements += bodEPL;
       }
 
-      // SoD rules
       const sodElements = elements.filter(element => element.Sod === true);
       if (sodElements.length > 0) {
-        console.log("Creando expresión generalizada de SoD");
-
         const sodEPL = `"select parent.idBpmn as parentId, "
   "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, "
   "sub1.userTask as userTask1, sub2.userTask as userTask2, "
@@ -591,12 +556,8 @@ function deployRules(bpmnModeler) {
 
         eplStatements += sodEPL;
       }
-
-      // UoC rules
       const uocElements = elements.filter(element => element.Uoc === true);
       if (uocElements.length > 0) {
-        console.log("Creando expresión de UoC");
-
         const uocEPL = `"select parent.idBpmn as parentId, "
   "sub1.idBpmn as subTaskId, "
   "sub1.userTask as userTask, "
@@ -616,15 +577,9 @@ function deployRules(bpmnModeler) {
 
         eplStatements += uocEPL;
       }
-
-      // Si no se generaron reglas
       if (eplStatements.trim() === "") {
         eplStatements = "No relevant rules generated.";
       }
-
-      console.log('Generated EPL Statements:', eplStatements);
-
-      // Resolver la promesa con las sentencias EPL generadas
       resolve(eplStatements);
     } catch (err) {
       reject(err);

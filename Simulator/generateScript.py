@@ -21,7 +21,7 @@ def exclusiveGateway(elements, element, script):
     functionStr = f"""
 def {element.id_bpmn}(env, name):
     selectedElement = random.choices({possibleElements}, {percents})[0]
-    with open(f'files/results_{{processName}}.txt', 'a') as f:
+    with open(f'files/resultSimulation.txt', 'a') as f:
         f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{selectedElement}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
@@ -38,7 +38,7 @@ def parallelGateway(elements, element, script):
     functionStr = f"""
 def {element.id_bpmn}(env, name):
     strSelectedElements = ", ".join({possibleElements})
-    with open(f'files/results_{{processName}}.txt', 'a') as f:
+    with open(f'files/resultSimulation.txt', 'a') as f:
         f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{strSelectedElements}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
@@ -60,7 +60,7 @@ def {element.id_bpmn}(env, name):
     if not selectedElements:
         selectedElements = random.choices(elements, weights=percents, k=1)
     strSelectedElements = ", ".join(selectedElements)
-    with open(f'files/results_{{processName}}.txt', 'a') as f:
+    with open(f'files/resultSimulation.txt', 'a') as f:
         f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{strSelectedElements}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
@@ -88,7 +88,7 @@ def {element.id_bpmn}(env, name):
         if event in result.events:
             next_task = event.value
             selected_event = {possibleElements}[i]
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
+            with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{{selected_event}}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             for j, proc in enumerate(event_processes):
@@ -113,7 +113,7 @@ def {element.id_bpmn}(env, name):
         while not all((dataObject, name) in data for dataObject in dataObjects):
             yield env.timeout(1)
         if env.now > start_standBy_data:
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
+            with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
     start_standBy = env.now
@@ -133,10 +133,10 @@ def {element.id_bpmn}(env, name):
         try:
             time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
             if env.now > start_standBy:
-                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
+            with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             yield env.timeout(time)
@@ -144,7 +144,7 @@ def {element.id_bpmn}(env, name):
                 dataObjects = generatedData[TaskName]
                 for dataObject in dataObjects:
                     data.append((dataObject, name))
-                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    with open(f'files/resultSimulation.txt', 'a') as f:
                         f.write(f'''
 {{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
         finally:
@@ -152,7 +152,7 @@ def {element.id_bpmn}(env, name):
     for key, values in gatewayConnections.items():
         if TaskName in values:
             if (key, name) in gatewayOccurrences.keys():
-                gatewayOccurrences[(key, name)]++
+                gatewayOccurrences[(key, name)] =+ 1
             else:
                 gatewayOccurrences[(key, name)] = 1
     return '{element.subTask}'
@@ -170,7 +170,7 @@ def {element.id_bpmn}(env, name):
         while not all((dataObject, name) in data for dataObject in dataObjects):
             yield env.timeout(1)
         if env.now > start_standBy_data:
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
+            with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
     start_standBy = env.now
@@ -190,10 +190,10 @@ def {element.id_bpmn}(env, name):
         try:
             time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
             if env.now > start_standBy:
-                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
+            with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             yield env.timeout(time)
@@ -201,7 +201,7 @@ def {element.id_bpmn}(env, name):
                 dataObjects = generatedData[TaskName]
                 for dataObject in dataObjects:
                     data.append((dataObject, name))
-                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    with open(f'files/resultSimulation.txt', 'a') as f:
                         f.write(f'''
 {{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
             if (TaskName, '{element.messageDestiny}', name) not in message_events:
@@ -211,7 +211,7 @@ def {element.id_bpmn}(env, name):
     for key, values in gatewayConnections.items():
         if TaskName in values:
             if (key, name) in gatewayOccurrences.keys():
-                gatewayOccurrences[(key, name)]++
+                gatewayOccurrences[(key, name)] =+ 1
             else:
                 gatewayOccurrences[(key, name)] = 1
     return '{element.subTask}'
@@ -229,7 +229,7 @@ def {element.id_bpmn}(env, name):
         while not all((dataObject, name) in data for dataObject in dataObjects):
             yield env.timeout(1)
         if env.now > start_standBy_data:
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
+            with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
     start_standby_message = env.now
@@ -238,7 +238,7 @@ def {element.id_bpmn}(env, name):
     end_standby_message = env.now
     duration_standby_message = end_standby_message - start_standby_message
     if duration_standby_message > 0:
-        with open(f'files/results_{{processName}}.txt', 'a') as f:
+        with open(f'files/resultSimulation.txt', 'a') as f:
             f.write(f'''
 {{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
     start_standBy = env.now
@@ -258,10 +258,10 @@ def {element.id_bpmn}(env, name):
         try:
             time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
             if env.now > start_standBy:
-                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
+            with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
             yield env.timeout(time)
@@ -269,7 +269,7 @@ def {element.id_bpmn}(env, name):
                 dataObjects = generatedData[TaskName]
                 for dataObject in dataObjects:
                     data.append((dataObject, name))
-                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    with open(f'files/resultSimulation.txt', 'a') as f:
                         f.write(f'''
 {{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
         finally:
@@ -277,7 +277,7 @@ def {element.id_bpmn}(env, name):
     for key, values in gatewayConnections.items():
         if TaskName in values:
             if (key, name) in gatewayOccurrences.keys():
-                gatewayOccurrences[(key, name)]++
+                gatewayOccurrences[(key, name)] =+ 1
             else:
                 gatewayOccurrences[(key, name)] = 1
     return '{element.subTask}'
@@ -287,7 +287,7 @@ def {element.id_bpmn}(env, name):
 def intermediateThrowEvent(elements, element, script):
     functionStr = f"""
 def {element.id_bpmn}(env, name):
-    with open(f'files/results_{{processName}}.txt', 'a') as f:
+    with open(f'files/resultSimulation.txt', 'a') as f:
         f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
@@ -305,10 +305,10 @@ def {element.id_bpmn}(env, name):
     end_standby_message = env.now
     duration_standby_message = end_standby_message - start_standby_message
     if duration_standby_message > 0:
-        with open(f'files/results_{{processName}}.txt', 'a') as f:
+        with open(f'files/resultSimulation.txt', 'a') as f:
             f.write(f'''
 {{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
-    with open(f'files/results_{{processName}}.txt', 'a') as f:
+    with open(f'files/resultSimulation.txt', 'a') as f:
         f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     return '{element.subTask}'
@@ -319,7 +319,7 @@ def messageIntermediateThrowEvent(elements, element, script):
     functionStr = f"""
 def {element.id_bpmn}(env, name):
     TaskName = '{element.id_bpmn}'
-    with open(f'files/results_{{processName}}.txt', 'a') as f:
+    with open(f'files/resultSimulation.txt', 'a') as f:
         f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
@@ -332,7 +332,7 @@ def {element.id_bpmn}(env, name):
 def timerIntermediateCatchEvent(elements, element, script):
     functionStr = f"""
 def {element.id_bpmn}(env, name):
-    with open(f'files/results_{{processName}}.txt', 'a') as f:
+    with open(f'files/resultSimulation.txt', 'a') as f:
         f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, time={element.time}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout({element.time})
@@ -343,7 +343,7 @@ def {element.id_bpmn}(env, name):
 def endEvent(elements, element, script):
     functionStr = f"""
 def {element.id_bpmn}(env, name):
-    with open(f'files/results_{{processName}}.txt', 'a') as f:
+    with open(f'files/resultSimulation.txt', 'a') as f:
         f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={element.id_bpmn}, subTask="", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
     yield env.timeout(0)
@@ -381,7 +381,7 @@ def generateFunction(elements, elementId, script=False):
 def serviceTask(elements):
     script = f"""
 def checkServiceTasks(name):
-    with open(f'files/results_{{processName}}.txt', 'r') as f:
+    with open(f'files/resultSimulation.txt', 'r') as f:
         content = f.readlines()"""
     for element in elements.values():
         if not (isinstance(element, dict) or isinstance(element, list)) and element.bpmn_type == 'bpmn:ServiceTask':
@@ -412,7 +412,7 @@ def checkServiceTasks(name):
         content.insert(last_activity_index + 1, new_line)
     """
     script += f"""
-    with open(f'files/results_{{processName}}.txt', 'w') as f:
+    with open(f'files/resultSimulation.txt', 'w') as f:
         f.writelines(content)
     """
     return script
@@ -424,7 +424,6 @@ def generateScript(elements, process, starts, messageStarts, security):
 import simpy
 import random
 
-processName = '{process}'
 nInstances = {elementProcess.instances}
 frequency = {elementProcess.frequency}
 rolePool = {elementProcess.userWithRole}
@@ -517,13 +516,13 @@ def start_process(env, name, nextTask):
 def main(env):
     global user_resources
     user_resources = {{user: simpy.Resource(env, capacity=1) for user in userPool}}
-    with open(f'files/results_{{processName}}.txt', 'w') as f:
+    with open(f'files/resultSimulation.txt', 'w') as f:
         f.write(f"Element: [type={elementProcess.bpmn_type}, name={elementProcess.name}, id_bpmn={elementProcess.id_bpmn}, instances={{nInstances}}, frequency={{frequency}}, userWithoutRole={{userWithoutRole}}, userWithRole={{rolePool}}]")
     startEvents = {startElements}
     messageStartEvents = {messageStartElements}
     for i in range(nInstances):
         for start in {starts}:
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
+            with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1]}}, id_bpmn={{startEvents[start][2]}}, subTask="{{startEvents[start][3]}}", startTime={{env.now}}, instance={{i+1}}]''')
             env.process(start_process(env, f'Instance {{i + 1}}', startEvents[start][3]))
@@ -534,10 +533,10 @@ Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1
             end_standby_message = env.now
             duration_standby_message = end_standby_message - start_standby_message
             if duration_standby_message > 0:
-                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
 Instance {{i + 1}}: [type=StandByMessage, id_bpmn={{start}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{i+1}}]''')
-            with open(f'files/results_{{processName}}.txt', 'a') as f:
+            with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartEvents[start][1]}}, id_bpmn={{messageStartEvents[start][2]}}, messageOrigin={{messageStartEvents[start][3]}}, subTask="{{messageStartEvents[start][4]}}", startTime={{env.now}}, instance={{i+1}}]''')
             env.process(start_process(env, f'Instance {{i + 1}}', messageStartEvents[start][4]))
@@ -551,7 +550,6 @@ env.run()"""
 import simpy
 import random
 
-processName = '{process}'
 nInstances = {elementProcess.instances}
 usersPerLane = {elements['users']}
 userPool = []
@@ -644,7 +642,7 @@ def participant_process(env, frequency, p):
     for i in range(nInstances):
         for start in {starts}:
             if startsParticipant[start] == p:
-                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
 Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1]}}, id_bpmn={{startEvents[start][2]}}, subTask="{{startEvents[start][3]}}", startTime={{env.now}}, instance={{i+1}}]''')
                 env.process(start_process(env, f'Instance {{i + 1}}', startEvents[start][3]))
@@ -656,10 +654,10 @@ Instance {{i + 1}}: [type={{startEvents[start][0]}}, name={{startEvents[start][1
                 end_standby_message = env.now
                 duration_standby_message = end_standby_message - start_standby_message
                 if duration_standby_message > 0:
-                    with open(f'files/results_{{processName}}.txt', 'a') as f:
+                    with open(f'files/resultSimulation.txt', 'a') as f:
                         f.write(f'''
 Instance {{i + 1}}: [type=StandByMessage, id_bpmn={{start}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{i+1}}]''')
-                with open(f'files/results_{{processName}}.txt', 'a') as f:
+                with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
 Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartEvents[start][1]}}, id_bpmn={{messageStartEvents[start][2]}}, messageOrigin={{messageStartEvents[start][3]}}, subTask="{{messageStartEvents[start][4]}}", startTime={{env.now}}, instance={{i+1}}]''')
                 env.process(start_process(env, f'Instance {{i + 1}}', messageStartEvents[start][4]))
@@ -668,7 +666,7 @@ Instance {{i + 1}}: [type={{messageStartEvents[start][0]}}, name={{messageStartE
 def main(env):
     global user_resources
     user_resources = {{user: simpy.Resource(env, capacity=1) for user in userPool}}
-    with open(f'files/results_{{processName}}.txt', 'w') as f:
+    with open(f'files/resultSimulation.txt', 'w') as f:
         f.write(f"Element: [type={elementProcess.bpmn_type}, name={elementProcess.name}, id_bpmn={elementProcess.id_bpmn}, instances={{nInstances}}]")
     for frequency, p in {elements['participants']}:
         env.process(participant_process(env, frequency, p))

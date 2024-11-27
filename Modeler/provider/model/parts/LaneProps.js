@@ -53,7 +53,6 @@ function userWithoutRoleFunction(props) {
             modeling.updateModdleProperties(element, participant.processRef, {
               userWithoutRole: uniqueValue
             });
-            console.log("userWithoutRole value after update in processRef:", participant.processRef.userWithoutRole);
           } catch (error) {
             console.error("Failed to update properties for processRef:", error);
           }
@@ -65,7 +64,6 @@ function userWithoutRoleFunction(props) {
       modeling.updateProperties(element, {
         userWithoutRole: uniqueValue
       });
-      console.log("userWithoutRole value after update:", element.businessObject.userWithoutRole);
     }
   };
 

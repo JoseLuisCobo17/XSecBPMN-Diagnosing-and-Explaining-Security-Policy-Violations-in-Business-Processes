@@ -80,7 +80,6 @@ function instanceFunction(props) {
             modeling.updateModdleProperties(element, participant.processRef, {
               instance: newValue
             });
-            console.log("Instance value after update in processRef:", participant.processRef.instance);
           } catch (error) {
             console.error("Failed to update properties for processRef:", error);
           }
@@ -93,7 +92,6 @@ function instanceFunction(props) {
       modeling.updateProperties(element, {
         instance: newValue
       });
-      console.log("Instance value after update:", element.businessObject.instance);
     }
   };
 
@@ -150,7 +148,6 @@ function frequencyFunction(props) {
             modeling.updateModdleProperties(element, participant.processRef, {
               frequency: newValue
             });
-            console.log("Frequency value after update in processRef:", participant.processRef.frequency);
           } catch (error) {
             console.error("Failed to update properties for processRef:", error);
           }
@@ -163,7 +160,6 @@ function frequencyFunction(props) {
       modeling.updateProperties(element, {
         frequency: newValue
       });
-      console.log("Frequency value after update:", element.businessObject.frequency);
     }
   };
 
@@ -217,7 +213,6 @@ function userWithoutRoleFunction(props) {
             modeling.updateModdleProperties(element, participant.processRef, {
               userWithoutRole: uniqueValue
             });
-            console.log("userWithoutRole value after update in processRef:", participant.processRef.userWithoutRole);
           } catch (error) {
             console.error("Failed to update properties for processRef:", error);
           }
@@ -229,7 +224,6 @@ function userWithoutRoleFunction(props) {
       modeling.updateProperties(element, {
         userWithoutRole: uniqueValue
       });
-      console.log("userWithoutRole value after update:", element.businessObject.userWithoutRole);
     }
   };
 
