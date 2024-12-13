@@ -165,8 +165,6 @@ function maximumTimeFunction(props) {
       return;
     }
 
-    console.log('Setting maximumTime to (setValue):', newValue);
-
     modeling.updateProperties(element, {
       maximumTime: newValue
     });
@@ -228,8 +226,6 @@ function minimumTimeFunction(props) {
       return;
     }
 
-    console.log('Setting minimumTime to (setValue):', newValue);
-
     modeling.updateProperties(element, {
       minimumTime: newValue
     });
@@ -264,7 +260,6 @@ function isListOfStringEntryEdited(element) {
 }
 
 function isNumberEntryEdited(element) {
-  console.log("element:" + element.businessObject)
   if (!element || !element.businessObject) {
     return 0;
   }

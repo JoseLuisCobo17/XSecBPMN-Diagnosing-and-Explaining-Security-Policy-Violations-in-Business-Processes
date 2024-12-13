@@ -26,9 +26,11 @@ def parse_bpmn_elements(file_content: str):
     dataInfo = {}
     participants = []
     elementsContainedParticipants = {}
+    lanes = []
     elementsContainedLanes = {}
     elementsContainer = {}
     startsParticipant = {}
+    connections = {}
     element_pattern = re.compile(r'Element: \[type=(?P<type>[a-zA-Z:]+), name="(?P<name>[^"]+)", id_bpmn=(?P<id_bpmn>[^,]+)(?:, (.*))?\]')
 
     for line in file_content.splitlines():
@@ -93,12 +95,17 @@ def parse_bpmn_elements(file_content: str):
                 users[id_bpmn] = lane_users
                 element = BPMNLane(name, id_bpmn, bpmn_type, lane_users, contained_elements)
                 elementsContainedLanes[id_bpmn] = contained_elements
+                lanes.append(id_bpmn)
 
             elif element_type == "SequenceFlow":
                 superElement = re.search(r'superElement="([^"]+)"', line).group(1)
                 subElement = re.search(r'subElement="([^"]+)"', line).group(1)
                 percentage = re.search(r'percentageOfBranches=(\d+)', line)
                 percentage = float(percentage.group(1)) if percentage else None
+                if subElement in connections.keys():
+                    connections[subElement].append(superElement)
+                else:
+                    connections[subElement] = [superElement]
                 element = BPMNSequenceFlow(name, id_bpmn, bpmn_type, superElement, subElement, percentage)
 
             elif element_type == "DataOutputAssociation":
@@ -301,7 +308,12 @@ def parse_bpmn_elements(file_content: str):
                 elementsContainer[e] = participant
             if e in start or e in messageStart:
                 startsParticipant[e] = participant
+    gatewayConnections = {}
+    for destiny, origins in connections.items():
+        if (elements[destiny].bpmn_type == 'bpmn:ParallelGateway' or elements[destiny].bpmn_type == 'bpmn:InclusiveGateway') and len(origins) > 1:
+            gatewayConnections[destiny] = origins
 
+    elements['lanes'] = lanes
     elements['users'] = users
     elements['security'] = securityTasks
     elements['generatedData'] = generatedData
@@ -311,5 +323,6 @@ def parse_bpmn_elements(file_content: str):
     elements['participants'] = participants
     elements['elementsContainer'] = elementsContainer
     elements['startsParticipant'] = startsParticipant
+    elements['gatewayConnections'] = gatewayConnections
 
     return elements, process, start, messageStart, trackSecurity

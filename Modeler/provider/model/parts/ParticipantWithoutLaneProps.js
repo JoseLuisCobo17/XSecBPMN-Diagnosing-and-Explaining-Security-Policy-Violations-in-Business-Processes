@@ -111,14 +111,12 @@ function userWithoutRoleFunction(props) {
         const firstParticipant = element.businessObject.participants[0];
         if (firstParticipant.processRef) {
           const value = firstParticipant.processRef.userWithoutRole;
-          console.log("Current userWithoutRole value in processRef:", value);
           return value !== undefined ? value : '';
         } else {
           console.warn("processRef is missing for participant:", firstParticipant);
         }
       } else if (element.businessObject.userWithoutRole !== undefined) {
         const value = element.businessObject.userWithoutRole;
-        console.log("Current userWithoutRole value:", value);
         return value !== undefined ? value : '';
       }
   
@@ -138,7 +136,6 @@ function userWithoutRoleFunction(props) {
               modeling.updateModdleProperties(element, participant.processRef, {
                 userWithoutRole: uniqueValue
               });
-              console.log("userWithoutRole value after update in processRef:", participant.processRef.userWithoutRole);
             } catch (error) {
               console.error("Failed to update properties for processRef:", error);
             }
@@ -150,7 +147,6 @@ function userWithoutRoleFunction(props) {
         modeling.updateProperties(element, {
           userWithoutRole: uniqueValue
         });
-        console.log("userWithoutRole value after update:", element.businessObject.userWithoutRole);
       }
     };
   

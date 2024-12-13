@@ -9,7 +9,7 @@ var SecuritySchema = mongoose.Schema({
     SubTasks: [
         {
             taskId: String,
-            UserTask: String  // Agregar el campo UserTask aquí
+            UserTask: String
         }
     ],
     Mth: Number,

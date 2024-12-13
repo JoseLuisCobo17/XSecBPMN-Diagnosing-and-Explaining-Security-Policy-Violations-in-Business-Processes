@@ -17,6 +17,11 @@
           "name": "Mth",
           "isAttr": true,
           "type": "Integer"
+        },
+        {
+          "name": "securityType",
+          "isAttr": true,
+          "type": "String"
         }
       ]
     }

@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="my-bpmn-exporter" exporterVersion="1.0.0">
-  <bpmn:process id="Process_1" isExecutable="true">
-    <bpmn:startEvent id="Event_10piu52" />
-  </bpmn:process>
-  <bpmn:message id="Message_1dyo6g5" name="Message_message" />
-  <bpmn:error id="Error_0k93fd1" name="Error_1405ero" />
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="my-bpmn-exporter" exporterVersion="1.0.0">
+  <bpmn:process id="Process_1" isExecutable="true" />
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
-      <bpmndi:BPMNShape id="Event_10piu52_di" bpmnElement="Event_10piu52">
-        <dc:Bounds x="22" y="142" width="36" height="36" />
-      </bpmndi:BPMNShape>
-    </bpmndi:BPMNPlane>
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1" />
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>

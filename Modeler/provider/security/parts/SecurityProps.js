@@ -49,8 +49,6 @@ function MthFunction(props) {
     if (isNaN(newValue)) {
       return;
     }
-
-    console.log('Setting Mth to (setValue):', newValue);
     modeling.updateProperties(element, {
       Mth: newValue
     });

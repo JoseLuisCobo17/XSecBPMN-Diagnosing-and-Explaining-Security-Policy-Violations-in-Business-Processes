@@ -52,14 +52,12 @@ function instanceFunction(props) {
       const firstParticipant = element.businessObject.participants[0];
       if (firstParticipant.processRef) {
         const value = firstParticipant.processRef.instance;
-        console.log("Current instance value in processRef:", value);
         return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
       } else {
         console.warn("processRef is missing for participant:", firstParticipant);
       }
     } else if (element.businessObject.instance !== undefined) {
       const value = element.businessObject.instance;
-      console.log("Current instance value:", value);
       return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
     }
 
@@ -82,7 +80,6 @@ function instanceFunction(props) {
             modeling.updateModdleProperties(element, participant.processRef, {
               instance: newValue
             });
-            console.log("Instance value after update in processRef:", participant.processRef.instance);
           } catch (error) {
             console.error("Failed to update properties for processRef:", error);
           }
@@ -95,7 +92,6 @@ function instanceFunction(props) {
       modeling.updateProperties(element, {
         instance: newValue
       });
-      console.log("Instance value after update:", element.businessObject.instance);
     }
   };
 
@@ -124,14 +120,12 @@ function frequencyFunction(props) {
       const firstParticipant = element.businessObject.participants[0];
       if (firstParticipant.processRef) {
         const value = firstParticipant.processRef.frequency;
-        console.log("Current frequency value in processRef:", value);
         return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
       } else {
         console.warn("processRef is missing for participant:", firstParticipant);
       }
     } else if (element.businessObject.frequency !== undefined) {
       const value = element.businessObject.frequency;
-      console.log("Current frequency value:", value);
       return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
     }
 
@@ -154,7 +148,6 @@ function frequencyFunction(props) {
             modeling.updateModdleProperties(element, participant.processRef, {
               frequency: newValue
             });
-            console.log("Frequency value after update in processRef:", participant.processRef.frequency);
           } catch (error) {
             console.error("Failed to update properties for processRef:", error);
           }
@@ -167,7 +160,6 @@ function frequencyFunction(props) {
       modeling.updateProperties(element, {
         frequency: newValue
       });
-      console.log("Frequency value after update:", element.businessObject.frequency);
     }
   };
 
@@ -196,14 +188,12 @@ function userWithoutRoleFunction(props) {
       const firstParticipant = element.businessObject.participants[0];
       if (firstParticipant.processRef) {
         const value = firstParticipant.processRef.userWithoutRole;
-        console.log("Current userWithoutRole value in processRef:", value);
         return value !== undefined ? value : '';
       } else {
         console.warn("processRef is missing for participant:", firstParticipant);
       }
     } else if (element.businessObject.userWithoutRole !== undefined) {
       const value = element.businessObject.userWithoutRole;
-      console.log("Current userWithoutRole value:", value);
       return value !== undefined ? value : '';
     }
 
@@ -223,7 +213,6 @@ function userWithoutRoleFunction(props) {
             modeling.updateModdleProperties(element, participant.processRef, {
               userWithoutRole: uniqueValue
             });
-            console.log("userWithoutRole value after update in processRef:", participant.processRef.userWithoutRole);
           } catch (error) {
             console.error("Failed to update properties for processRef:", error);
           }
@@ -235,7 +224,6 @@ function userWithoutRoleFunction(props) {
       modeling.updateProperties(element, {
         userWithoutRole: uniqueValue
       });
-      console.log("userWithoutRole value after update:", element.businessObject.userWithoutRole);
     }
   };
 

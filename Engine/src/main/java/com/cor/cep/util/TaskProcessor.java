@@ -31,11 +31,9 @@ public class TaskProcessor {
     public void processTaskFiles(String directoryPath) {
         File folder = new File(directoryPath);
         File[] listOfFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
-    
         if (listOfFiles != null) {
             for (File file : listOfFiles) {
                 if (file.isFile()) {
-                    LOG.info("Processing file: " + file.getName());
                     List<Task> tasks = parseTaskFile(file.getAbsolutePath());
                     Map<Long, List<Task>> groupedTasks = tasks.stream()
                             .filter(task -> task.getStartTime() != null || 
@@ -45,11 +43,11 @@ public class TaskProcessor {
                             .collect(Collectors.groupingBy(
                                 task -> task.getStartTime() != null ? task.getStartTime() : -1L, 
                                 TreeMap::new, Collectors.toList()));
-
                     for (Task task : tasks) {
                         taskEventHandler.handle(task);
                     }
                 }
+                
             }
         } else {
             LOG.error("No files found in the directory: " + directoryPath);
@@ -69,7 +67,6 @@ public class TaskProcessor {
                     if (task != null) {
                         if (task.getUserTask() != null) {
                             subTaskUserTaskMap.put(task.getIdBpmn(), task.getUserTask());
-                            System.out.println("Mapping subTask with userTask: " + task.getIdBpmn() + " -> " + task.getUserTask());
                         }
                         tasks.add(task);
                     }
@@ -81,14 +78,11 @@ public class TaskProcessor {
 
         for (Task task : tasks) {
             if (task.isBodSecurity()) {
-                System.out.println("Processing BoD task: " + task.getIdBpmn());
                 List<String> userTasksForSubtasks = task.getSubTasks().stream()
                         .map(subTaskUserTaskMap::get)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
-        
-                System.out.println("SubTasks for BoD task " + task.getIdBpmn() + ": " + userTasksForSubtasks);
-                task.setSubTasksUserTasks(userTasksForSubtasks); // Asignación correcta a subTasksUserTasks
+                task.setSubTasksUserTasks(userTasksForSubtasks);
             }
         }
         
@@ -98,14 +92,12 @@ public class TaskProcessor {
     private Task parseTaskLine(String line) {
         String type = null, name = null, idBpmn = null, userTask = null;
         List<String> subTasks = new ArrayList<>();
-        List<String> subTasksUserTasks = new ArrayList<>(); // Inicialización de la nueva propiedad
+        List<String> subTasksUserTasks = new ArrayList<>();
         boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
         Integer mth = null, instance = null, numberOfExecutions = 1;
         Long startTime = null; 
         Long stopTime = null;
         Long time = null;
-    
-        System.out.println("Processing line: " + line);
     
         if (line.startsWith("Instance")) {
             int colonIndex = line.indexOf(":");
@@ -165,7 +157,6 @@ public class TaskProcessor {
                     break;
                 case "userTask":
                     userTask = keyValue[1].trim();
-                    System.out.println("Parsed userTask: " + userTask); // Verificación de userTask
                     break;
                 case "subTask":
                     subTasks = Arrays.asList(keyValue[1].replace("\"", "").trim().split("\\s*,\\s*"));
@@ -189,12 +180,8 @@ public class TaskProcessor {
         idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTask, stopTime, numberOfExecutions);
     
         if (bodSecurity) {
-            System.out.println("BoD task detected: " + idBpmn);
-            System.out.println("Subtasks: " + subTasks);
-            System.out.println("UserTask for subTask: " + userTask);
         }
-    
-        // Crear y retornar la instancia de Task con subTasksUserTasks inicializado como lista vacía
+
         return new Task(type, name, idBpmn, mth, subTasks, userTask, bodSecurity, sodSecurity, uocSecurity, startTime, stopTime, time, instance, numberOfExecutions, subTasksUserTasks);
     }
 }    
