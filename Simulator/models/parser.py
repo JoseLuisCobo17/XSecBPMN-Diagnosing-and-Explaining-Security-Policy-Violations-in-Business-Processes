@@ -26,6 +26,7 @@ def parse_bpmn_elements(file_content: str):
     dataInfo = {}
     participants = []
     elementsContainedParticipants = {}
+    lanes = []
     elementsContainedLanes = {}
     elementsContainer = {}
     startsParticipant = {}
@@ -94,6 +95,7 @@ def parse_bpmn_elements(file_content: str):
                 users[id_bpmn] = lane_users
                 element = BPMNLane(name, id_bpmn, bpmn_type, lane_users, contained_elements)
                 elementsContainedLanes[id_bpmn] = contained_elements
+                lanes.append(id_bpmn)
 
             elif element_type == "SequenceFlow":
                 superElement = re.search(r'superElement="([^"]+)"', line).group(1)
@@ -311,6 +313,7 @@ def parse_bpmn_elements(file_content: str):
         if (elements[destiny].bpmn_type == 'bpmn:ParallelGateway' or elements[destiny].bpmn_type == 'bpmn:InclusiveGateway') and len(origins) > 1:
             gatewayConnections[destiny] = origins
 
+    elements['lanes'] = lanes
     elements['users'] = users
     elements['security'] = securityTasks
     elements['generatedData'] = generatedData

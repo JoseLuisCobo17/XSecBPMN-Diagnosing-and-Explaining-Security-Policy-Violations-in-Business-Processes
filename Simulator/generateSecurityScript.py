@@ -1016,6 +1016,12 @@ def resolve_possible_users_security(possibleUsers, taskName, instance):
             scriptServiceTask = serviceTask(elements)
         else:
             scriptServiceTask = ''
+        laneString = ''
+        
+        lanes = elements['lanes']
+        for laneName in lanes:
+            lane = elements[laneName]
+            laneString = laneString + f'        f.write("""\nElement: [type={lane.bpmn_type}, name={lane.name}, id_bpmn={lane.id_bpmn}, lane_users={lane.users}, contained_elements={lane.contained_elements}]""")\n'
         scriptMainFunction = f"""
 def process_task(env, name, task_name):
     task_func = globals()[task_name]
@@ -1076,6 +1082,8 @@ def main(env):
     user_resources = {{user: simpy.Resource(env, capacity=1) for user in userPool}}
     with open(f'files/resultSimulation.txt', 'w') as f:
         f.write(f"Element: [type={elementProcess.bpmn_type}, name={elementProcess.name}, id_bpmn={elementProcess.id_bpmn}, instances={{nInstances}}]")
+    with open(f'files/resultSimulation.txt', 'a') as f:
+""" + laneString + f"""
     for frequency, p in {elements['participants']}:
         env.process(participant_process(env, frequency, p))
         yield env.timeout(0)
