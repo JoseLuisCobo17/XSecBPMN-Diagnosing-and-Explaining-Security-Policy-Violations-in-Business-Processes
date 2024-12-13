@@ -13,7 +13,9 @@ export default function(element) {
     {
       id: 'NumberOfExecutions',
       element,
-      component: element.businessObject.loopCharacteristics ? NumberOfExecutionsFunction : undefined,
+      component: element.businessObject.loopCharacteristics && typeof element.businessObject.loopCharacteristics.isSequential === 'undefined' 
+      ? NumberOfExecutionsFunction 
+      : undefined,
       isEdited: isNumberEntryEdited
     },
     {
@@ -81,9 +83,8 @@ function NumberOfExecutionsFunction(props) {
     }
 
     // Check if loop is active
-    const loopActive = element.businessObject.loopCharacteristics;
-    console.log(element.businessObject.loopCharacteristics);
-    if (!loopActive) {
+    const loopActive = element.businessObject.loopCharacteristics.isSequential;
+    if (loopActive === 'undefined') {
       return '1';
     }
 
@@ -101,9 +102,8 @@ function NumberOfExecutionsFunction(props) {
     }
 
     // Prevent modification if loop is active
-    const loopActive = element.businessObject.loopCharacteristics;
-    if (!loopActive) {
-      console.log(loopActive);
+    const loopActive = element.businessObject.loopCharacteristics.isSequential;
+    if (loopActive === 'undefined') {
       modeling.updateProperties(element, {
         NumberOfExecutions: 1
       });
