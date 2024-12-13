@@ -13,7 +13,7 @@ export default function(element) {
     {
       id: 'NumberOfExecutions',
       element,
-      component: NumberOfExecutionsFunction,
+      component: element.businessObject.loopCharacteristics ? NumberOfExecutionsFunction : undefined,
       isEdited: isNumberEntryEdited
     },
     {
@@ -79,18 +79,36 @@ function NumberOfExecutionsFunction(props) {
     if (!element || !element.businessObject) {
       return '';
     }
+
+    // Check if loop is active
+    const loopActive = element.businessObject.loopCharacteristics;
+    console.log(element.businessObject.loopCharacteristics);
+    if (!loopActive) {
+      return '1';
+    }
+
     const value = element.businessObject.NumberOfExecutions;
     return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
   };
 
   const setValue = value => {
-
     if (typeof value === 'undefined') {
       return;
     }
 
     if (!element || !element.businessObject) {
       return;
+    }
+
+    // Prevent modification if loop is active
+    const loopActive = element.businessObject.loopCharacteristics;
+    if (!loopActive) {
+      console.log(loopActive);
+      modeling.updateProperties(element, {
+        NumberOfExecutions: 1
+      });
+      return;
+      console.log(NumberOfExecutions);
     }
 
     if (value.trim() === '') {
@@ -109,6 +127,7 @@ function NumberOfExecutionsFunction(props) {
       NumberOfExecutions: newValue
     });
   };
+
   return html`<${TextFieldEntry}
     id=${id}
     element=${element}
