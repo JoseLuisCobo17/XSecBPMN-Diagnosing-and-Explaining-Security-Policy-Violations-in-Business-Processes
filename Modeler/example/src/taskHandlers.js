@@ -199,6 +199,8 @@ if (isMessageStartEvent) {
     const numberOfExecutions = businessObject.NumberOfExecutions || 0;
     const minimumTime = businessObject.minimumTime || 0;
     const maximumTime = businessObject.maximumTime || 0;
+    const loopParameter = businessObject.loopParameter || 'undefined';
+    const AdditionalIntegerParameter = businessObject.AdditionalIntegerParameter || 0;
 
     let instance = ''; 
     let security = false; 
@@ -303,6 +305,8 @@ if (isMessageStartEvent) {
       userWithoutRole: (e.type === 'bpmn:Process' || e.type === 'bpmn:Lane' || e.type === 'bpmn:Participant') ? userWithoutRole : '',
       userWithRole: userWithRole,
       type: type,
+      loopParameter:loopParameter,
+      AdditionalIntegerParameter: AdditionalIntegerParameter,
       containedElements: containedElements,
     };
   });
@@ -316,9 +320,6 @@ function exportToEsper(bpmnModeler) {
       let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
 
-        content += `name="${element.name || 'Unnamed'}", `;
-        content += `id_bpmn="${element.id_bpmn || 'Unknown'}", `; 
-
         if (element.type === 'bpmn:StartEvent' && 
             element.businessObject &&
             element.businessObject.eventDefinitions &&
@@ -328,6 +329,9 @@ function exportToEsper(bpmnModeler) {
         } else {
           content += `Element: [type=${element.type}, `;
         }
+
+        content += `name="${element.name || 'Unnamed'}", `;
+        content += `id_bpmn="${element.id_bpmn || 'Unknown'}", `; 
        
         if (element.time) {
           content += `time=${element.time}, `;
@@ -369,6 +373,9 @@ function exportToEsper(bpmnModeler) {
           content += `numberOfExecutions=${element.NumberOfExecutions}, `;
           content += `minimumTime=${element.MinimumTime}, `;
           content += `maximumTime=${element.MaximumTime}, `;
+          if(element.loopParameter !== 'undefined'){
+            content += `loopParameter={"${element.loopParameter}":${element.AdditionalIntegerParameter}}, `;
+          }
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Collaboration') {

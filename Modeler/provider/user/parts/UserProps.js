@@ -134,7 +134,6 @@ function NumberOfExecutionsFunction(props) {
         NumberOfExecutions: 1
       });
       return;
-      console.log(NumberOfExecutions);
     }
 
     if (value.trim() === '') {
@@ -317,8 +316,6 @@ function SelectOptionFunction(props) {
     modeling.updateProperties(element, {
       loopParameter: value,
     });
-
-    console.log('Updated loopParameter:', value);
   };
 
   // Opciones del desplegable
@@ -328,8 +325,6 @@ function SelectOptionFunction(props) {
     { value: 'Units', label: translate('Units') },
     { value: 'Percentage', label: translate('Percentage') },
   ];
-
-  console.log('Updated businessObject:', element.businessObject);
 
   return html`
     <div>
@@ -375,8 +370,6 @@ function IntegerParameterEntry(props) {
       AdditionalIntegerParameter: parsedValue,
     });
   };
-
-  console.log('Updated AdditionalIntegerParameter:', element.businessObject.AdditionalIntegerParameter);
 
   return html`<${TextFieldEntry}
     id=${id}
