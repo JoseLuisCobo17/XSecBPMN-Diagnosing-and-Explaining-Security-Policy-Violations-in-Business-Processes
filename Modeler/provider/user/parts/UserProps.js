@@ -1,35 +1,61 @@
 import { html } from 'htm/preact';
 import { useService } from 'bpmn-js-properties-panel';
-import { TextFieldEntry } from '@bpmn-io/properties-panel';
+import { TextFieldEntry, SelectEntry  } from '@bpmn-io/properties-panel';
 
 export default function(element) {
+  const loopParameterValue =
+    element.businessObject.loopParameter || '<none>';
   return [
     {
       id: 'UserTask',
       element,
       component: UserFunction,
-      isEdited: isListOfStringEntryEdited
+      isEdited: isListOfStringEntryEdited,
     },
     {
       id: 'NumberOfExecutions',
       element,
-      component: element.businessObject.loopCharacteristics && typeof element.businessObject.loopCharacteristics.isSequential === 'undefined' 
-      ? NumberOfExecutionsFunction 
-      : undefined,
-      isEdited: isNumberEntryEdited
+      component:
+        element.businessObject.loopCharacteristics &&
+        typeof element.businessObject.loopCharacteristics.isSequential !== 'undefined'
+          ? NumberOfExecutionsFunction
+          : undefined,
+      isEdited: isNumberEntryEdited,
     },
     {
       id: 'minimumTime',
       element,
       component: minimumTimeFunction,
-      isEdited: isNumberEntryEdited
+      isEdited: isNumberEntryEdited,
     },
     {
       id: 'maximumTime',
       element,
       component: maximumTimeFunction,
-      isEdited: isNumberEntryEdited
-    }
+      isEdited: isNumberEntryEdited,
+    },
+    {
+      id: 'loopParameter',
+      element,
+      component: element.businessObject.loopCharacteristics &&
+      typeof element.businessObject.loopCharacteristics.isSequential === 'undefined' 
+      ? SelectOptionFunction 
+      : undefined,
+      isEdited: isSelectEntryEdited,
+    },
+    ...(loopParameterValue !== '<none>'
+      ? [
+          {
+            id: 'AdditionalIntegerParameter',
+            element,
+            component: element.businessObject.loopCharacteristics &&
+            typeof element.businessObject.loopCharacteristics.isSequential === 'undefined' 
+            ? IntegerParameterEntry 
+            : undefined ,
+            isEdited: isNumberEntryEdited,
+          },
+        ]
+      : []),
   ];
 }
 
@@ -84,7 +110,7 @@ function NumberOfExecutionsFunction(props) {
 
     // Check if loop is active
     const loopActive = element.businessObject.loopCharacteristics.isSequential;
-    if (loopActive === 'undefined') {
+    if (loopActive !== 'undefined') {
       return '1';
     }
 
@@ -103,7 +129,7 @@ function NumberOfExecutionsFunction(props) {
 
     // Prevent modification if loop is active
     const loopActive = element.businessObject.loopCharacteristics.isSequential;
-    if (loopActive === 'undefined') {
+    if (loopActive !== 'undefined') {
       modeling.updateProperties(element, {
         NumberOfExecutions: 1
       });
@@ -261,7 +287,118 @@ function minimumTimeFunction(props) {
   />`;
 }
 
+function SelectOptionFunction(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  // Obtener el valor actual de loopParameter
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return '<none>';
+    }
+    return element.businessObject.loopParameter || '<none>';
+  };
+
+  // Actualizar el valor de loopParameter en el businessObject
+  const setValue = (value) => {
+    if (!element || !element.businessObject) {
+      return;
+    }
+
+    // Asegurarse de que la propiedad loopParameter existe en el businessObject
+    if (!('loopParameter' in element.businessObject)) {
+      element.businessObject.loopParameter = '<none>';
+    }
+
+    // Actualiza el modelo BPMN
+    modeling.updateProperties(element, {
+      loopParameter: value,
+    });
+
+    console.log('Updated loopParameter:', value);
+  };
+
+  // Opciones del desplegable
+  const getOptions = () => [
+    { value: '<none>', label: translate('<none>') },
+    { value: 'Time', label: translate('Time') },
+    { value: 'Units', label: translate('Units') },
+    { value: 'Percentage', label: translate('Percentage') },
+  ];
+
+  console.log('Updated businessObject:', element.businessObject);
+
+  return html`
+    <div>
+      <${SelectEntry}
+        id=${id}
+        element=${element}
+        label=${translate('Select an option')}
+        getValue=${getValue}
+        setValue=${setValue}
+        getOptions=${getOptions}
+      />
+    </div>
+  `;
+}
+
+// Componente para el parámetro adicional de tipo entero
+function IntegerParameterEntry(props) {
+  const { element, id } = props;
+
+  const modeling = useService('modeling');
+  const translate = useService('translate');
+  const debounce = useService('debounceInput');
+
+  const getValue = () => {
+    if (!element || !element.businessObject) {
+      return '';
+    }
+    return element.businessObject.AdditionalIntegerParameter || '';
+  };
+
+  const setValue = (value) => {
+    if (!element || !element.businessObject) {
+      return;
+    }
+  
+    const parsedValue = parseInt(value, 10);
+    if (isNaN(parsedValue) || parsedValue < 0) {
+      alert('Please enter a valid positive integer.');
+      return;
+    }
+  
+    modeling.updateProperties(element, {
+      AdditionalIntegerParameter: parsedValue,
+    });
+  };
+
+  console.log('Updated AdditionalIntegerParameter:', element.businessObject.AdditionalIntegerParameter);
+
+  return html`<${TextFieldEntry}
+    id=${id}
+    element=${element}
+    label=${translate('Value')}
+    getValue=${getValue}
+    setValue=${setValue}
+    debounce=${debounce}
+    tooltip=${translate('Enter an positive integer value.')}
+  />`;
+}
+
+
 // Funciones auxiliares
+function isSelectEntryEdited(element) {
+  if (!element || !element.businessObject) {
+    return false;
+  }
+  const selectOption = element.businessObject.SelectOption;
+  return typeof selectOption === 'string' && selectOption !== 'default';
+}
+
 function isListOfStringEntryEdited(element) {
   if (!element || !element.businessObject) {
     return false;

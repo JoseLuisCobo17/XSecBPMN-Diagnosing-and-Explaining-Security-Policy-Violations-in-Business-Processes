@@ -316,6 +316,9 @@ function exportToEsper(bpmnModeler) {
       let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
 
+        content += `name="${element.name || 'Unnamed'}", `;
+        content += `id_bpmn="${element.id_bpmn || 'Unknown'}", `; 
+
         if (element.type === 'bpmn:StartEvent' && 
             element.businessObject &&
             element.businessObject.eventDefinitions &&
@@ -325,10 +328,7 @@ function exportToEsper(bpmnModeler) {
         } else {
           content += `Element: [type=${element.type}, `;
         }
-
-        content += `name="${element.name || 'Unnamed'}", `;
-        content += `id_bpmn="${element.id_bpmn || 'Unknown'}", `;        
-
+       
         if (element.time) {
           content += `time=${element.time}, `;
         }

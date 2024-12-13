@@ -36,6 +36,16 @@
           "name": "maximumTime",
           "isAttr": true,
           "type": "Integer"
+        },
+        {
+          "name": "loopParameter",
+          "isAttr": true,
+          "type": "Integer"
+        },
+        {
+          "name": "AdditionalIntegerParameter",
+          "isAttr": true,
+          "type": "Integer"
         }
       ]
     }
