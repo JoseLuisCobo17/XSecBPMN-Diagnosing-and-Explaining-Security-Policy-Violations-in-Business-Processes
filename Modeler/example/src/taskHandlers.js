@@ -200,6 +200,8 @@ if (isMessageStartEvent) {
     const minimumTime = businessObject.minimumTime || 0;
     const maximumTime = businessObject.maximumTime || 0;
     const loopParameter = businessObject.loopParameter || 'undefined';
+    const loopCharacteristics = businessObject.loopCharacteristics || 'undefined';
+    const multiInstance = businessObject.loopCharacteristics?.isSequential ?? 'undefined';
     const AdditionalIntegerParameter = businessObject.AdditionalIntegerParameter || 0;
 
     let instance = ''; 
@@ -306,6 +308,8 @@ if (isMessageStartEvent) {
       userWithRole: userWithRole,
       type: type,
       loopParameter:loopParameter,
+      loopCharacteristics: loopCharacteristics,
+      multiInstance: multiInstance,
       AdditionalIntegerParameter: AdditionalIntegerParameter,
       containedElements: containedElements,
     };
@@ -376,6 +380,9 @@ function exportToEsper(bpmnModeler) {
           if(element.loopParameter !== 'undefined'){
             content += `loopParameter={"${element.loopParameter}":${element.AdditionalIntegerParameter}}, `;
           }
+          if (element.loopCharacteristics?.isSequential !== undefined) {
+            content += `multiInstanceType="${element.loopCharacteristics.isSequential ? 'true' : 'false'}", `;
+        }               
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Collaboration') {
