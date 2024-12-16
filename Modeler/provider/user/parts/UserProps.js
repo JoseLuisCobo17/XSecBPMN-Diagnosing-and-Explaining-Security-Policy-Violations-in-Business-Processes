@@ -62,39 +62,83 @@ export default function(element) {
 // UserTask
 function UserFunction(props) {
   const { element, id } = props;
-
   const modeling = useService('modeling');
   const translate = useService('translate');
-  const debounce = useService('debounceInput');
 
-  const getValue = () => {
+  // Obtiene la lista actual de UserTask
+  const getUserTaskList = () => {
     if (!element || !element.businessObject) {
-      return ''; 
+      return [];
     }
-    const value = element.businessObject.UserTask; 
-    return value !== undefined ? value : ''; 
+    return element.businessObject.UserTask || [];
   };
 
-  const setValue = value => {
-    if (!element || !element.businessObject) {
-      return; 
-    }
+  // Actualiza el valor de una tarea en una posición específica
+  const updateUserTask = (index, value) => {
+    const userTaskList = getUserTaskList();
+    const updatedUserTaskList = [...userTaskList];
+    updatedUserTaskList[index] = value;
 
-    // Asegúrate de que la propiedad UserTask está presente en el businessObject
     modeling.updateProperties(element, {
-      UserTask: value 
+      UserTask: updatedUserTaskList
     });
   };
 
-  return html`<${TextFieldEntry}
-    id=${id}
-    element=${element}
-    label=${translate('UserTask')}
-    getValue=${getValue}
-    setValue=${setValue}
-    debounce=${debounce}
-    tooltip=${translate('Enter a user task name.')} 
-  />`;
+  // Elimina una tarea de la lista
+  const removeUserTask = (index) => {
+    const userTaskList = getUserTaskList();
+    const updatedUserTaskList = [...userTaskList];
+    updatedUserTaskList.splice(index, 1);
+
+    modeling.updateProperties(element, {
+      UserTask: updatedUserTaskList
+    });
+  };
+
+  // Agrega una nueva tarea vacía
+  const addUserTask = () => {
+    const userTaskList = getUserTaskList();
+    const updatedUserTaskList = [...userTaskList, ''];
+
+    modeling.updateProperties(element, {
+      UserTask: updatedUserTaskList
+    });
+  };
+
+  // Renderiza las entradas individuales para las tareas
+  const renderUserTaskEntries = () => {
+    const userTaskList = getUserTaskList();
+    return userTaskList.map((task, index) => {
+      return html`
+        <div class="user-task-item">
+          <input 
+            type="text" 
+            value=${task} 
+            onInput=${(event) => updateUserTask(index, event.target.value)} 
+            placeholder="${translate('Enter a task name')}" 
+            class="user-task-input"
+          />
+          <button 
+            class="user-task-button" 
+            onClick=${() => removeUserTask(index)}>
+            ${translate('X')}
+          </button>
+        </div>
+      `;
+    });
+  };  
+
+  // Renderiza el contenedor principal
+  return html`
+    <div class="user-pool-container">
+      ${renderUserTaskEntries()}
+      <button 
+        class="add-role-button" 
+        onClick=${addUserTask}>
+        ${translate('Add User Task')}
+      </button>
+    </div>
+  `;
 }
 
 function NumberOfExecutionsFunction(props) {
