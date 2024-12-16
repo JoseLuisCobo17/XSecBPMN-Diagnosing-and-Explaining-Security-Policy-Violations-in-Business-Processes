@@ -154,7 +154,7 @@ function NumberOfExecutionsFunction(props) {
 
     // Check if loop is active
     const loopActive = element.businessObject.loopCharacteristics.isSequential;
-    if (loopActive !== 'undefined') {
+    if (loopActive === 'undefined') {
       return '1';
     }
 
@@ -173,7 +173,7 @@ function NumberOfExecutionsFunction(props) {
 
     // Prevent modification if loop is active
     const loopActive = element.businessObject.loopCharacteristics.isSequential;
-    if (loopActive !== 'undefined') {
+    if (loopActive === 'undefined') {
       modeling.updateProperties(element, {
         NumberOfExecutions: 1
       });

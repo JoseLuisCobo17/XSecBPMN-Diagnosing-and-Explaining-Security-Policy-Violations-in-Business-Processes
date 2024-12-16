@@ -196,7 +196,7 @@ if (isMessageStartEvent) {
     }
 
     const userTasks = Array.isArray(businessObject.UserTask) ? businessObject.UserTask : [businessObject.UserTask || ''];
-    const numberOfExecutions = businessObject.NumberOfExecutions || 0;
+    const numberOfExecutions = businessObject.NumberOfExecutions || 1;
     const minimumTime = businessObject.minimumTime || 0;
     const maximumTime = businessObject.maximumTime || 0;
     const loopParameter = businessObject.loopParameter || 'undefined';
