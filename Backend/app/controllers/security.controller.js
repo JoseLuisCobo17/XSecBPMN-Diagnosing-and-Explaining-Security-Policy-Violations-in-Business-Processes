@@ -153,7 +153,7 @@ exports.saveEsperFile = (req, res) => {
             if (stderr) {
                 console.error(`Error en el simulador: ${stderr}`);
             }
-            exec('mvn exec:java', { cwd: ENGINE_DIRECTORY, maxBuffer: 1024 * 1024 * 10 }, (mvnError, mvnStdout, mvnStderr) => {
+            exec('mvn clean install && mvn exec:java', { cwd: ENGINE_DIRECTORY, maxBuffer: 1024 * 1024 * 10 }, (mvnError, mvnStdout, mvnStderr) => {
                 if (mvnError) {
                     console.error(`Error executing mvn exec:java: ${mvnError.message}`);
                     return res.status(500).send({ message: 'Error al ejecutar mvn exec:java' });

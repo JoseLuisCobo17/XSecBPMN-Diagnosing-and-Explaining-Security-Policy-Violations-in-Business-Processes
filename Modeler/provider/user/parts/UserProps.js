@@ -362,26 +362,35 @@ function SelectOptionFunction(props) {
     });
   };
 
-  // Opciones del desplegable
-  const getOptions = () => [
-    { value: '<none>', label: translate('<none>') },
-    { value: 'Time', label: translate('Time') },
-    { value: 'Units', label: translate('Units') },
-    { value: 'Percentage', label: translate('Percentage') },
-  ];
+  // Opciones del desplegable con tooltips
+const getOptionsWithTooltips = () => [
+  { value: '<none>', label: translate('<none>'), tooltip: translate('No specific value selected.') },
+  { value: 'Time', label: translate('Time'), tooltip: translate('Maximum execution time') },
+  { value: 'Units', label: translate('Units'), tooltip: translate('Maximum number of repetitions') },
+  { value: 'Percentage', label: translate('Percentage'), tooltip: translate('Probability of task repetition (number between 0 and 100)') },
+];
 
-  return html`
-    <div>
-      <${SelectEntry}
-        id=${id}
-        element=${element}
-        label=${translate('Select an option')}
-        getValue=${getValue}
-        setValue=${setValue}
-        getOptions=${getOptions}
-      />
-    </div>
-  `;
+// Función para obtener el tooltip de la opción seleccionada
+const getTooltip = (value) => {
+  const options = getOptionsWithTooltips();
+  const selectedOption = options.find(option => option.value === value);
+  return selectedOption?.tooltip || translate('Select a valid option.');
+};
+
+return html`
+  <div>
+    <${SelectEntry}
+      id=${id}
+      element=${element}
+      label=${translate('Select an option')}
+      getValue=${getValue}
+      setValue=${setValue}
+      getOptions=${() => getOptionsWithTooltips().map(({ value, label }) => ({ value, label }))}
+      tooltip=${getTooltip(getValue())}
+    />
+  </div>
+`;
+
 }
 
 // Componente para el parámetro adicional de tipo entero
