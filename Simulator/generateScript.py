@@ -219,6 +219,18 @@ def {element.id_bpmn}(env, name):
     return '{element.subTask}'
 """
     elif element.multiInstanceType == None:
+        if "Time" in element.loopParameter.keys():
+            time = element.loopParameter["Time"]
+        else:
+            time = 0
+        if "Units" in element.loopParameter.keys():
+            units = element.loopParameter["Units"]
+        else:
+            units = -1
+        if "Percentage" in element.loopParameter.keys():
+            percentage = element.loopParameter["Percentage"]/100
+        else:
+            percentage = 1
         functionStr = f"""
 def {element.id_bpmn}(env, name):
     TaskName = '{element.id_bpmn}'
@@ -231,7 +243,13 @@ def {element.id_bpmn}(env, name):
             with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
-    for i in range({element.numberOfExecutions}):
+    units = {units}
+    loopStartTime = env.now
+    initial = True
+    execution = 0
+    while ((env.now - loopStartTime < {time}) or ({time}==0)) and (units!=0) and (random.random() < {percentage}) or initial:
+        execution = execution + 1
+        initial = False
         start_standBy = env.now
         possibleUsers = {element.userTask}
         if possibleUsers is None:
@@ -254,7 +272,7 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
                 with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, executions={{execution}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
                 yield env.timeout(time)
                 if TaskName in generatedData.keys():
                     dataObjects = generatedData[TaskName]
@@ -265,6 +283,7 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
             finally:
                 user_resources[userTask].release(request)
+                units = units - 1
     for key, values in gatewayConnections.items():
         if TaskName in values:
             if (key, name) in gatewayOccurrences.keys():
