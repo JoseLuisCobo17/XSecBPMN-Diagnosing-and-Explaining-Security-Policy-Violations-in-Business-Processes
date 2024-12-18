@@ -247,7 +247,7 @@ def {element.id_bpmn}(env, name):
     loopStartTime = env.now
     initial = True
     execution = 0
-    while ((env.now - loopStartTime < {time}) or ({time}==0)) and (units!=0) and (random.random() < {percentage}) or initial:
+    while ((env.now - loopStartTime < {time}) or ({time}==0)) and (units!=0) and (random.random() < 1-{percentage}) or initial:
         execution = execution + 1
         initial = False
         start_standBy = env.now
