@@ -122,6 +122,53 @@ statementBod.addListener((newData, oldData, stat, rt) -> {
     }
 });
 
+LOG.debug("Creating Multi-Instance BoD Check Expression");
+
+String multiInstanceBodEPL = "select parent.idBpmn as parentId, " +
+    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+    "sub1.userTask as user1, sub2.userTask as user2, " +
+    "sub1.instance as instance1, sub2.instance as instance2 " +
+    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+    "where parent.bodSecurity = true " +
+    "and sub1.userTask is not null and sub2.userTask is not null " +
+    "and sub1.userTask != sub2.userTask " +
+    "and sub1.idBpmn = sub2.idBpmn " + // Aquí se detectan las multiinstancias
+    "and sub1.instance != sub2.instance " + // Instancias diferentes de la misma tarea
+    "and sub1.idBpmn in (parent.subTasks) " +
+    "and sub2.idBpmn in (parent.subTasks) ";
+
+EPCompiled compiledMultiBod = compiler.compile(multiInstanceBodEPL, args);
+EPDeployment deploymentMultiBod = epRuntime.getDeploymentService().deploy(compiledMultiBod);
+EPStatement statementMultiBod = deploymentMultiBod.getStatements()[0];
+
+statementMultiBod.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId = (String) newData[0].get("parentId");
+        String subTask1Id = (String) newData[0].get("subTask1Id");
+        String subTask2Id = (String) newData[0].get("subTask2Id");
+        String user1 = (String) newData[0].get("user1");
+        String user2 = (String) newData[0].get("user2");
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        Integer instance2 = (Integer) newData[0].get("instance2");
+        String violationKey = parentId + "|" + subTask1Id + "|" + instance1 + "|" + instance2;
+
+        if (!reportedBodViolations.contains(violationKey)) {
+            reportedBodViolations.add(violationKey);
+
+            sb.append("\n---------------------------------");
+            sb.append("\n- [MULTI-INSTANCE BoD MONITOR] Multi-Instance violation detected:");
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask ID: ").append(subTask1Id);
+            sb.append("\n- Executed By Users: ").append(user1).append(" and ").append(user2);
+            sb.append("\n- Instances: ").append(instance1).append(" and ").append(instance2);
+            sb.append("\n---------------------------------");
+        } else {
+            LOG.debug("Multi-instance BoD violation already reported for key: " + violationKey);
+        }
+    }
+});
+
+
 LOG.debug("Creating StandBy Check Expression");
 String standByEPL = "select * from Task where stopTime is not null";
 
