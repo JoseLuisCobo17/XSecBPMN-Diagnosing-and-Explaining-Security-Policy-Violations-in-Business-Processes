@@ -12,6 +12,7 @@ import com.espertech.esper.compiler.client.CompilerArguments;
 import com.espertech.esper.compiler.client.EPCompiler;
 import com.espertech.esper.compiler.client.EPCompilerProvider;
 import com.espertech.esper.common.client.EPCompiled;
+import com.espertech.esper.common.client.EventBean;
 import com.espertech.esper.runtime.client.EPDeployment;
 import com.espertech.esper.runtime.client.EPRuntime;
 import com.espertech.esper.runtime.client.EPRuntimeProvider;
@@ -45,6 +46,7 @@ public class TaskEventHandler implements InitializingBean {
     private StringBuilder sb = new StringBuilder();
     private Set<String> reportedBodViolations = new HashSet<>();
     private Set<String> reportedSodViolations = new HashSet<>();
+    private Set<String> reportedMultiInstanceSodViolations = new HashSet<>();
     private Set<String> reportedUocViolations = new HashSet<>();
 
     public void initService() {
@@ -246,6 +248,92 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
         }
     }
 });
+
+LOG.debug("Creating Generalized SoD Check Expression");
+String multiInstanceSodEPL = "select parent.idBpmn as parentId, " +
+                "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+                "sub1.userTask as userTask1, sub2.userTask as userTask2, " +
+                "sub1.instance as instance1, sub2.instance as instance2, " +
+                "sub1.execution as execution1, sub2.execution as execution2 " +
+                "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+                "where parent.sodSecurity = true " +  
+                "and sub1.idBpmn = sub2.idBpmn " +  
+                "and sub1.idBpmn in (parent.subTasks) " +  
+                "and sub2.idBpmn in (parent.subTasks) " +  
+                "and sub1.instance = sub2.instance " +  
+                "and sub1.execution != sub2.execution " + 
+                "and sub1.userTask is not null " +
+                "and sub2.userTask is not null " + 
+                "and sub1.userTask = sub2.userTask " +
+                "and sub1.idBpmn < sub2.idBpmn";
+
+EPCompiled compiledMultiInstanceSod = compiler.compile(multiInstanceSodEPL, args);
+EPDeployment deploymentMultiInstanceSod = epRuntime.getDeploymentService().deploy(compiledMultiInstanceSod);
+EPStatement statementMultiInstanceSod = deploymentMultiInstanceSod.getStatements()[0];
+
+statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String taskId = (String) newData[0].get("taskId");
+        String userTask = (String) newData[0].get("userTask");
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        Integer instance2 = (Integer) newData[0].get("instance2");
+        String execution1 = (String) newData[0].get("execution1");
+        String execution2 = (String) newData[0].get("execution2");
+
+        String violationKey = taskId + "|" + instance1 + "|" + instance2 + "|" + userTask + "|" + execution1 + "|" + execution2;
+
+        if (!reportedMultiInstanceSodViolations.contains(violationKey)) {
+            reportedMultiInstanceSodViolations.add(violationKey);
+
+            sb.append("\n---------------------------------");
+            sb.append("\n- [MULTI-INSTANCE SoD MONITOR] Segregation of Duties violation detected:");
+            sb.append("\n- Task ID: ").append(taskId);
+            sb.append("\n- Executed By User: ").append(userTask);
+            sb.append("\n- Instance 1: ").append(instance1);
+            sb.append("\n- Instance 2: ").append(instance2);
+            sb.append("\n- Execution 1: ").append(execution1);
+            sb.append("\n- Execution 2: ").append(execution2);
+            sb.append("\n---------------------------------");
+        } else {
+            LOG.debug("Multi-Instance SoD violation already reported for key: " + violationKey);
+        }
+    }
+});
+
+LOG.debug("Creating Task Presence Check Expression");
+String taskPresenceEPL = "select task.idBpmn as taskId, " +
+                "task.userTask as userTask, " +
+                "task.instance as instance, " +
+                "task.execution as execution " +
+                "from Task#keepall as task " +
+                "where task.userTask is not null";
+
+EPCompiled compiledTaskPresence = compiler.compile(taskPresenceEPL, args);
+EPDeployment deploymentTaskPresence = epRuntime.getDeploymentService().deploy(compiledTaskPresence);
+EPStatement statementTaskPresence = deploymentTaskPresence.getStatements()[0];
+
+statementTaskPresence.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+for (EventBean event : newData) {
+            String taskId = (String) event.get("taskId");
+            String userTask = (String) event.get("userTask");
+            Integer instance = (Integer) event.get("instance");
+            String execution = (String) event.get("execution");
+
+            LOG.info("\n---------------------------------");
+            LOG.info("- [TASK PRESENCE MONITOR] Task detected:");
+            LOG.info("- Task ID: " + taskId);
+            LOG.info("- Executed By User: " + userTask);
+            LOG.info("- Instance: " + instance);
+            LOG.info("- Execution: " + execution);
+            LOG.info("---------------------------------");
+        }
+    } else {
+        LOG.debug("No tasks detected.");
+    }
+});
+
+
 
 LOG.debug("Creating UoC Check Expression");
 String uocEPL = "select parent.idBpmn as parentId, " +
