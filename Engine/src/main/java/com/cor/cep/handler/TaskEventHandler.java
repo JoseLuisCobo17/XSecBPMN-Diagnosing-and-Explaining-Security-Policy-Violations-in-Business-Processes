@@ -210,13 +210,15 @@ LOG.debug("Creating Generalized SoD Check Expression");
 String sodEPL = "select parent.idBpmn as parentId, " +
                 "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
                 "sub1.userTask as userTask1, sub2.userTask as userTask2, " +
-                "sub1.instance as instance1 " +
+                "sub1.instance as instance1, " +
+                "sub1.execution as execution1, sub2.execution as execution2 " +
                 "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
                 "where parent.sodSecurity = true " +  
                 "and sub1.idBpmn != sub2.idBpmn " +  
                 "and sub1.idBpmn in (parent.subTasks) " +  
                 "and sub2.idBpmn in (parent.subTasks) " +  
-                "and sub1.instance = sub2.instance " +  
+                "and sub1.instance = sub2.instance " + 
+                "and  sub1.execution = sub2.execution " + 
                 "and sub1.userTask is not null " +
                 "and sub2.userTask is not null " + 
                 "and sub1.userTask = sub2.userTask " +
@@ -263,7 +265,7 @@ String multiInstanceSodEPL =
 
   "select parent.idBpmn as parentId, " +
   "       sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-  "       sub1.userTask as userTask1, sub2.userTask as userTask2, " + 
+  "       sub1.userTask as userTask1, " + 
   "       sub1.instance as instance1, sub2.instance as instance2, " +
   "       sub1.execution as execution1, sub2.execution as execution2 " +
   "from   Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
@@ -284,8 +286,7 @@ statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
         String parentId   = (String) newData[0].get("parentId");
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
-        String userTask1  = (String) newData[0].get("userTask1");
-        String userTask2  = (String) newData[0].get("userTask2");  
+        String userTask1  = (String) newData[0].get("userTask1"); 
         Integer instance1 = (Integer) newData[0].get("instance1");
         Integer instance2 = (Integer) newData[0].get("instance2");
         Integer execution1 = (Integer) newData[0].get("execution1");
@@ -305,54 +306,20 @@ statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
 
             sb.append("\n---------------------------------");
             sb.append("\n- [MULTI-INSTANCE SoD MONITOR] Segregation of Duties violation detected:");
-            sb.append("\n- Task ID: ").append(subTask1Id);
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
+            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
             sb.append("\n- Executed By User: ").append(userTask1);
-            sb.append("\n- Instance 1: ").append(instance1);
-           // sb.append("\n- Execution 1: ").append(execution1);
-           // sb.append("\n- Execution 2: ").append(execution2);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n- Execution 1: ").append(execution1);
+            sb.append("\n- Execution 2: ").append(execution2);
             sb.append("\n---------------------------------");
 
-            LOG.info("\n---------------------------------");
-            LOG.info("- [MULTI-INSTANCE SoD MONITOR] Segregation of Duties violation detected:");
-            LOG.info("- Task ID: " + subTask1Id);
-            LOG.info("- Executed By User: " + userTask1);
-            LOG.info("- Instance: " + instance1);
-            //LOG.info("- Execution: " + execution1);
-            LOG.info("---------------------------------");
         } else {
             LOG.debug("Multi-Instance SoD violation already reported for key: " + violationKey);
         }
     }
 });
-
-LOG.debug("Creating Task Presence Check Expression");
-String taskPresenceEPL = "select task.idBpmn as taskId, " +
-                "task.userTask as userTask, " +
-                "task.instance as instance, " +
-                "task.execution as execution " +
-                "from Task#keepall as task " +
-                "where task.userTask is not null";
-
-EPCompiled compiledTaskPresence = compiler.compile(taskPresenceEPL, args);
-EPDeployment deploymentTaskPresence = epRuntime.getDeploymentService().deploy(compiledTaskPresence);
-EPStatement statementTaskPresence = deploymentTaskPresence.getStatements()[0];
-
-statementTaskPresence.addListener((newData, oldData, stat, rt) -> {
-    if (newData != null && newData.length > 0) {
-for (EventBean event : newData) {
-            String taskId = (String) event.get("taskId");
-            String userTask = (String) event.get("userTask");
-            Integer instance = (Integer) event.get("instance");
-            Integer execution = (Integer) event.get("execution");
-
-            
-        }
-    } else {
-        LOG.debug("No tasks detected.");
-    }
-});
-
-
 
 LOG.debug("Creating UoC Check Expression");
 String uocEPL = "select parent.idBpmn as parentId, " +
