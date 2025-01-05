@@ -173,6 +173,9 @@ public class TaskProcessor {
                 case "numberOfExecutions":
                     numberOfExecutions = Integer.parseInt(keyValue[1].trim());
                     break;
+                case "execution":
+                    execution = Integer.parseInt(keyValue[1].trim());
+                    break;
             }
         }
     

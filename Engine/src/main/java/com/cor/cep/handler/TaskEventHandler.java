@@ -105,6 +105,9 @@ statementBod.addListener((newData, oldData, stat, rt) -> {
         Integer instance1 = (Integer) newData[0].get("instance1");
         String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id + "|" + instance1;
         String violationKey2 = parentId + "|" + subTask2Id + "|" + subTask1Id + "|" + instance1;
+
+        LOG.warn("BoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
+                 parentId, subTask1Id, subTask2Id, user1, user2, instance1);
         
         if (!reportedBodViolations.contains(violationKey) && !reportedBodViolations.contains(violationKey2)) {
             reportedBodViolations.add(violationKey);
@@ -153,6 +156,9 @@ statementMultiBod.addListener((newData, oldData, stat, rt) -> {
         Integer instance1 = (Integer) newData[0].get("instance1");
         Integer instance2 = (Integer) newData[0].get("instance2");
         String violationKey = parentId + "|" + subTask1Id + "|" + instance1 + "|" + instance2;
+
+        LOG.warn(" Multi-Instance BoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
+                 parentId, subTask1Id, subTask2Id, user1, user2, instance1);
 
         if (!reportedBodViolations.contains(violationKey)) {
             reportedBodViolations.add(violationKey);
@@ -231,6 +237,9 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
         String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id + "|" + instance1;
         String violationKey2 = parentId + "|" + subTask2Id + "|" + subTask1Id + "|" + instance1;
 
+        LOG.warn(" SoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
+                 parentId, subTask1Id, subTask2Id, userTask1, instance1);
+
         if (!reportedSodViolations.contains(violationKey) && !reportedSodViolations.contains(violationKey2)) {
             reportedSodViolations.add(violationKey);
             reportedSodViolations.add(violationKey2);
@@ -250,22 +259,21 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
 });
 
 LOG.debug("Creating Generalized SoD Check Expression");
-String multiInstanceSodEPL = "select parent.idBpmn as parentId, " +
-                "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-                "sub1.userTask as userTask1, sub2.userTask as userTask2, " +
-                "sub1.instance as instance1, sub2.instance as instance2, " +
-                "sub1.execution as execution1, sub2.execution as execution2 " +
-                "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-                "where parent.sodSecurity = true " +  
-                "and sub1.idBpmn = sub2.idBpmn " +  
-                "and sub1.idBpmn in (parent.subTasks) " +  
-                "and sub2.idBpmn in (parent.subTasks) " +  
-                "and sub1.instance = sub2.instance " +  
-                "and sub1.execution != sub2.execution " + 
-                "and sub1.userTask is not null " +
-                "and sub2.userTask is not null " + 
-                "and sub1.userTask = sub2.userTask " +
-                "and sub1.idBpmn < sub2.idBpmn";
+String multiInstanceSodEPL = 
+
+  "select parent.idBpmn as parentId, " +
+  "       sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+  "       sub1.userTask as userTask1, sub2.userTask as userTask2, " + 
+  "       sub1.instance as instance1, sub2.instance as instance2, " +
+  "       sub1.execution as execution1, sub2.execution as execution2 " +
+  "from   Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+  "where  sub1.idBpmn = sub2.idBpmn " +
+  "  and  sub1.execution != sub2.execution " +
+  "  and  sub1.instance = sub2.instance " +
+  "  and  sub1.userTask is not null " +
+  "  and  sub2.userTask is not null " +
+  "  and  sub1.userTask = sub2.userTask";
+
 
 EPCompiled compiledMultiInstanceSod = compiler.compile(multiInstanceSodEPL, args);
 EPDeployment deploymentMultiInstanceSod = epRuntime.getDeploymentService().deploy(compiledMultiInstanceSod);
@@ -273,27 +281,44 @@ EPStatement statementMultiInstanceSod = deploymentMultiInstanceSod.getStatements
 
 statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
-        String taskId = (String) newData[0].get("taskId");
-        String userTask = (String) newData[0].get("userTask");
+        String parentId   = (String) newData[0].get("parentId");
+        String subTask1Id = (String) newData[0].get("subTask1Id");
+        String subTask2Id = (String) newData[0].get("subTask2Id");
+        String userTask1  = (String) newData[0].get("userTask1");
+        String userTask2  = (String) newData[0].get("userTask2");  
         Integer instance1 = (Integer) newData[0].get("instance1");
         Integer instance2 = (Integer) newData[0].get("instance2");
-        String execution1 = (String) newData[0].get("execution1");
-        String execution2 = (String) newData[0].get("execution2");
+        Integer execution1 = (Integer) newData[0].get("execution1");
+        Integer execution2 = (Integer) newData[0].get("execution2");
 
-        String violationKey = taskId + "|" + instance1 + "|" + instance2 + "|" + userTask + "|" + execution1 + "|" + execution2;
+        String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id 
+                              + "|" + userTask1 + "|" + instance1 + "|" + instance2;
+
+        LOG.warn("Multi-Instance SoD Violation Detected: " +
+                 "Parent={}, SubTask1={}, SubTask2={}, UserTask={}, " +
+                 "execution1={}, execution2={}, instance1={}, instance2={}",
+                 parentId, subTask1Id, subTask2Id, userTask1,
+                 execution1, execution2, instance1, instance2);
 
         if (!reportedMultiInstanceSodViolations.contains(violationKey)) {
             reportedMultiInstanceSodViolations.add(violationKey);
 
             sb.append("\n---------------------------------");
             sb.append("\n- [MULTI-INSTANCE SoD MONITOR] Segregation of Duties violation detected:");
-            sb.append("\n- Task ID: ").append(taskId);
-            sb.append("\n- Executed By User: ").append(userTask);
+            sb.append("\n- Task ID: ").append(subTask1Id);
+            sb.append("\n- Executed By User: ").append(userTask1);
             sb.append("\n- Instance 1: ").append(instance1);
-            sb.append("\n- Instance 2: ").append(instance2);
-            sb.append("\n- Execution 1: ").append(execution1);
-            sb.append("\n- Execution 2: ").append(execution2);
+           // sb.append("\n- Execution 1: ").append(execution1);
+           // sb.append("\n- Execution 2: ").append(execution2);
             sb.append("\n---------------------------------");
+
+            LOG.info("\n---------------------------------");
+            LOG.info("- [MULTI-INSTANCE SoD MONITOR] Segregation of Duties violation detected:");
+            LOG.info("- Task ID: " + subTask1Id);
+            LOG.info("- Executed By User: " + userTask1);
+            LOG.info("- Instance: " + instance1);
+            //LOG.info("- Execution: " + execution1);
+            LOG.info("---------------------------------");
         } else {
             LOG.debug("Multi-Instance SoD violation already reported for key: " + violationKey);
         }
@@ -318,15 +343,9 @@ for (EventBean event : newData) {
             String taskId = (String) event.get("taskId");
             String userTask = (String) event.get("userTask");
             Integer instance = (Integer) event.get("instance");
-            String execution = (String) event.get("execution");
+            Integer execution = (Integer) event.get("execution");
 
-            LOG.info("\n---------------------------------");
-            LOG.info("- [TASK PRESENCE MONITOR] Task detected:");
-            LOG.info("- Task ID: " + taskId);
-            LOG.info("- Executed By User: " + userTask);
-            LOG.info("- Instance: " + instance);
-            LOG.info("- Execution: " + execution);
-            LOG.info("---------------------------------");
+            
         }
     } else {
         LOG.debug("No tasks detected.");
@@ -390,6 +409,8 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
 
     public void handle(Task event) {
         Long startTime = event.getStartTime();
+
+        LOG.info("Analyzing task: {}", event);
     
         if (startTime != null || event.isBodSecurity() || event.isSodSecurity() || event.isUocSecurity()) {
             taskGroups.computeIfAbsent(startTime != null ? startTime : -1L, k -> new ArrayList<>()).add(event);
