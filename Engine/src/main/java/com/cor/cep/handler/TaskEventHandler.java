@@ -89,6 +89,7 @@ String bodEPL = "select parent.idBpmn as parentId, " +
     "and sub1.idBpmn != sub2.idBpmn " +
     "and sub1.idBpmn in (parent.subTasks) " +
     "and sub2.idBpmn in (parent.subTasks) " +
+    "and  sub1.execution = sub2.execution " +
     "and sub1.instance = sub2.instance";
 
 EPCompiled compiledBod = compiler.compile(bodEPL, args);
@@ -129,18 +130,20 @@ statementBod.addListener((newData, oldData, stat, rt) -> {
 
 LOG.debug("Creating Multi-Instance BoD Check Expression");
 
-String multiInstanceBodEPL = "select parent.idBpmn as parentId, " +
-    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-    "sub1.userTask as user1, sub2.userTask as user2, " +
-    "sub1.instance as instance1, sub2.instance as instance2 " +
-    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-    "where parent.bodSecurity = true " +
-    "and sub1.userTask is not null and sub2.userTask is not null " +
-    "and sub1.userTask != sub2.userTask " +
-    "and sub1.idBpmn = sub2.idBpmn " + // Aquí se detectan las multiinstancias
-    "and sub1.instance != sub2.instance " + // Instancias diferentes de la misma tarea
-    "and sub1.idBpmn in (parent.subTasks) " +
-    "and sub2.idBpmn in (parent.subTasks) ";
+String multiInstanceBodEPL = 
+"select parent.idBpmn as parentId, " +
+"       sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+"       sub1.userTask as userTask1, sub2.userTask as userTask2, " + 
+"       sub1.instance as instance1, sub2.instance as instance2, " +
+"       sub1.execution as execution1, sub2.execution as execution2 " +
+"from   Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+"where parent.bodSecurity = true " +  
+"  and  sub1.idBpmn = sub2.idBpmn " +
+"  and  sub1.execution != sub2.execution " +
+"  and  sub1.instance = sub2.instance " +
+"  and  sub1.userTask is not null " +
+"  and  sub2.userTask is not null " +
+"  and  sub1.userTask != sub2.userTask";
 
 EPCompiled compiledMultiBod = compiler.compile(multiInstanceBodEPL, args);
 EPDeployment deploymentMultiBod = epRuntime.getDeploymentService().deploy(compiledMultiBod);
@@ -151,11 +154,14 @@ statementMultiBod.addListener((newData, oldData, stat, rt) -> {
         String parentId = (String) newData[0].get("parentId");
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
-        String user1 = (String) newData[0].get("user1");
-        String user2 = (String) newData[0].get("user2");
+        String user1 = (String) newData[0].get("userTask1");
+        String user2 = (String) newData[0].get("userTask2");             
         Integer instance1 = (Integer) newData[0].get("instance1");
         Integer instance2 = (Integer) newData[0].get("instance2");
-        String violationKey = parentId + "|" + subTask1Id + "|" + instance1 + "|" + instance2;
+        Integer execution1 = (Integer) newData[0].get("execution1");
+        Integer execution2 = (Integer) newData[0].get("execution2");
+        String violationKey = parentId + "|" + subTask1Id + "|" + instance1 + "|" + instance2
+        + "|" + execution1 + "|" + execution2;
 
         LOG.warn(" Multi-Instance BoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
                  parentId, subTask1Id, subTask2Id, user1, user2, instance1);
@@ -166,9 +172,12 @@ statementMultiBod.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n---------------------------------");
             sb.append("\n- [MULTI-INSTANCE BoD MONITOR] Multi-Instance violation detected:");
             sb.append("\n- Parent Task ID: ").append(parentId);
-            sb.append("\n- SubTask ID: ").append(subTask1Id);
+            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
+            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
             sb.append("\n- Executed By Users: ").append(user1).append(" and ").append(user2);
-            sb.append("\n- Instances: ").append(instance1).append(" and ").append(instance2);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n- Execution 1: ").append(execution1);
+            sb.append("\n- Execution 2: ").append(execution2);
             sb.append("\n---------------------------------");
         } else {
             LOG.debug("Multi-instance BoD violation already reported for key: " + violationKey);
@@ -269,7 +278,8 @@ String multiInstanceSodEPL =
   "       sub1.instance as instance1, sub2.instance as instance2, " +
   "       sub1.execution as execution1, sub2.execution as execution2 " +
   "from   Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-  "where  sub1.idBpmn = sub2.idBpmn " +
+  "where parent.sodSecurity = true " +  
+  "and  sub1.idBpmn = sub2.idBpmn " +
   "  and  sub1.execution != sub2.execution " +
   "  and  sub1.instance = sub2.instance " +
   "  and  sub1.userTask is not null " +
