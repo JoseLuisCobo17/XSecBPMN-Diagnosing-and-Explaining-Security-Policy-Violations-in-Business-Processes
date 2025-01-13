@@ -390,7 +390,7 @@ function exportToEsper(bpmnModeler) {
           content += `instances=${element.Instances}, `;
           content += `security=${element.security}]\n`;
         } else if (element.type === 'bpmn:Lane') {
-          const userWithoutRole = element.userWithoutRole ? 
+          const userWithoutRole = Array.isArray(element.userWithoutRole) ? 
             element.userWithoutRole.map(user => `"${user}"`).join(', ') : '""';
         
           const containedElements = element.containedElements && element.containedElements.length > 0
@@ -402,13 +402,16 @@ function exportToEsper(bpmnModeler) {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
 
-          const userWithoutRole = element.userWithoutRole ? 
-            element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') : '""';
+          const userWithoutRole = Array.isArray(element.userWithoutRole) ? 
+            element.userWithoutRole.map(user => `"${user}"`).join(', ') : '""';
           content += `userWithoutRole=[${userWithoutRole}], `;
 
           const userWithRole = element.userWithRole ? 
-            Object.entries(element.userWithRole).map(([role, users]) => 
-              `"${role}": [${users.split(', ').map(u => `"${u}"`).join(', ')}]`).join(', ') : '{}';
+          Object.entries(element.userWithRole).map(([role, users]) => {
+          const userArray = Array.isArray(users) ? users : users.split(', ');
+            return `"${role}": [${userArray.map(u => `"${u}"`).join(', ')}]`;
+            }).join(', ') : '{}';
+
           content += `userWithRole={${userWithRole}}, `;
           content += `security=${element.security}]\n`;
         } else if (element.type === 'bpmn:Participant') {
@@ -416,9 +419,9 @@ function exportToEsper(bpmnModeler) {
             ? element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') 
             : '""';
         
-          const containedElements = element.containedElements && element.containedElements.length > 0
-            ? element.containedElements.map(el => `"${el}"`).join(', ')
-            : '""';
+            const containedElements = Array.isArray(element.containedElements) ? 
+            element.containedElements.map(el => `"${el}"`).join(', ') : '""';
+          
         
           content += `frequency=${element.Frequency}, userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;        
       }  else {
