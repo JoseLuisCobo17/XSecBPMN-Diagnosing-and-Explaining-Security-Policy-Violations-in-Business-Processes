@@ -16,66 +16,79 @@ export default function(element) {
 
 function userWithoutRoleFunction(props) {
   const { element, id } = props;
-
   const modeling = useService('modeling');
   const translate = useService('translate');
-  const debounce = useService('debounceInput');
 
-  const getValue = () => {
-    if (!element || !element.businessObject) return '';
-
-    if (element.businessObject.participants) {
-      const firstParticipant = element.businessObject.participants[0];
-      if (firstParticipant.processRef) {
-        const value = firstParticipant.processRef.userWithoutRole;
-        return value !== undefined ? value : '';
-      } else {
-        console.warn("processRef is missing for participant:", firstParticipant);
-      }
-    } else if (element.businessObject.userWithoutRole !== undefined) {
-      const value = element.businessObject.userWithoutRole;
-      return value !== undefined ? value : '';
+  const getUserWithoutRoleList = () => {
+    if (!element || !element.businessObject) {
+      return [];
     }
-
-    return '';
+    return element.businessObject.userWithoutRole || [];
+    console.log(element.businessObject.userWithoutRole);
   };
 
-  const setValue = (value) => {
-    if (typeof value === 'undefined' || !element || !element.businessObject) return;
+  const updateUserWithoutRole = (index, value) => {
+    const userWithoutRoleList = getUserWithoutRoleList();
+    const updatedUserWithoutRoleList = [...userWithoutRoleList];
+    updatedUserWithoutRoleList[index] = value;
 
-    // Eliminar duplicados en el valor que se va a establecer
-    const uniqueValue = Array.from(new Set(value.split(',').map(v => v.trim()))).join(', ');
-
-    if (element.businessObject.participants) {
-      element.businessObject.participants.forEach(participant => {
-        if (participant.processRef && typeof participant.processRef === 'object') {
-          try {
-            modeling.updateModdleProperties(element, participant.processRef, {
-              userWithoutRole: uniqueValue
-            });
-          } catch (error) {
-            console.error("Failed to update properties for processRef:", error);
-          }
-        } else {
-          console.warn("processRef is missing or invalid for participant:", participant);
-        }
-      });
-    } else {
-      modeling.updateProperties(element, {
-        userWithoutRole: uniqueValue
-      });
-    }
+    modeling.updateProperties(element, {
+      userWithoutRole: updatedUserWithoutRoleList
+    });
+    console.log(element.businessObject.userWithoutRole);
   };
 
-  return html`<${TextFieldEntry}
-    id=${id}
-    element=${element}
-    label=${translate('User/s')}
-    getValue=${getValue}
-    setValue=${setValue}
-    debounce=${debounce}
-    tooltip=${translate('Enter a user/s name.')}
-  />`;
+  const removeUserWithoutRole = (index) => {
+    const userWithoutRoleList = getUserWithoutRoleList();
+    const updatedUserWithoutRoleList = [...userWithoutRoleList];
+    updatedUserWithoutRoleList.splice(index, 1);
+
+    modeling.updateProperties(element, {
+      userWithoutRole: updatedUserWithoutRoleList
+    });
+  };
+
+  const addUserWithoutRole = () => {
+    const userWithoutRoleList = getUserWithoutRoleList();
+    const updatedUserWithoutRoleList = [...userWithoutRoleList, ''];
+
+    modeling.updateProperties(element, {
+      userWithoutRole: updatedUserWithoutRoleList
+    });
+  };
+
+  const renderUserWithoutRoleEntries = () => {
+    const userWithoutRoleList = getUserWithoutRoleList();
+    return userWithoutRoleList.map((user, index) => {
+      return html`
+        <div class="user-task-item">
+          <input 
+            type="text" 
+            value=${user} 
+            onInput=${(event) => updateUserWithoutRole(index, event.target.value)} 
+            placeholder="${translate('Enter a user name')}" 
+            class="user-task-input"
+          />
+          <button 
+            class="user-task-button" 
+            onClick=${() => removeUserWithoutRole(index)}>
+            ${translate('X')}
+          </button>
+        </div>
+      `;
+    });
+  };
+
+  return html`
+    <div class="user-pool-container">
+      ${renderUserWithoutRoleEntries()}
+      <button 
+        class="add-role-button" 
+        onClick=${addUserWithoutRole}>
+        ${translate('Add User without Role')}
+      </button>
+    </div>
+  `;
 }
 
 function isListOfStringEntryEdited(element) {
