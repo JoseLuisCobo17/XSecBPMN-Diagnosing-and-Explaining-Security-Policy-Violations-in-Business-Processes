@@ -65,13 +65,16 @@ function UserFunction(props) {
   const modeling = useService('modeling');
   const translate = useService('translate');
 
-  // Obtiene la lista actual de UserTask
   const getUserTaskList = () => {
     if (!element || !element.businessObject) {
       return [];
     }
-    return element.businessObject.UserTask || [];
+  
+    // Asegurar que UserTask es un array
+    const userTask = element.businessObject.UserTask;
+    return Array.isArray(userTask) ? userTask : (userTask ? [userTask] : []);
   };
+  
 
   // Actualiza el valor de una tarea en una posición específica
   const updateUserTask = (index, value) => {
