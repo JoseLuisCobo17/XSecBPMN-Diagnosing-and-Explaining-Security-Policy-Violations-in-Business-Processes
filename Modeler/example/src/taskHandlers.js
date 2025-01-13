@@ -390,13 +390,12 @@ function exportToEsper(bpmnModeler) {
           content += `instances=${element.Instances}, `;
           content += `security=${element.security}]\n`;
         } else if (element.type === 'bpmn:Lane') {
-          const userWithoutRole = Array.isArray(element.userWithoutRole) ? 
-            element.userWithoutRole.map(user => `"${user}"`).join(', ') : '""';
+          const userWithoutRole = Array.isArray(element.userWithoutRole.split(",")) ? 
+            element.userWithoutRole.split(",").map(user => `"${user}"`).join(', ') : '""';
         
           const containedElements = element.containedElements && element.containedElements.length > 0
             ? element.containedElements.map(el => `"${el}"`).join(', ')
             : '""';
-        
           content += `userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;
         } else if (element.type === 'bpmn:Process') {
           content += `instances=${element.Instances}, `;

@@ -37,7 +37,6 @@ function userWithoutRoleFunction(props) {
     modeling.updateProperties(element, {
       userWithoutRole: updatedUserWithoutRoleList
     });
-    console.log(element.businessObject.userWithoutRole);
   };
 
   const removeUserWithoutRole = (index) => {
