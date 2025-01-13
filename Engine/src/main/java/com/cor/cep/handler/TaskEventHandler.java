@@ -141,6 +141,8 @@ String multiInstanceBodEPL =
 "  and  sub1.idBpmn = sub2.idBpmn " +
 "  and  sub1.execution != sub2.execution " +
 "  and  sub1.instance = sub2.instance " +
+"and sub1.idBpmn in (parent.subTasks) " +
+"and sub2.idBpmn in (parent.subTasks) " +
 "  and  sub1.userTask is not null " +
 "  and  sub2.userTask is not null " +
 "  and  sub1.userTask != sub2.userTask";
@@ -280,6 +282,8 @@ String multiInstanceSodEPL =
   "from   Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
   "where parent.sodSecurity = true " +  
   "and  sub1.idBpmn = sub2.idBpmn " +
+  "and sub1.idBpmn in (parent.subTasks) " +  
+  "and sub2.idBpmn in (parent.subTasks) " +  
   "  and  sub1.execution != sub2.execution " +
   "  and  sub1.instance = sub2.instance " +
   "  and  sub1.userTask is not null " +
