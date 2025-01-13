@@ -23,9 +23,11 @@ function userWithoutRoleFunction(props) {
     if (!element || !element.businessObject) {
       return [];
     }
-    return element.businessObject.userWithoutRole || [];
-    console.log(element.businessObject.userWithoutRole);
-  };
+  
+    // Asegurar que userWithoutRole es un array
+    const userWithoutRole = element.businessObject.userWithoutRole;
+    return Array.isArray(userWithoutRole) ? userWithoutRole : (userWithoutRole ? [userWithoutRole] : []);
+  };  
 
   const updateUserWithoutRole = (index, value) => {
     const userWithoutRoleList = getUserWithoutRoleList();
