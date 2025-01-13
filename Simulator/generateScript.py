@@ -137,20 +137,20 @@ def {element.id_bpmn}(env, name):
                 if env.now > start_standBy:
                     with open(f'files/resultSimulation.txt', 'a') as f:
                         f.write(f'''
-{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, execution={{i+1}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
                 with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, execution={{i+1}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
                 yield env.timeout(time)
-                if TaskName in generatedData.keys():
-                    dataObjects = generatedData[TaskName]
-                    for dataObject in dataObjects:
-                        data.append((dataObject, name))
-                        with open(f'files/resultSimulation.txt', 'a') as f:
-                            f.write(f'''
-{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
             finally:
                 user_resources[userTask].release(request)
+    if TaskName in generatedData.keys():
+        dataObjects = generatedData[TaskName]
+        for dataObject in dataObjects:
+            data.append((dataObject, name))
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
     for key, values in gatewayConnections.items():
         if TaskName in values:
             if (key, name) in gatewayOccurrences.keys():
@@ -182,7 +182,7 @@ def {element.id_bpmn}(env, name):
                 if env.now > start_standBy:
                     with open(f'files/resultSimulation.txt', 'a') as f:
                         f.write(f'''
-{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, execution={{executionNumber+1}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
                 with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, execution={{executionNumber+1}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
@@ -228,7 +228,7 @@ def {element.id_bpmn}(env, name):
         else:
             units = -1
         if "Percentage" in element.loopParameter.keys():
-            percentage = element.loopParameter["Percentage"]/100
+            percentage = 1 - element.loopParameter["Percentage"]/100
         else:
             percentage = 1
         functionStr = f"""
@@ -247,9 +247,330 @@ def {element.id_bpmn}(env, name):
     loopStartTime = env.now
     initial = True
     execution = 0
-    while ((env.now - loopStartTime < {time}) or ({time}==0)) and (units!=0) and (random.random() < 1-{percentage}) or initial:
+    while ((env.now - loopStartTime < {time}) or ({time}==0)) and (units!=0) and (random.random() < {percentage}) or initial:
         execution = execution + 1
         initial = False
+        start_standBy = env.now
+        possibleUsers = {element.userTask}
+        if possibleUsers is None:
+            possibleUsers = userPool
+        possibleUsers = resolve_possible_users(possibleUsers, TaskName)
+        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
+            yield env.timeout(1)
+            available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users:
+            userTask = min(available_users, key=lambda u: user_assignments[u])
+            user_assignments[userTask] += 1
+            request = user_resources[userTask].request()
+            yield request
+            try:
+                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, userTask)
+                if env.now > start_standBy:
+                    with open(f'files/resultSimulation.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, executions={{execution}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+                with open(f'files/resultSimulation.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, executions={{execution}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+            finally:
+                user_resources[userTask].release(request)
+                units = units - 1
+    if TaskName in generatedData.keys():
+        dataObjects = generatedData[TaskName]
+        for dataObject in dataObjects:
+            data.append((dataObject, name))
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
+    for key, values in gatewayConnections.items():
+        if TaskName in values:
+            if (key, name) in gatewayOccurrences.keys():
+                gatewayOccurrences[(key, name)] =+ 1
+            else:
+                gatewayOccurrences[(key, name)] = 1
+    return '{element.subTask}'
+"""
+    return generateFunction(elements, element.subTask, script + functionStr)
+
+
+def sendTask(elements, element, script):
+    if element.multiInstanceType == True or (element.multiInstanceType == None and element.loopParameter == None):
+        functionStr = f"""
+def {element.id_bpmn}(env, name):
+    TaskName = '{element.id_bpmn}'
+    if TaskName in requiredData.keys():
+        dataObjects = requiredData[TaskName]
+        start_standBy_data = env.now
+        while not all((dataObject, name) in data for dataObject in dataObjects):
+            yield env.timeout(1)
+        if env.now > start_standBy_data:
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
+    for i in range({element.numberOfExecutions}):
+        start_standBy = env.now
+        possibleUsers = {element.userTask}
+        if possibleUsers is None:
+            possibleUsers = userPool
+        possibleUsers = resolve_possible_users(possibleUsers, TaskName)
+        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
+            yield env.timeout(1)
+            available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users:
+            userTask = min(available_users, key=lambda u: user_assignments[u])
+            user_assignments[userTask] += 1
+            request = user_resources[userTask].request()
+            yield request
+            try:
+                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, userTask)
+                if env.now > start_standBy:
+                    with open(f'files/resultSimulation.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, execution={{i+1}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+                with open(f'files/resultSimulation.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, execution={{i+1}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+                if (TaskName, '{element.messageDestiny}', name) not in message_events:
+                    message_events.append((TaskName, '{element.messageDestiny}', i+1, name))
+            finally:
+                user_resources[userTask].release(request)
+    if TaskName in generatedData.keys():
+        dataObjects = generatedData[TaskName]
+        for dataObject in dataObjects:
+            data.append((dataObject, name))
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
+    for key, values in gatewayConnections.items():
+        if TaskName in values:
+            if (key, name) in gatewayOccurrences.keys():
+                gatewayOccurrences[(key, name)] =+ 1
+            else:
+                gatewayOccurrences[(key, name)] = 1
+    return '{element.subTask}'
+"""
+    elif element.multiInstanceType == False:
+        functionStr = f"""
+def {element.id_bpmn}(env, name):
+    def executeTask(env, TaskName, name, executionNumber):
+        start_standBy = env.now
+        possibleUsers = {element.userTask}
+        if possibleUsers is None:
+            possibleUsers = userPool
+        possibleUsers = resolve_possible_users(possibleUsers, TaskName)
+        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
+            yield env.timeout(1)
+            available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users:
+            userTask = min(available_users, key=lambda u: user_assignments[u])
+            user_assignments[userTask] += 1
+            request = user_resources[userTask].request()
+            yield request
+            try:
+                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, userTask)
+                if env.now > start_standBy:
+                    with open(f'files/resultSimulation.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, execution={{executionNumber+1}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+                with open(f'files/resultSimulation.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, execution={{executionNumber+1}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+                if (TaskName, '{element.messageDestiny}', name) not in message_events:
+                    message_events.append((TaskName, '{element.messageDestiny}', executionNumber+1, name))
+            finally:
+                user_resources[userTask].release(request)
+    TaskName = '{element.id_bpmn}'
+    if TaskName in requiredData.keys():
+        dataObjects = requiredData[TaskName]
+        start_standBy_data = env.now
+        while not all((dataObject, name) in data for dataObject in dataObjects):
+            yield env.timeout(1)
+        if env.now > start_standBy_data:
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
+    executionProcesses = []
+    for i in range({element.numberOfExecutions}):
+        executionProcesses.append(env.process(executeTask(env, TaskName, name, i)))
+    yield simpy.AllOf(env, executionProcesses)
+    if TaskName in generatedData.keys():
+        dataObjects = generatedData[TaskName]
+        for dataObject in dataObjects:
+            data.append((dataObject, name))
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
+    for key, values in gatewayConnections.items():
+        if TaskName in values:
+            if (key, name) in gatewayOccurrences.keys():
+                gatewayOccurrences[(key, name)] =+ 1
+            else:
+                gatewayOccurrences[(key, name)] = 1
+    return '{element.subTask}'
+"""
+    elif element.multiInstanceType == None:
+        if "Time" in element.loopParameter.keys():
+            time = element.loopParameter["Time"]
+        else:
+            time = 0
+        if "Units" in element.loopParameter.keys():
+            units = element.loopParameter["Units"]
+        else:
+            units = -1
+        if "Percentage" in element.loopParameter.keys():
+            percentage = 1 - element.loopParameter["Percentage"]/100
+        else:
+            percentage = 1
+        functionStr = f"""
+def {element.id_bpmn}(env, name):
+    TaskName = '{element.id_bpmn}'
+    if TaskName in requiredData.keys():
+        dataObjects = requiredData[TaskName]
+        start_standBy_data = env.now
+        while not all((dataObject, name) in data for dataObject in dataObjects):
+            yield env.timeout(1)
+        if env.now > start_standBy_data:
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
+    units = {units}
+    loopStartTime = env.now
+    initial = True
+    execution = 0
+    while ((env.now - loopStartTime < {time}) or ({time}==0)) and (units!=0) and (random.random() < {percentage}) or initial:
+        execution = execution + 1
+        initial = False
+        start_standBy = env.now
+        possibleUsers = {element.userTask}
+        if possibleUsers is None:
+            possibleUsers = userPool
+        possibleUsers = resolve_possible_users(possibleUsers, TaskName)
+        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
+            yield env.timeout(1)
+            available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users:
+            userTask = min(available_users, key=lambda u: user_assignments[u])
+            user_assignments[userTask] += 1
+            request = user_resources[userTask].request()
+            yield request
+            try:
+                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, userTask)
+                if env.now > start_standBy:
+                    with open(f'files/resultSimulation.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, executions={{execution}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+                with open(f'files/resultSimulation.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, executions={{execution}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+                if (TaskName, '{element.messageDestiny}', name) not in message_events:
+                    message_events.append((TaskName, '{element.messageDestiny}', execution, name))
+            finally:
+                user_resources[userTask].release(request)
+                units = units - 1
+    if TaskName in generatedData.keys():
+        dataObjects = generatedData[TaskName]
+        for dataObject in dataObjects:
+            data.append((dataObject, name))
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
+    for key, values in gatewayConnections.items():
+        if TaskName in values:
+            if (key, name) in gatewayOccurrences.keys():
+                gatewayOccurrences[(key, name)] =+ 1
+            else:
+                gatewayOccurrences[(key, name)] = 1
+    return '{element.subTask}'
+"""
+    return generateFunction(elements, element.subTask, script + functionStr)
+
+
+def receiveTask(elements, element, script):
+    if element.multiInstanceType == True or (element.multiInstanceType == None and element.loopParameter == None):
+        functionStr = f"""
+def {element.id_bpmn}(env, name):
+    TaskName = '{element.id_bpmn}'
+    if TaskName in requiredData.keys():
+        dataObjects = requiredData[TaskName]
+        start_standBy_data = env.now
+        while not all((dataObject, name) in data for dataObject in dataObjects):
+            yield env.timeout(1)
+        if env.now > start_standBy_data:
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
+    for i in range({element.numberOfExecutions}):
+        start_standby_message = env.now
+        while not ('{element.messageOrigin}', TaskName, i+1, name) in message_events:
+            yield env.timeout(1)
+        end_standby_message = env.now
+        duration_standby_message = end_standby_message - start_standby_message
+        if duration_standby_message > 0:
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, execution={{i+1}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
+        start_standBy = env.now
+        possibleUsers = {element.userTask}
+        if possibleUsers is None:
+            possibleUsers = userPool
+        possibleUsers = resolve_possible_users(possibleUsers, TaskName)
+        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
+            yield env.timeout(1)
+            available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users:
+            userTask = min(available_users, key=lambda u: user_assignments[u])
+            user_assignments[userTask] += 1
+            request = user_resources[userTask].request()
+            yield request
+            try:
+                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, userTask)
+                if env.now > start_standBy:
+                    with open(f'files/resultSimulation.txt', 'a') as f:
+                        f.write(f'''
+{{name}}: [type=StandBy, id_bpmn={{TaskName}}, execution={{i+1}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+                with open(f'files/resultSimulation.txt', 'a') as f:
+                    f.write(f'''
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, execution={{i+1}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+                yield env.timeout(time)
+            finally:
+                user_resources[userTask].release(request)
+    if TaskName in generatedData.keys():
+        dataObjects = generatedData[TaskName]
+        for dataObject in dataObjects:
+            data.append((dataObject, name))
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
+    for key, values in gatewayConnections.items():
+        if TaskName in values:
+            if (key, name) in gatewayOccurrences.keys():
+                gatewayOccurrences[(key, name)] =+ 1
+            else:
+                gatewayOccurrences[(key, name)] = 1
+    return '{element.subTask}'
+"""
+    elif element.multiInstanceType == False:
+        functionStr = f"""
+def {element.id_bpmn}(env, name):
+    def executeTask(env, TaskName, name, executionNumber):
+        start_standby_message = env.now
+        while not ('{element.messageOrigin}', TaskName, executionNumber, name) in message_events:
+            yield env.timeout(1)
+        end_standby_message = env.now
+        duration_standby_message = end_standby_message - start_standby_message
+        if duration_standby_message > 0:
+            with open(f'files/resultSimulation.txt', 'a') as f:
+                f.write(f'''
+{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
         start_standBy = env.now
         possibleUsers = {element.userTask}
         if possibleUsers is None:
@@ -272,32 +593,10 @@ def {element.id_bpmn}(env, name):
 {{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
                 with open(f'files/resultSimulation.txt', 'a') as f:
                     f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, executions={{execution}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
+{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
                 yield env.timeout(time)
-                if TaskName in generatedData.keys():
-                    dataObjects = generatedData[TaskName]
-                    for dataObject in dataObjects:
-                        data.append((dataObject, name))
-                        with open(f'files/resultSimulation.txt', 'a') as f:
-                            f.write(f'''
-{{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
             finally:
                 user_resources[userTask].release(request)
-                units = units - 1
-    for key, values in gatewayConnections.items():
-        if TaskName in values:
-            if (key, name) in gatewayOccurrences.keys():
-                gatewayOccurrences[(key, name)] =+ 1
-            else:
-                gatewayOccurrences[(key, name)] = 1
-    return '{element.subTask}'
-"""
-    return generateFunction(elements, element.subTask, script + functionStr)
-
-
-def sendTask(elements, element, script):
-    functionStr = f"""
-def {element.id_bpmn}(env, name):
     TaskName = '{element.id_bpmn}'
     if TaskName in requiredData.keys():
         dataObjects = requiredData[TaskName]
@@ -308,41 +607,17 @@ def {element.id_bpmn}(env, name):
             with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
 {{name}}: [type=StandByData, id_bpmn={{TaskName}}, startTime={{start_standBy_data}}, stopTime={{env.now}}, time={{env.now-start_standBy_data}}, instance={{name.split()[-1]}}]''')
-    start_standBy = env.now
-    possibleUsers = {element.userTask}
-    if possibleUsers is None:
-        possibleUsers = userPool
-    possibleUsers = resolve_possible_users(possibleUsers, TaskName)
-    available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    while not available_users:
-        yield env.timeout(1)
-        available_users = [user for user in possibleUsers if user_resources[user].count < user_resources[user].capacity]
-    if available_users:
-        userTask = min(available_users, key=lambda u: user_assignments[u])
-        user_assignments[userTask] += 1
-        request = user_resources[userTask].request()
-        yield request
-        try:
-            time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
-            if env.now > start_standBy:
-                with open(f'files/resultSimulation.txt', 'a') as f:
-                    f.write(f'''
-{{name}}: [type=StandBy, id_bpmn={{TaskName}}, startTime={{start_standBy}}, stopTime={{env.now}}, time={{env.now-start_standBy}}, instance={{name.split()[-1]}}]''')
+    executionProcesses = []
+    for i in range({element.numberOfExecutions}):
+        executionProcesses.append(env.process(executeTask(env, TaskName, name, i)))
+    yield simpy.AllOf(env, executionProcesses)
+    if TaskName in generatedData.keys():
+        dataObjects = generatedData[TaskName]
+        for dataObject in dataObjects:
+            data.append((dataObject, name))
             with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
-{{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, numberOfExecutions={element.numberOfExecutions}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
-            yield env.timeout(time)
-            if TaskName in generatedData.keys():
-                dataObjects = generatedData[TaskName]
-                for dataObject in dataObjects:
-                    data.append((dataObject, name))
-                    with open(f'files/resultSimulation.txt', 'a') as f:
-                        f.write(f'''
 {{name}}: [type=DataObject, id_bpmn={{dataObject}}, name={{dataInfo[dataObject]}}, generationTime={{env.now}}, instance={{name.split()[-1]}}]''')
-            if (TaskName, '{element.messageDestiny}', name) not in message_events:
-                message_events.append((TaskName, '{element.messageDestiny}', name))
-        finally:
-            user_resources[userTask].release(request)
     for key, values in gatewayConnections.items():
         if TaskName in values:
             if (key, name) in gatewayOccurrences.keys():
@@ -351,11 +626,20 @@ def {element.id_bpmn}(env, name):
                 gatewayOccurrences[(key, name)] = 1
     return '{element.subTask}'
 """
-    return generateFunction(elements, element.subTask, script + functionStr)
-
-
-def receiveTask(elements, element, script):
-    functionStr = f"""
+    elif element.multiInstanceType == None:
+        if "Time" in element.loopParameter.keys():
+            time = element.loopParameter["Time"]
+        else:
+            time = 0
+        if "Units" in element.loopParameter.keys():
+            units = element.loopParameter["Units"]
+        else:
+            units = -1
+        if "Percentage" in element.loopParameter.keys():
+            percentage = 1 - element.loopParameter["Percentage"]/100
+        else:
+            percentage = 1
+        functionStr = f"""
 def {element.id_bpmn}(env, name):
     TaskName = '{element.id_bpmn}'
     if TaskName in requiredData.keys():
