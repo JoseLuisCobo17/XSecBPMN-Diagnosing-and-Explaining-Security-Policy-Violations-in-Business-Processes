@@ -334,7 +334,7 @@ def {element.id_bpmn}(env, name):
                     f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, execution={{i+1}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
                 yield env.timeout(time)
-                if (TaskName, '{element.messageDestiny}', name) not in message_events:
+                if (TaskName, '{element.messageDestiny}', i+1, name) not in message_events:
                     message_events.append((TaskName, '{element.messageDestiny}', i+1, name))
             finally:
                 user_resources[userTask].release(request)
@@ -381,7 +381,7 @@ def {element.id_bpmn}(env, name):
                     f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, execution={{executionNumber+1}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
                 yield env.timeout(time)
-                if (TaskName, '{element.messageDestiny}', name) not in message_events:
+                if (TaskName, '{element.messageDestiny}', executionNumber+1, name) not in message_events:
                     message_events.append((TaskName, '{element.messageDestiny}', executionNumber+1, name))
             finally:
                 user_resources[userTask].release(request)
@@ -470,7 +470,7 @@ def {element.id_bpmn}(env, name):
                     f.write(f'''
 {{name}}: [type={element.bpmn_type}, name={element.name}, id_bpmn={{TaskName}}, userTask={{userTask}}, executions={{execution}}, time={{time}}, subTask="{element.subTask}", startTime={{env.now}}, instance={{name.split()[-1]}}]''')
                 yield env.timeout(time)
-                if (TaskName, '{element.messageDestiny}', name) not in message_events:
+                if (TaskName, '{element.messageDestiny}', execution, name) not in message_events:
                     message_events.append((TaskName, '{element.messageDestiny}', execution, name))
             finally:
                 user_resources[userTask].release(request)
@@ -563,7 +563,7 @@ def {element.id_bpmn}(env, name):
 def {element.id_bpmn}(env, name):
     def executeTask(env, TaskName, name, executionNumber):
         start_standby_message = env.now
-        while not ('{element.messageOrigin}', TaskName, executionNumber, name) in message_events:
+        while not ('{element.messageOrigin}', TaskName, executionNumber+1, name) in message_events:
             yield env.timeout(1)
         end_standby_message = env.now
         duration_standby_message = end_standby_message - start_standby_message
@@ -985,6 +985,8 @@ requiredData = {elements['requiredData']}
 dataInfo = {elements['dataInfo']}
 defaultData = {elements['defaultData']}
 data = []
+gatewayOccurrences = {{}}
+gatewayProcessed = set()
 gatewayConnections = {elements['gatewayConnections']}
 for i in range(nInstances):
     for dataObject in defaultData:
