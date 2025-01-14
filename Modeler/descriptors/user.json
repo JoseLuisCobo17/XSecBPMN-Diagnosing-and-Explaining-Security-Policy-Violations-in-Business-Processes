@@ -40,7 +40,7 @@
         {
           "name": "loopParameter",
           "isAttr": true,
-          "type": "Integer"
+          "type": "String"
         },
         {
           "name": "AdditionalIntegerParameter",
