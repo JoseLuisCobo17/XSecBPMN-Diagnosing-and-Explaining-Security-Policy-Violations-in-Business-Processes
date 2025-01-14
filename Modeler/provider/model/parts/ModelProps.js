@@ -252,134 +252,108 @@ function userWithoutRoleFunction(props) {
 }
 
 function userWithRoleFunction(props) {
-  const { element, id } = props;
+  const { element } = props;
   const modeling = useService('modeling');
   const translate = useService('translate');
-  const debounce = useService('debounceInput');
+  const moddle = useService('moddle'); // <--- Importante
 
-  // Obtén el objeto userWithRole o un objeto vacío si no existe, considerando si es un bpmn:Collaboration
   const getuserWithRole = () => {
-    if (!element || !element.businessObject) return {};
-
+    if (!element || !element.businessObject) return [];
     if (element.businessObject.participants) {
       const firstParticipant = element.businessObject.participants[0];
-      if (firstParticipant.processRef) {
-        return firstParticipant.processRef.userWithRole || {};
+      if (firstParticipant?.processRef) {
+        return firstParticipant.processRef.userWithRole || [];
       }
     }
-    return element.businessObject.userWithRole || {};
+    return element.businessObject.userWithRole || [];
   };
 
-  // Función para actualizar el nombre del rol
-  const setRoleName = (oldRole, newRole) => {
-    const userWithRole = getuserWithRole();
-    const updateduserWithRole = {};
+  const setuserWithRole = (updatedArray) => {
+    // Collaboration
+    if (element.businessObject.participants) {
+      element.businessObject.participants.forEach(participant => {
+        if (participant.processRef) {
+          modeling.updateModdleProperties(element, participant.processRef, {
+            userWithRole: updatedArray
+          });
+        }
+      });
+    } else {
+      modeling.updateProperties(element, {
+        userWithRole: updatedArray
+      });
+    }
+  };
 
-    // Transferir los valores, cambiando el nombre del rol
-    Object.keys(userWithRole).forEach(role => {
-      updateduserWithRole[role === oldRole ? newRole : role] = userWithRole[role];
+  // Añadir un nuevo KeyValuePair
+  const addRole = () => {
+    const current = getuserWithRole();
+
+    // Crear la instancia con moddle
+    const newKeyValuePair = moddle.create('model:KeyValuePair', {
+      key: `role${current.length + 1}`,
+      value: ''
     });
 
-    // Actualizar en cada participante si es Collaboration
-    if (element.businessObject.participants) {
-      element.businessObject.participants.forEach(participant => {
-        if (participant.processRef) {
-          modeling.updateModdleProperties(element, participant.processRef, {
-            userWithRole: updateduserWithRole
-          });
-        }
-      });
-    } else {
-      modeling.updateProperties(element, {
-        userWithRole: updateduserWithRole
-      });
-    }
+    // Agregamos la instancia al array
+    const updated = [ ...current, newKeyValuePair ];
+    setuserWithRole(updated);
   };
 
-  // Función para actualizar el valor de un rol en userWithRole
-  const setuserWithRoleValue = (role, value) => {
-    const userWithRole = getuserWithRole();
-    const updateduserWithRole = { ...userWithRole, [role]: value };
-
-    if (element.businessObject.participants) {
-      element.businessObject.participants.forEach(participant => {
-        if (participant.processRef) {
-          modeling.updateModdleProperties(element, participant.processRef, {
-            userWithRole: updateduserWithRole
-          });
-        }
-      });
-    } else {
-      modeling.updateProperties(element, {
-        userWithRole: updateduserWithRole
-      });
-    }
+  // Cambiar la key
+  const setRoleName = (index, newKey) => {
+    const current = getuserWithRole();
+    const updated = [ ...current ];
+    
+    // OJO: updated[index] ya debería ser un KeyValuePair moddle
+    updated[index] = moddle.create('model:KeyValuePair', {
+      key: newKey,
+      value: updated[index].value
+    });
+    setuserWithRole(updated);
   };
 
-  // Función para eliminar un rol y su valor asociado
-  const removeRole = role => {
-    const userWithRole = getuserWithRole();
-    const updateduserWithRole = { ...userWithRole };
-    delete updateduserWithRole[role];
+  // Cambiar el value
+  const setRoleValue = (index, newValue) => {
+    const current = getuserWithRole();
+    const updated = [ ...current ];
 
-    if (element.businessObject.participants) {
-      element.businessObject.participants.forEach(participant => {
-        if (participant.processRef) {
-          modeling.updateModdleProperties(element, participant.processRef, {
-            userWithRole: updateduserWithRole
-          });
-        }
-      });
-    } else {
-      modeling.updateProperties(element, {
-        userWithRole: updateduserWithRole
-      });
-    }
+    // Igual, recreamos el KeyValuePair con la nueva value
+    updated[index] = moddle.create('model:KeyValuePair', {
+      key: updated[index].key,
+      value: newValue
+    });
+    setuserWithRole(updated);
   };
 
-  // Función para añadir un nuevo rol
-  const addRole = () => {
-    const userWithRole = getuserWithRole();
-    const newRole = `role${Object.keys(userWithRole).length + 1}`;
-    const updateduserWithRole = { ...userWithRole, [newRole]: '' };
-
-    if (element.businessObject.participants) {
-      element.businessObject.participants.forEach(participant => {
-        if (participant.processRef) {
-          modeling.updateModdleProperties(element, participant.processRef, {
-            userWithRole: updateduserWithRole
-          });
-        }
-      });
-    } else {
-      modeling.updateProperties(element, {
-        userWithRole: updateduserWithRole
-      });
-    }
+  const removeRole = (index) => {
+    const current = getuserWithRole();
+    const updated = [ ...current ];
+    updated.splice(index, 1);
+    setuserWithRole(updated);
   };
 
-  // Renderizar las entradas clave-valor
   const renderuserWithRoleEntries = () => {
-    const userWithRole = getuserWithRole();
-    return Object.keys(userWithRole).map(role => {
+    const arr = getuserWithRole();
+    return arr.map((pair, index) => {
       return html`
         <div class="user-pool-item">
           <input 
             type="text" 
-            value=${role} 
-            onInput=${(event) => setRoleName(role, event.target.value)} 
-            placeholder="Role name" 
-            style="margin-right: 10px;" 
+            value=${pair.key || ''} 
+            onInput=${(event) => setRoleName(index, event.target.value)} 
+            placeholder="Role name"
+            style="margin-right: 10px;"
           />
           <input 
             type="text" 
-            value=${userWithRole[role]} 
-            onInput=${(event) => setuserWithRoleValue(role, event.target.value)} 
-            placeholder="User name" 
+            value=${pair.value || ''} 
+            onInput=${(event) => setRoleValue(index, event.target.value)} 
+            placeholder="User name"
           />
           <button 
-            class="remove-role-button" 
-            onClick=${() => removeRole(role)}
+            class="remove-role-button"
+            onClick=${() => removeRole(index)}
             style="margin-left: 10px; background-color: red; color: white;">
             ${translate('X')}
           </button>
@@ -391,7 +365,9 @@ function userWithRoleFunction(props) {
   return html`
     <div class="user-pool-container">
       ${renderuserWithRoleEntries()}
-      <button class="add-role-button" onClick=${addRole}>${translate('Add role with user')}</button>
+      <button class="add-role-button" onClick=${addRole}>
+        ${translate('Add role with user')}
+      </button>
     </div>
   `;
 }
