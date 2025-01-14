@@ -17,7 +17,7 @@
       "properties": [
         {
           "name": "UserTask",
-          "isAttr": true,
+          "isAttr": false,
           "type": "String",
           "isMany": true
         },
