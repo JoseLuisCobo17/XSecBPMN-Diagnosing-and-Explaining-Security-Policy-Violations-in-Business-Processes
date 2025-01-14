@@ -13,7 +13,7 @@
         {
           "name": "instance",
           "isAttr": true,
-          "type": "Integer"
+          "type": "String"
         },
         {
           "name": "frequency",
