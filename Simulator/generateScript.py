@@ -100,7 +100,7 @@ def {element.id_bpmn}(env, name):
     extendedScript = script + functionStr
     for elem in possibleElements:
         if ('def ' + elem + '(env, name') not in script:
-            extendedScript = generateFunction(elements, elem, extendedScript=True)
+            extendedScript = generateFunction(elements, elem, extendedScript)
     return extendedScript
 
 def generalTask(elements, element, script):
@@ -570,7 +570,7 @@ def {element.id_bpmn}(env, name):
         if duration_standby_message > 0:
             with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
-{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
+{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, execution={{executionNumber+1}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
         start_standBy = env.now
         possibleUsers = {element.userTask}
         if possibleUsers is None:
@@ -659,14 +659,14 @@ def {element.id_bpmn}(env, name):
         execution = execution + 1
         initial = False
         start_standby_message = env.now
-        while not ('{element.messageOrigin}', TaskName, name) in message_events:
+        while not ('{element.messageOrigin}', TaskName, execution, name) in message_events:
             yield env.timeout(1)
         end_standby_message = env.now
         duration_standby_message = end_standby_message - start_standby_message
         if duration_standby_message > 0:
             with open(f'files/resultSimulation.txt', 'a') as f:
                 f.write(f'''
-{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
+{{name}}: [type=StandByMessage, id_bpmn={{TaskName}}, execution={{execution}}, startTime={{start_standby_message}}, stopTime={{end_standby_message}}, time={{duration_standby_message}}, instance={{name.split()[-1]}}]''')
         start_standBy = env.now
         possibleUsers = {element.userTask}
         if possibleUsers is None:
