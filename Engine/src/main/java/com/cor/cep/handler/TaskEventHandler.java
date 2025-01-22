@@ -100,6 +100,9 @@ EPStatement statementBod = deploymentBod.getStatements()[0];
 statementBod.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
         String subTask1Name = (String) newData[0].get("subTask1Name");
@@ -158,6 +161,9 @@ EPStatement statementMultiBod = deploymentMultiBod.getStatements()[0];
 statementMultiBod.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
         String subTask1Name = (String) newData[0].get("subTask1Name");
@@ -249,6 +255,9 @@ EPStatement statementSod = deploymentSod.getStatements()[0];
 statementSod.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
         String subTask1Name = (String) newData[0].get("subTask1Name");
@@ -308,6 +317,9 @@ EPStatement statementMultiInstanceSod = deploymentMultiInstanceSod.getStatements
 statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId   = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
         String subTask1Name = (String) newData[0].get("subTask1Name");
@@ -370,6 +382,9 @@ String uocEPL = "select parent.idBpmn as parentId, " +
 statementUoc.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
         String subTaskId = (String) newData[0].get("subTaskId");
         String subTaskName = (String) newData[0].get("subTaskName");
         String userTask = (String) newData[0].get("userTask");
@@ -431,6 +446,9 @@ Map<String, Integer> reportedMultiInstanceUocViolations = new HashMap<>();
 statementMultiInstanceUoc.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String  parentId               = (String)  newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
         String  subTaskId              = (String)  newData[0].get("subTaskId");
         String subTaskName             = (String) newData[0].get("subTaskName");
         String  userTask               = (String)  newData[0].get("userTask");
