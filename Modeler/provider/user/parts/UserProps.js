@@ -149,6 +149,7 @@ function NumberOfExecutionsFunction(props) {
   const modeling = useService('modeling');
   const translate = useService('translate');
   const debounce = useService('debounceInput');
+  const elementRegistry = useService('elementRegistry');
 
   const getValue = () => {
     if (!element || !element.businessObject) {
@@ -196,6 +197,47 @@ function NumberOfExecutionsFunction(props) {
     }
 
     modeling.updateProperties(element, {
+      NumberOfExecutions: newValue
+    });
+
+    const bo = element.businessObject;
+    const isSendOrReceive = bo.$type === 'bpmn:SendTask' || bo.$type === 'bpmn:ReceiveTask';
+    if (!isSendOrReceive) {
+      return;
+    }
+
+    const definitions = bo.$parent.$parent; 
+
+    const collaboration = definitions.rootElements.find(e => e.$type === 'bpmn:Collaboration');
+    if (!collaboration || !collaboration.messageFlows) {
+      return;
+    }
+
+    const relatedFlow = collaboration.messageFlows.find(flow =>
+      (flow.sourceRef === bo || flow.targetRef === bo)
+    );
+    if (!relatedFlow) {
+      return;
+    }
+
+    const otherSide = (relatedFlow.sourceRef === bo)
+      ? relatedFlow.targetRef
+      : relatedFlow.sourceRef;
+
+    const otherIsSendOrReceive =
+      otherSide.$type === 'bpmn:SendTask' ||
+      otherSide.$type === 'bpmn:ReceiveTask';
+
+    if (!otherIsSendOrReceive) {
+      return;
+    }
+
+    const otherElement = elementRegistry.get(otherSide.id);
+    if (!otherElement) {
+      return;
+    }
+
+    modeling.updateProperties(otherElement, {
       NumberOfExecutions: newValue
     });
   };
