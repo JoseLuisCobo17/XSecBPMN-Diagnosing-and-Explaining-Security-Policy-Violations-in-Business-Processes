@@ -80,6 +80,7 @@ public class TaskEventHandler implements InitializingBean {
 LOG.debug("Creating Generalized BoD Check Expression");
 String bodEPL = "select parent.idBpmn as parentId, " +
     "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+    "sub1.name as subTask1Name, sub2.name as subTask2Name, " +
     "sub1.userTask as user1, sub2.userTask as user2, " +
     "sub1.instance as instance1 " +
     "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
@@ -101,6 +102,8 @@ statementBod.addListener((newData, oldData, stat, rt) -> {
         String parentId = (String) newData[0].get("parentId");
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
         String user1 = (String) newData[0].get("user1");
         String user2 = (String) newData[0].get("user2");
         Integer instance1 = (Integer) newData[0].get("instance1");
@@ -117,8 +120,8 @@ statementBod.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n---------------------------------");
             sb.append("\n- [BOD MONITOR] Binding of Duties violation detected:");
             sb.append("\n- Parent Task ID: ").append(parentId);
-            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
             sb.append("\n- Executed By Users: ").append(user1).append(" and ").append(user2);
             sb.append("\n- Instance: ").append(instance1);
             sb.append("\n---------------------------------");
@@ -133,6 +136,7 @@ LOG.debug("Creating Multi-Instance BoD Check Expression");
 String multiInstanceBodEPL = 
 "select parent.idBpmn as parentId, " +
 "       sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+"sub1.name as subTask1Name, sub2.name as subTask2Name, " +
 "       sub1.userTask as userTask1, sub2.userTask as userTask2, " + 
 "       sub1.instance as instance1, sub2.instance as instance2, " +
 "       sub1.execution as execution1, sub2.execution as execution2 " +
@@ -156,6 +160,8 @@ statementMultiBod.addListener((newData, oldData, stat, rt) -> {
         String parentId = (String) newData[0].get("parentId");
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
         String user1 = (String) newData[0].get("userTask1");
         String user2 = (String) newData[0].get("userTask2");             
         Integer instance1 = (Integer) newData[0].get("instance1");
@@ -174,8 +180,8 @@ statementMultiBod.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n---------------------------------");
             sb.append("\n- [MULTI-INSTANCE BoD MONITOR] Multi-Instance violation detected:");
             sb.append("\n- Parent Task ID: ").append(parentId);
-            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
             sb.append("\n- Executed By Users: ").append(user1).append(" and ").append(user2);
             sb.append("\n- Instance: ").append(instance1);
             sb.append("\n- Execution 1: ").append(execution1);
@@ -220,6 +226,7 @@ statementStandBy.addListener((newData, oldData, stat, rt) -> {
 LOG.debug("Creating Generalized SoD Check Expression");
 String sodEPL = "select parent.idBpmn as parentId, " +
                 "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+                "sub1.name as subTask1Name, sub2.name as subTask2Name, " +
                 "sub1.userTask as userTask1, sub2.userTask as userTask2, " +
                 "sub1.instance as instance1, " +
                 "sub1.execution as execution1, sub2.execution as execution2 " +
@@ -244,6 +251,8 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
         String parentId = (String) newData[0].get("parentId");
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
         String userTask1 = (String) newData[0].get("userTask1");
         Integer instance1 = (Integer) newData[0].get("instance1");
 
@@ -260,8 +269,8 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n---------------------------------");
             sb.append("\n- [SOD MONITOR] Segregation of Duties violation detected:");
             sb.append("\n- Parent Task ID: ").append(parentId);
-            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
             sb.append("\n- Executed By User: ").append(userTask1);
             sb.append("\n- Instance: ").append(instance1);
             sb.append("\n---------------------------------");
@@ -276,6 +285,7 @@ String multiInstanceSodEPL =
 
   "select parent.idBpmn as parentId, " +
   "       sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+  "sub1.name as subTask1Name, sub2.name as subTask2Name, " +
   "       sub1.userTask as userTask1, " + 
   "       sub1.instance as instance1, sub2.instance as instance2, " +
   "       sub1.execution as execution1, sub2.execution as execution2 " +
@@ -300,6 +310,8 @@ statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
         String parentId   = (String) newData[0].get("parentId");
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
         String userTask1  = (String) newData[0].get("userTask1"); 
         Integer instance1 = (Integer) newData[0].get("instance1");
         Integer instance2 = (Integer) newData[0].get("instance2");
@@ -321,8 +333,8 @@ statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n---------------------------------");
             sb.append("\n- [MULTI-INSTANCE SoD MONITOR] Segregation of Duties violation detected:");
             sb.append("\n- Parent Task ID: ").append(parentId);
-            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
             sb.append("\n- Executed By User: ").append(userTask1);
             sb.append("\n- Instance: ").append(instance1);
             sb.append("\n- Execution 1: ").append(execution1);
@@ -338,6 +350,7 @@ statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
 LOG.debug("Creating UoC Check Expression");
 String uocEPL = "select parent.idBpmn as parentId, " +
     "sub1.idBpmn as subTaskId, " +
+    "sub1.name as subTaskName, "+
     "sub1.userTask as userTask, " +
     "sub1.instance as instance1, " +
     "sub1.numberOfExecutions as totalExecutions, " +
@@ -358,6 +371,7 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
         String subTaskId = (String) newData[0].get("subTaskId");
+        String subTaskName = (String) newData[0].get("subTaskName");
         String userTask = (String) newData[0].get("userTask");
         Integer totalExecutions = (Integer) newData[0].get("totalExecutions");
         Integer maxTimes = (Integer) newData[0].get("parentMth");
@@ -368,7 +382,7 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
                 sb.append("\n---------------------------------");
                 sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
                 sb.append("\n- Parent Task ID: ").append(parentId);
-                sb.append("\n- SubTask ID: ").append(subTaskId);
+                sb.append("\n- SubTask: ").append(subTaskName).append(" (").append(subTaskId).append(")");
                 sb.append("\n- User(s): ").append(userTask); 
                 sb.append("\n- Total number of executions (accumulated): ").append(totalExecutions);
                 sb.append("\n- Maximum allowed: ").append(maxTimes != null ? maxTimes : "N/A");
@@ -386,6 +400,7 @@ String multiInstanceUocEPL =
     "SELECT " +
     "   parent.idBpmn AS parentId, " +
     "   sub1.idBpmn  AS subTaskId, " +
+    "sub1.name as subTaskName, "+
     "   sub1.userTask AS userTask, " +
     "   sub1.instance AS instance1, " +
     "   MAX(sub1.execution) AS maxExecution, " +
@@ -417,6 +432,7 @@ statementMultiInstanceUoc.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String  parentId               = (String)  newData[0].get("parentId");
         String  subTaskId              = (String)  newData[0].get("subTaskId");
+        String subTaskName             = (String) newData[0].get("subTaskName");
         String  userTask               = (String)  newData[0].get("userTask");
         Integer instance1              = (Integer) newData[0].get("instance1");
         Integer maxExecution           = (Integer) newData[0].get("maxExecution");
@@ -432,7 +448,7 @@ statementMultiInstanceUoc.addListener((newData, oldData, stat, rt) -> {
                 sb.append("\n- [UOC MONITOR - Multi-Instance Rule]");
                 sb.append("\n- Violation detected: Product of (maxExecution x sumNumberOfExecutions) exceeded MTH");
                 sb.append("\n- Parent Task ID: ").append(parentId);
-                sb.append("\n- SubTask ID: ").append(subTaskId);
+                sb.append("\n- SubTask: ").append(subTaskName).append(" (").append(subTaskId).append(")");
                 sb.append("\n- User(s): ").append(userTask);
                 sb.append("\n- Instance: ").append(instance1);
                 sb.append("\n- Max Execution observed: ").append(maxExecution);
