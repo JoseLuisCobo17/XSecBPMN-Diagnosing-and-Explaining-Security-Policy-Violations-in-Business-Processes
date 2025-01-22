@@ -207,6 +207,7 @@ if (isMessageStartEvent) {
     let instance = ''; 
     let security = false; 
     let userWithRole = {};
+    let userWithoutRole = {};
     let userWithoutRoleSet = new Set();
     let frequency = 0;
     let containedElements = businessObject.flowNodeRef 
@@ -266,7 +267,8 @@ if (isMessageStartEvent) {
         userWithRole = businessObject.userWithRole;
       }
       if (businessObject.userWithoutRole) {
-        businessObject.userWithoutRole.forEach(role => userWithoutRoleSet.add(role.trim()));
+        userWithoutRole = businessObject.userWithoutRole;
+        userWithoutRole = [...new Set(userWithoutRole)];
       }
       if (businessObject.frequency !== undefined) {
         frequency = businessObject.frequency;
@@ -277,8 +279,6 @@ if (isMessageStartEvent) {
     } else {
       instance = businessObject.instance || '';
     }
-
-    const userWithoutRole = Array.from(userWithoutRoleSet).join(', ');
 
     return {
       id_model: id_model,
