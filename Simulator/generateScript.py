@@ -682,7 +682,7 @@ def {element.id_bpmn}(env, name):
             request = user_resources[userTask].request()
             yield request
             try:
-                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, {element.numberOfExecutions}, userTask)
+                time = resolve_task_time('{element.id_bpmn}', {element.maximumTime}, {element.minimumTime}, userTask)
                 if env.now > start_standBy:
                     with open(f'files/resultSimulation.txt', 'a') as f:
                         f.write(f'''
@@ -693,6 +693,7 @@ def {element.id_bpmn}(env, name):
                 yield env.timeout(time)
             finally:
                 user_resources[userTask].release(request)
+                units = units - 1
     if TaskName in generatedData.keys():
         dataObjects = generatedData[TaskName]
         for dataObject in dataObjects:

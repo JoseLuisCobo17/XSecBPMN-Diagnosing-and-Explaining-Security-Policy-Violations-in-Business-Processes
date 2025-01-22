@@ -123,13 +123,13 @@ def {element.id_bpmn}(env, name):
         if possibleUsers is None:
             possibleUsers = userPool
         possibleSecureUsers = resolve_possible_users_security(possibleUsers, TaskName, name)
-        availableSecureUsers = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
-        if availableSecureUsers == []:
+        available_users = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users == []:
             possibleNormalUsers = resolve_possible_users(possibleUsers, TaskName)
-        availableNormalUsers = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
-        while not availableNormalUsers:
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
             yield env.timeout(1)
-            availableNormalUsers = [user for user in availableNormalUsers if user_resources[user].count < user_resources[user].capacity]
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
         if available_users:
             userTask = min(available_users, key=lambda u: user_assignments[u])
             user_assignments[userTask] += 1
@@ -184,13 +184,13 @@ def {element.id_bpmn}(env, name):
         if possibleUsers is None:
             possibleUsers = userPool
         possibleSecureUsers = resolve_possible_users_security(possibleUsers, TaskName, name)
-        availableSecureUsers = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
-        if availableSecureUsers == []:
+        available_users = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users == []:
             possibleNormalUsers = resolve_possible_users(possibleUsers, TaskName)
-        availableNormalUsers = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
-        while not availableNormalUsers:
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
             yield env.timeout(1)
-            availableNormalUsers = [user for user in availableNormalUsers if user_resources[user].count < user_resources[user].capacity]
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
         if available_users:
             userTask = min(available_users, key=lambda u: user_assignments[u])
             user_assignments[userTask] += 1
@@ -287,13 +287,13 @@ def {element.id_bpmn}(env, name):
         if possibleUsers is None:
             possibleUsers = userPool
         possibleSecureUsers = resolve_possible_users_security(possibleUsers, TaskName, name)
-        availableSecureUsers = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
-        if availableSecureUsers == []:
+        available_users = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users == []:
             possibleNormalUsers = resolve_possible_users(possibleUsers, TaskName)
-        availableNormalUsers = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
-        while not availableNormalUsers:
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
             yield env.timeout(1)
-            availableNormalUsers = [user for user in availableNormalUsers if user_resources[user].count < user_resources[user].capacity]
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
         if available_users:
             userTask = min(available_users, key=lambda u: user_assignments[u])
             user_assignments[userTask] += 1
@@ -324,6 +324,7 @@ def {element.id_bpmn}(env, name):
                 yield env.timeout(time)
             finally:
                 user_resources[userTask].release(request)
+                units = units - 1
     if TaskName in generatedData.keys():
         dataObjects = generatedData[TaskName]
         for dataObject in dataObjects:
@@ -362,13 +363,13 @@ def {element.id_bpmn}(env, name):
         if possibleUsers is None:
             possibleUsers = userPool
         possibleSecureUsers = resolve_possible_users_security(possibleUsers, TaskName, name)
-        availableSecureUsers = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
-        if availableSecureUsers == []:
+        available_users = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users == []:
             possibleNormalUsers = resolve_possible_users(possibleUsers, TaskName)
-        availableNormalUsers = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
-        while not availableNormalUsers:
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
             yield env.timeout(1)
-            availableNormalUsers = [user for user in availableNormalUsers if user_resources[user].count < user_resources[user].capacity]
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
         if available_users:
             userTask = min(available_users, key=lambda u: user_assignments[u])
             user_assignments[userTask] += 1
@@ -425,13 +426,13 @@ def {element.id_bpmn}(env, name):
         if possibleUsers is None:
             possibleUsers = userPool
         possibleSecureUsers = resolve_possible_users_security(possibleUsers, TaskName, name)
-        availableSecureUsers = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
-        if availableSecureUsers == []:
+        available_users = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users == []:
             possibleNormalUsers = resolve_possible_users(possibleUsers, TaskName)
-        availableNormalUsers = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
-        while not availableNormalUsers:
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
             yield env.timeout(1)
-            availableNormalUsers = [user for user in availableNormalUsers if user_resources[user].count < user_resources[user].capacity]
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
         if available_users:
             userTask = min(available_users, key=lambda u: user_assignments[u])
             user_assignments[userTask] += 1
@@ -530,13 +531,13 @@ def {element.id_bpmn}(env, name):
         if possibleUsers is None:
             possibleUsers = userPool
         possibleSecureUsers = resolve_possible_users_security(possibleUsers, TaskName, name)
-        availableSecureUsers = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
-        if availableSecureUsers == []:
+        available_users = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users == []:
             possibleNormalUsers = resolve_possible_users(possibleUsers, TaskName)
-        availableNormalUsers = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
-        while not availableNormalUsers:
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
             yield env.timeout(1)
-            availableNormalUsers = [user for user in availableNormalUsers if user_resources[user].count < user_resources[user].capacity]
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
         if available_users:
             userTask = min(available_users, key=lambda u: user_assignments[u])
             user_assignments[userTask] += 1
@@ -569,6 +570,7 @@ def {element.id_bpmn}(env, name):
                 user_resources[userTask].release(request)
                 if (TaskName, '{element.messageDestiny}', execution, name) not in message_events:
                     message_events.append((TaskName, '{element.messageDestiny}', execution, name))
+                units = units - 1
     if TaskName in generatedData.keys():
         dataObjects = generatedData[TaskName]
         for dataObject in dataObjects:
@@ -616,13 +618,13 @@ def {element.id_bpmn}(env, name):
         if possibleUsers is None:
             possibleUsers = userPool
         possibleSecureUsers = resolve_possible_users_security(possibleUsers, TaskName, name)
-        availableSecureUsers = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
-        if availableSecureUsers == []:
+        available_users = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users == []:
             possibleNormalUsers = resolve_possible_users(possibleUsers, TaskName)
-        availableNormalUsers = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
-        while not availableNormalUsers:
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
             yield env.timeout(1)
-            availableNormalUsers = [user for user in availableNormalUsers if user_resources[user].count < user_resources[user].capacity]
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
         if available_users:
             userTask = min(available_users, key=lambda u: user_assignments[u])
             user_assignments[userTask] += 1
@@ -686,13 +688,13 @@ def {element.id_bpmn}(env, name):
         if possibleUsers is None:
             possibleUsers = userPool
         possibleSecureUsers = resolve_possible_users_security(possibleUsers, TaskName, name)
-        availableSecureUsers = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
-        if availableSecureUsers == []:
+        available_users = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users == []:
             possibleNormalUsers = resolve_possible_users(possibleUsers, TaskName)
-        availableNormalUsers = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
-        while not availableNormalUsers:
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
             yield env.timeout(1)
-            availableNormalUsers = [user for user in availableNormalUsers if user_resources[user].count < user_resources[user].capacity]
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
         if available_users:
             userTask = min(available_users, key=lambda u: user_assignments[u])
             user_assignments[userTask] += 1
@@ -798,13 +800,13 @@ def {element.id_bpmn}(env, name):
         if possibleUsers is None:
             possibleUsers = userPool
         possibleSecureUsers = resolve_possible_users_security(possibleUsers, TaskName, name)
-        availableSecureUsers = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
-        if availableSecureUsers == []:
+        available_users = [user for user in possibleSecureUsers if user_resources[user].count < user_resources[user].capacity]
+        if available_users == []:
             possibleNormalUsers = resolve_possible_users(possibleUsers, TaskName)
-        availableNormalUsers = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
-        while not availableNormalUsers:
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
+        while not available_users:
             yield env.timeout(1)
-            availableNormalUsers = [user for user in availableNormalUsers if user_resources[user].count < user_resources[user].capacity]
+            available_users = [user for user in possibleNormalUsers if user_resources[user].count < user_resources[user].capacity]
         if available_users:
             userTask = min(available_users, key=lambda u: user_assignments[u])
             user_assignments[userTask] += 1
@@ -835,6 +837,7 @@ def {element.id_bpmn}(env, name):
                 yield env.timeout(time)
             finally:
                 user_resources[userTask].release(request)
+                units = units - 1
     if TaskName in generatedData.keys():
         dataObjects = generatedData[TaskName]
         for dataObject in dataObjects:
