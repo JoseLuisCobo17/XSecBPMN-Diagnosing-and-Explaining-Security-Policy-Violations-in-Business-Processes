@@ -110,37 +110,37 @@ function getAllRelevantTasks(bpmnModeler) {
     var businessObject = e.businessObject;
 
     let isMessageStartEvent = e.type === 'bpmn:StartEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
-let isTimerStartEvent = e.type === 'bpmn:StartEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
+    let isTimerStartEvent = e.type === 'bpmn:StartEvent' && 
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
 
-let isMessageIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+    let isMessageIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
-let isTimerIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
+    let isTimerIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
 
-let isMessageIntermediateThrowEvent = e.type === 'bpmn:IntermediateThrowEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+    let isMessageIntermediateThrowEvent = e.type === 'bpmn:IntermediateThrowEvent' && 
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
-let type = e.type;
-if (isMessageStartEvent) {
-    type = 'bpmn:MessageStartEvent';
-} else if (isTimerStartEvent) {
-    type = 'bpmn:TimerStartEvent';
-} else if (isMessageIntermediateCatchEvent) {
-    type = 'bpmn:MessageIntermediateCatchEvent';
-} else if (isTimerIntermediateCatchEvent) {
-    type = 'bpmn:TimerIntermediateCatchEvent';
-} else if (isMessageIntermediateThrowEvent) {
-    type = 'bpmn:MessageIntermediateThrowEvent';
-}
+    let type = e.type;
+    if (isMessageStartEvent) {
+      type = 'bpmn:MessageStartEvent';
+    } else if (isTimerStartEvent) {
+      type = 'bpmn:TimerStartEvent';
+    } else if (isMessageIntermediateCatchEvent) {
+      type = 'bpmn:MessageIntermediateCatchEvent';
+    } else if (isTimerIntermediateCatchEvent) {
+      type = 'bpmn:TimerIntermediateCatchEvent';
+    } else if (isMessageIntermediateThrowEvent) {
+      type = 'bpmn:MessageIntermediateThrowEvent';
+    }
 
     var subTasks = [];
     var subElement = null;
@@ -155,9 +155,9 @@ if (isMessageStartEvent) {
           el.businessObject.dataInputAssociations.some(assoc => assoc.id === businessObject.id)
       );
       subElement = targetTask ? targetTask.businessObject.id : 'No Sub Element';
-  } else if (e.type === 'bpmn:DataOutputAssociation') {
+    } else if (e.type === 'bpmn:DataOutputAssociation') {
       subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
-  
+
       const parentTask = elementRegistry.find(el =>
           el.businessObject.dataOutputAssociations &&
           el.businessObject.dataOutputAssociations.some(assoc => assoc.id === businessObject.id)
@@ -207,58 +207,58 @@ if (isMessageStartEvent) {
     let instance = ''; 
     let security = false; 
     let userWithRole = {};
-    let userWithoutRole = {};
+    let userWithoutRole = [];
     let userWithoutRoleSet = new Set();
     let frequency = 0;
     let containedElements = businessObject.flowNodeRef 
       ? businessObject.flowNodeRef.map(node => node.id) 
       : [];
 
-      if (e.type === 'bpmn:Collaboration') {
-        if (businessObject) {
-          if (businessObject.instance !== undefined) {
-            instance = businessObject.instance;
-          }
-          if (businessObject.security !== undefined) {
-            security = businessObject.security;
-          }
+    if (e.type === 'bpmn:Collaboration') {
+      if (businessObject) {
+        if (businessObject.instance !== undefined) {
+          instance = businessObject.instance;
         }
-      } else if (e.type === 'bpmn:Participant') {
-        const processRef = businessObject.processRef;
-      
-        const participantFrequency = businessObject.frequency || businessObject.get('participantWithoutLane:frequency');
-        if (participantFrequency !== undefined) {
-          frequency = participantFrequency;
+        if (businessObject.security !== undefined) {
+          security = businessObject.security;
         }
-      
-        if (processRef) {
-          if (processRef.flowElements) {
-            containedElements = processRef.flowElements.map(node => node.id);
-          }
-      
-          if (processRef.laneSets) {
-            processRef.laneSets.forEach(laneSet => {
-              laneSet.lanes.forEach(lane => {
-                if (lane.flowNodeRef) {
-                  lane.flowNodeRef.forEach(node => {
-                    containedElements.push(node.id);
-                  });
-                }
-              });
+      }
+    } else if (e.type === 'bpmn:Participant') {
+      const processRef = businessObject.processRef;
+    
+      const participantFrequency = businessObject.frequency || businessObject.get('participantWithoutLane:frequency');
+      if (participantFrequency !== undefined) {
+        frequency = participantFrequency;
+      }
+    
+      if (processRef) {
+        if (processRef.flowElements) {
+          containedElements = processRef.flowElements.map(node => node.id);
+        }
+    
+        if (processRef.laneSets) {
+          processRef.laneSets.forEach(laneSet => {
+            laneSet.lanes.forEach(lane => {
+              if (lane.flowNodeRef) {
+                lane.flowNodeRef.forEach(node => {
+                  containedElements.push(node.id);
+                });
+              }
             });
-          }
+          });
         }
-        if (businessObject.userWithoutRole) {
-          
-          businessObject.userWithoutRole.forEach(role => userWithoutRoleSet.add(role.trim()));
-
-        }
-      } else if (e.type === 'bpmn:Lane') {
+      }
+      if (businessObject.userWithoutRole) {
+        businessObject.userWithoutRole.forEach(role => userWithoutRoleSet.add(role.trim()));
+      }
+      userWithoutRole = Array.from(userWithoutRoleSet);
+    } else if (e.type === 'bpmn:Lane') {
       if (businessObject.userWithoutRole) {
         businessObject.userWithoutRole.forEach(role => userWithoutRoleSet.add(role.trim()));
       }
       containedElements = businessObject.flowNodeRef ? 
         businessObject.flowNodeRef.map(node => node.id) : [];
+      userWithoutRole = Array.from(userWithoutRoleSet);
     } else if (e.type === 'bpmn:Process') {
       if (businessObject.instance !== undefined) {
         instance = businessObject.instance;
@@ -305,10 +305,10 @@ if (isMessageStartEvent) {
       UserInstance: instance,
       security: security,
       time: time,
-      userWithoutRole: (e.type === 'bpmn:Process' || e.type === 'bpmn:Lane' || e.type === 'bpmn:Participant') ? userWithoutRole : '',
+      userWithoutRole: (isProcess || isLane || isParticipant) ? userWithoutRole : '',
       userWithRole: userWithRole,
       type: type,
-      loopParameter:loopParameter,
+      loopParameter: loopParameter,
       loopCharacteristics: loopCharacteristics,
       multiInstance: multiInstance,
       AdditionalIntegerParameter: AdditionalIntegerParameter,
@@ -390,39 +390,43 @@ function exportToEsper(bpmnModeler) {
           content += `instances=${element.Instances}, `;
           content += `security=${element.security}]\n`;
         } else if (element.type === 'bpmn:Lane') {
-          const userWithoutRole = Array.isArray(element.userWithoutRole.split(",")) ? 
-            element.userWithoutRole.split(",").map(user => `"${user}"`).join(', ') : '""';
-        
+          const userWithoutRole = Array.isArray(element.userWithoutRole)
+            ? element.userWithoutRole.map(user => `"${user}"`).join(', ')
+            : '""';
+          
           const containedElements = element.containedElements && element.containedElements.length > 0
             ? element.containedElements.map(el => `"${el}"`).join(', ')
             : '""';
+          
           content += `userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;
         } else if (element.type === 'bpmn:Process') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
 
-          const userWithoutRole = Array.isArray(element.userWithoutRole) ? 
-            element.userWithoutRole.map(user => `"${user}"`).join(', ') : '""';
+          const userWithoutRole = Array.isArray(element.userWithoutRole) 
+            ? element.userWithoutRole.map(user => `"${user}"`).join(', ')
+            : '""';
           content += `userWithoutRole=[${userWithoutRole}], `;
 
-          const userWithRole = element.userWithRole ? 
-          Object.entries(element.userWithRole).map(([role, users]) => {
-          const userArray = Array.isArray(users) ? users : users.split(', ');
-            return `"${role}": [${userArray.map(u => `"${u}"`).join(', ')}]`;
-            }).join(', ') : '{}';
+          const userWithRole = element.userWithRole 
+            ? Object.entries(element.userWithRole).map(([role, users]) => {
+                const userArray = Array.isArray(users) ? users : users.split(', ');
+                return `"${role}": [${userArray.map(u => `"${u}"`).join(', ')}]`;
+              }).join(', ') 
+            : '{}';
 
           content += `userWithRole={${userWithRole}}, `;
           content += `security=${element.security}]\n`;
         } else if (element.type === 'bpmn:Participant') {
-          const userWithoutRole = element.userWithoutRole 
-            ? element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') 
+          const userWithoutRole = Array.isArray(element.userWithoutRole)
+            ? element.userWithoutRole.map(user => `"${user}"`).join(', ')
             : '""';
         
-            const containedElements = Array.isArray(element.containedElements) ? 
-            element.containedElements.map(el => `"${el}"`).join(', ') : '""';
+          const containedElements = Array.isArray(element.containedElements) 
+            ? element.containedElements.map(el => `"${el}"`).join(', ')
+            : '""';
           
-        
-          content += `frequency=${element.Frequency}, userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;        
+          content += `frequency=${element.Frequency}, userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;
       }  else {
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
