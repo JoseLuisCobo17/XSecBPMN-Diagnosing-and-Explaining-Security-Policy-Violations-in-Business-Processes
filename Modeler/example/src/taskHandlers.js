@@ -210,6 +210,7 @@ function getAllRelevantTasks(bpmnModeler) {
     let userWithoutRole = [];
     let userWithoutRoleSet = new Set();
     let frequency = 0;
+    let hasLanes = false;
     let containedElements = businessObject.flowNodeRef 
       ? businessObject.flowNodeRef.map(node => node.id) 
       : [];
@@ -246,6 +247,8 @@ function getAllRelevantTasks(bpmnModeler) {
               }
             });
           });
+          // Verificar si hay lanes
+          hasLanes = processRef.laneSets.some(laneSet => laneSet.lanes && laneSet.lanes.length > 0);
         }
       }
       if (businessObject.userWithoutRole) {
@@ -304,6 +307,7 @@ function getAllRelevantTasks(bpmnModeler) {
       MaximumTime: maximumTime,
       UserInstance: instance,
       security: security,
+      hasLanes: hasLanes,
       time: time,
       userWithoutRole: (isProcess || isLane || isParticipant) ? userWithoutRole : '',
       userWithRole: userWithRole,
@@ -324,6 +328,10 @@ function exportToEsper(bpmnModeler) {
 
       let content = '### Esper Rules Export ###\n\n';
       elements.forEach(element => {
+
+        if (element.type === 'bpmn:Participant' && element.hasLanes) {
+          return;
+        }
 
         if (element.type === 'bpmn:StartEvent' && 
             element.businessObject &&
