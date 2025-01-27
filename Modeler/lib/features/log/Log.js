@@ -92,12 +92,10 @@ function getEventTypeString(element) {
 
 
 export default function Log(
-    eventBus, notifications,
-    tokenSimulationPalette, canvas,
+    eventBus, notifications, canvas,
     scopeFilter, simulator) {
 
   this._notifications = notifications;
-  this._tokenSimulationPalette = tokenSimulationPalette;
   this._canvas = canvas;
   this._scopeFilter = scopeFilter;
 
@@ -399,8 +397,6 @@ Log.prototype._init = function() {
   domEvent.bind(this.paletteEntry, 'click', () => {
     this.toggle();
   });
-
-  this._tokenSimulationPalette.addEntry(this.paletteEntry, 3);
 };
 
 Log.prototype.isShown = function() {
@@ -486,7 +482,6 @@ Log.prototype.clear = function() {
 Log.$inject = [
   'eventBus',
   'notifications',
-  'tokenSimulationPalette',
   'canvas',
   'scopeFilter',
   'simulator'

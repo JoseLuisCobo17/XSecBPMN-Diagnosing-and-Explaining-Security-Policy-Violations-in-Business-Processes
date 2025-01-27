@@ -36,8 +36,8 @@ def parseKeyValuePairs(s):
             result[key] = value
     return result
 
-def parseResultsFile(process):
-    resultsFile = os.path.join(os.path.dirname(scriptDir), 'files', f'results_{process}.txt')
+def parseResultsFile():
+    resultsFile = os.path.join(os.path.dirname(scriptDir), 'files', f'resultSimulation.txt')
     elementTimeDict = {}
     standbyTimes = {}
     standbyMessageTimes = {}
@@ -115,8 +115,8 @@ def parseRulesFile():
                 dataFlowMap[dataFlow] = element
     return sequenceFlowMap, messageFlowMap, dataFlowMap, dataObjectMap
 
-def getTimeDict(process):
-    elementTimeDict, standbyTimes, standbyMessageTimes, standbyDataTimes = parseResultsFile(process)
+def getTimeDict():
+    elementTimeDict, standbyTimes, standbyMessageTimes, standbyDataTimes = parseResultsFile()
     sequenceFlowMap, messageFlowMap, dataFlowMap, dataObjectMap = parseRulesFile()
     flowTimeDict = {}
     for seqFlowId, subElementId in sequenceFlowMap.items():

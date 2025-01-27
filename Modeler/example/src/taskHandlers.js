@@ -4,14 +4,10 @@ function getSecurityTasks(bpmnModeler) {
   var elementRegistry = bpmnModeler.get('elementRegistry');
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
-
-  // Filtra solo las tareas relevantes
   var serviceTasks = elementRegistry.filter(e => e.type === 'bpmn:ServiceTask');
   var serviceTaskBusinessObjects = serviceTasks.map(e => e.businessObject);
-
   var res = [];
 
-  // Procesa cada tarea de servicio para capturar sus propiedades
   serviceTaskBusinessObjects.forEach(function(element) {
     var list = element.outgoing;
     var subTasks = [];
@@ -19,35 +15,23 @@ function getSecurityTasks(bpmnModeler) {
     if (!list || list.length === 0) {
       console.warn(`No hay conexiones salientes (outgoing) para la tarea: ${element.id}`);
     } else {
-      console.log(`Conexiones salientes para la tarea ${element.id}:`, list);
       list.forEach(function(task) {
         if (task.targetRef) {
           const subTaskElement = elementRegistry.get(task.targetRef.id);
 
           if (subTaskElement && subTaskElement.businessObject) {
             const targetType = subTaskElement.businessObject.$type;
-            console.log('Tipo de tarea objetivo (targetType):', targetType); // Depuración para ver el tipo
 
             let userTask = '""';
             let numberOfExecutions = '1';
             let averageTimeEstimate = 'N/A';
             let instance = 'N/A';
-
-            // Actualizamos la lógica para verificar si el objeto contiene el UserTask, NumberOfExecutions, AverageTimeEstimate e Instance
             if (targetType === 'bpmn:UserTask' || targetType === 'bpmn:Task') {
               const bo = subTaskElement.businessObject;
-              console.log('Encontrado Task:', bo); // Depuración completa de la sub-tarea
-
-              // Intentamos acceder a las diferentes propiedades
               userTask = bo.userTask || bo.UserTask || bo.assignee || bo.candidateUsers || bo.name || 'Unknown';
               numberOfExecutions = bo.numberOfExecutions || 'N/A';
               averageTimeEstimate = bo.averageTimeEstimate || 'N/A';
               instance = bo.instance || 'N/A';
-
-              console.log('UserTask detectado:', userTask); // Depuración para ver el valor de userTask
-              console.log('NumberOfExecutions detectado:', numberOfExecutions); // Depuración para ver el valor de numberOfExecutions
-              console.log('AverageTimeEstimate detectado:', averageTimeEstimate); // Depuración para ver el valor de averageTimeEstimate
-              console.log('Instance detectado:', instance); // Depuración para ver el valor de instance
             }
 
             subTasks.push({
@@ -73,15 +57,9 @@ function getSecurityTasks(bpmnModeler) {
       });
     }
 
-    // Mostrar todas las propiedades del elemento
-    console.log('ServiceTask BusinessObject completo:', JSON.stringify(element, null, 2));
-
-    // Verifica el securityType y lo traduce a BoD, SoD y UoC
     var isBod = element.securityType === 'BoD';
     var isSod = element.securityType === 'SoD';
     var isUoc = element.securityType === 'UoC';
-
-    // Verifica y asigna correctamente las propiedades de seguridad, incluyendo las nuevas propiedades
     var st = {
       id_model: id_model,
       id_bpmn: element.id,
@@ -97,14 +75,8 @@ function getSecurityTasks(bpmnModeler) {
       Instance: element.instance || 'N/A',
       SubTasks: subTasks.length > 0 ? subTasks : []
     };
-
-    console.log('Tarea de seguridad procesada:', JSON.stringify(st, null, 2));
-
     res.push(st);
   });
-
-  console.log('Security Tasks para enviar:', JSON.stringify(res, null, 2));
-
   return res;
 }
 
@@ -138,37 +110,37 @@ function getAllRelevantTasks(bpmnModeler) {
     var businessObject = e.businessObject;
 
     let isMessageStartEvent = e.type === 'bpmn:StartEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
-let isTimerStartEvent = e.type === 'bpmn:StartEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
+    let isTimerStartEvent = e.type === 'bpmn:StartEvent' && 
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
 
-let isMessageIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+    let isMessageIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
-let isTimerIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
+    let isTimerIntermediateCatchEvent = e.type === 'bpmn:IntermediateCatchEvent' && 
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:TimerEventDefinition');
 
-let isMessageIntermediateThrowEvent = e.type === 'bpmn:IntermediateThrowEvent' && 
-    businessObject.eventDefinitions && 
-    businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
+    let isMessageIntermediateThrowEvent = e.type === 'bpmn:IntermediateThrowEvent' && 
+      businessObject.eventDefinitions && 
+      businessObject.eventDefinitions.some(def => def.$type === 'bpmn:MessageEventDefinition');
 
-let type = e.type;
-if (isMessageStartEvent) {
-    type = 'bpmn:MessageStartEvent';
-} else if (isTimerStartEvent) {
-    type = 'bpmn:TimerStartEvent';
-} else if (isMessageIntermediateCatchEvent) {
-    type = 'bpmn:MessageIntermediateCatchEvent';
-} else if (isTimerIntermediateCatchEvent) {
-    type = 'bpmn:TimerIntermediateCatchEvent';
-} else if (isMessageIntermediateThrowEvent) {
-    type = 'bpmn:MessageIntermediateThrowEvent';
-}
+    let type = e.type;
+    if (isMessageStartEvent) {
+      type = 'bpmn:MessageStartEvent';
+    } else if (isTimerStartEvent) {
+      type = 'bpmn:TimerStartEvent';
+    } else if (isMessageIntermediateCatchEvent) {
+      type = 'bpmn:MessageIntermediateCatchEvent';
+    } else if (isTimerIntermediateCatchEvent) {
+      type = 'bpmn:TimerIntermediateCatchEvent';
+    } else if (isMessageIntermediateThrowEvent) {
+      type = 'bpmn:MessageIntermediateThrowEvent';
+    }
 
     var subTasks = [];
     var subElement = null;
@@ -183,9 +155,9 @@ if (isMessageStartEvent) {
           el.businessObject.dataInputAssociations.some(assoc => assoc.id === businessObject.id)
       );
       subElement = targetTask ? targetTask.businessObject.id : 'No Sub Element';
-  } else if (e.type === 'bpmn:DataOutputAssociation') {
+    } else if (e.type === 'bpmn:DataOutputAssociation') {
       subElement = businessObject.targetRef ? businessObject.targetRef.id : '';
-  
+
       const parentTask = elementRegistry.find(el =>
           el.businessObject.dataOutputAssociations &&
           el.businessObject.dataOutputAssociations.some(assoc => assoc.id === businessObject.id)
@@ -224,64 +196,69 @@ if (isMessageStartEvent) {
     }
 
     const userTasks = Array.isArray(businessObject.UserTask) ? businessObject.UserTask : [businessObject.UserTask || ''];
-    const numberOfExecutions = businessObject.NumberOfExecutions || 0;
+    const numberOfExecutions = businessObject.NumberOfExecutions || 1;
     const minimumTime = businessObject.minimumTime || 0;
     const maximumTime = businessObject.maximumTime || 0;
+    const loopParameter = businessObject.loopParameter || 'undefined';
+    const loopCharacteristics = businessObject.loopCharacteristics || 'undefined';
+    const multiInstance = businessObject.loopCharacteristics?.isSequential ?? 'undefined';
+    const AdditionalIntegerParameter = businessObject.AdditionalIntegerParameter || 0;
 
     let instance = ''; 
     let security = false; 
     let userWithRole = {};
+    let userWithoutRole = [];
     let userWithoutRoleSet = new Set();
     let frequency = 0;
     let containedElements = businessObject.flowNodeRef 
       ? businessObject.flowNodeRef.map(node => node.id) 
       : [];
 
-      if (e.type === 'bpmn:Collaboration') {
-        console.log("businessObject: ", businessObject);
-        if (businessObject) {
-          if (businessObject.instance !== undefined) {
-            instance = businessObject.instance;
-          }
-          if (businessObject.security !== undefined) {
-            security = businessObject.security;
-          }
+    if (e.type === 'bpmn:Collaboration') {
+      if (businessObject) {
+        if (businessObject.instance !== undefined) {
+          instance = businessObject.instance;
         }
-      } else if (e.type === 'bpmn:Participant') {
-        const processRef = businessObject.processRef;
-      
-        const participantFrequency = businessObject.frequency || businessObject.get('participantWithoutLane:frequency');
-        if (participantFrequency !== undefined) {
-          frequency = participantFrequency;
+        if (businessObject.security !== undefined) {
+          security = businessObject.security;
         }
-      
-        if (processRef) {
-          if (processRef.flowElements) {
-            containedElements = processRef.flowElements.map(node => node.id);
-          }
-      
-          if (processRef.laneSets) {
-            processRef.laneSets.forEach(laneSet => {
-              laneSet.lanes.forEach(lane => {
-                if (lane.flowNodeRef) {
-                  lane.flowNodeRef.forEach(node => {
-                    containedElements.push(node.id);
-                  });
-                }
-              });
+      }
+    } else if (e.type === 'bpmn:Participant') {
+      const processRef = businessObject.processRef;
+    
+      const participantFrequency = businessObject.frequency || businessObject.get('participantWithoutLane:frequency');
+      if (participantFrequency !== undefined) {
+        frequency = participantFrequency;
+      }
+    
+      if (processRef) {
+        if (processRef.flowElements) {
+          containedElements = processRef.flowElements.map(node => node.id);
+        }
+    
+        if (processRef.laneSets) {
+          processRef.laneSets.forEach(laneSet => {
+            laneSet.lanes.forEach(lane => {
+              if (lane.flowNodeRef) {
+                lane.flowNodeRef.forEach(node => {
+                  containedElements.push(node.id);
+                });
+              }
             });
-          }
+          });
         }
-        if (businessObject.userWithoutRole) {
-          businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
-
-        }
-      } else if (e.type === 'bpmn:Lane') {
+      }
       if (businessObject.userWithoutRole) {
-        businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
+        businessObject.userWithoutRole.forEach(role => userWithoutRoleSet.add(role.trim()));
+      }
+      userWithoutRole = Array.from(userWithoutRoleSet);
+    } else if (e.type === 'bpmn:Lane') {
+      if (businessObject.userWithoutRole) {
+        businessObject.userWithoutRole.forEach(role => userWithoutRoleSet.add(role.trim()));
       }
       containedElements = businessObject.flowNodeRef ? 
         businessObject.flowNodeRef.map(node => node.id) : [];
+      userWithoutRole = Array.from(userWithoutRoleSet);
     } else if (e.type === 'bpmn:Process') {
       if (businessObject.instance !== undefined) {
         instance = businessObject.instance;
@@ -290,7 +267,8 @@ if (isMessageStartEvent) {
         userWithRole = businessObject.userWithRole;
       }
       if (businessObject.userWithoutRole) {
-        businessObject.userWithoutRole.split(',').forEach(role => userWithoutRoleSet.add(role.trim()));
+        userWithoutRole = businessObject.userWithoutRole;
+        userWithoutRole = [...new Set(userWithoutRole)];
       }
       if (businessObject.frequency !== undefined) {
         frequency = businessObject.frequency;
@@ -301,8 +279,6 @@ if (isMessageStartEvent) {
     } else {
       instance = businessObject.instance || '';
     }
-
-    const userWithoutRole = Array.from(userWithoutRoleSet).join(', ');
 
     return {
       id_model: id_model,
@@ -329,9 +305,13 @@ if (isMessageStartEvent) {
       UserInstance: instance,
       security: security,
       time: time,
-      userWithoutRole: (e.type === 'bpmn:Process' || e.type === 'bpmn:Lane' || e.type === 'bpmn:Participant') ? userWithoutRole : '',
+      userWithoutRole: (isProcess || isLane || isParticipant) ? userWithoutRole : '',
       userWithRole: userWithRole,
       type: type,
+      loopParameter: loopParameter,
+      loopCharacteristics: loopCharacteristics,
+      multiInstance: multiInstance,
+      AdditionalIntegerParameter: AdditionalIntegerParameter,
       containedElements: containedElements,
     };
   });
@@ -356,8 +336,8 @@ function exportToEsper(bpmnModeler) {
         }
 
         content += `name="${element.name || 'Unnamed'}", `;
-        content += `id_bpmn="${element.id_bpmn || 'Unknown'}", `;        
-
+        content += `id_bpmn="${element.id_bpmn || 'Unknown'}", `; 
+       
         if (element.time) {
           content += `time=${element.time}, `;
         }
@@ -377,17 +357,17 @@ function exportToEsper(bpmnModeler) {
 
           content += `superElement="${superElement}", `;
           content += `subElement="${subElement}"]\n`;
-        } else if (element.type === 'bpmn:ServiceTask') {
-          content += `sodSecurity=${element.Sod}, `;
-          content += `bodSecurity=${element.Bod}, `;
-          content += `uocSecurity=${element.Uoc}, `;
-          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
-          content += `subTask="${subTasks}"]\n`;
-        } else if (element.type === 'bpmn:ServiceTask' && element.businessObject.securityType === 'UoC') {
+        } else if (element.type === 'bpmn:ServiceTask' && element.Uoc) {
           content += `sodSecurity=${element.Sod}, `;
           content += `bodSecurity=${element.Bod}, `;
           content += `uocSecurity=${element.Uoc}, `;
           content += `mth=${element.Mth}, `;
+          const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
+          content += `subTask="${subTasks}"]\n`;
+        } else if (element.type === 'bpmn:ServiceTask') {
+          content += `sodSecurity=${element.Sod}, `;
+          content += `bodSecurity=${element.Bod}, `;
+          content += `uocSecurity=${element.Uoc}, `;
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Task' || element.type === 'bpmn:UserTask' || element.type === 'bpmn:ManualTask'
@@ -398,43 +378,55 @@ function exportToEsper(bpmnModeler) {
           content += `numberOfExecutions=${element.NumberOfExecutions}, `;
           content += `minimumTime=${element.MinimumTime}, `;
           content += `maximumTime=${element.MaximumTime}, `;
+          if(element.loopParameter !== 'undefined'){
+            content += `loopParameter={"${element.loopParameter}":${element.AdditionalIntegerParameter}}, `;
+          }
+          if (element.loopCharacteristics?.isSequential !== undefined) {
+            content += `multiInstanceType="${element.loopCharacteristics.isSequential ? 'true' : 'false'}", `;
+        }               
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
         } else if (element.type === 'bpmn:Collaboration') {
           content += `instances=${element.Instances}, `;
           content += `security=${element.security}]\n`;
         } else if (element.type === 'bpmn:Lane') {
-          const userWithoutRole = element.userWithoutRole ? 
-            element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') : '""';
-        
+          const userWithoutRole = Array.isArray(element.userWithoutRole)
+            ? element.userWithoutRole.map(user => `"${user}"`).join(', ')
+            : '""';
+          
           const containedElements = element.containedElements && element.containedElements.length > 0
             ? element.containedElements.map(el => `"${el}"`).join(', ')
             : '""';
-        
+          
           content += `userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;
         } else if (element.type === 'bpmn:Process') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
 
-          const userWithoutRole = element.userWithoutRole ? 
-            element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') : '""';
+          const userWithoutRole = Array.isArray(element.userWithoutRole) 
+            ? element.userWithoutRole.map(user => `"${user}"`).join(', ')
+            : '""';
           content += `userWithoutRole=[${userWithoutRole}], `;
 
-          const userWithRole = element.userWithRole ? 
-            Object.entries(element.userWithRole).map(([role, users]) => 
-              `"${role}": [${users.split(', ').map(u => `"${u}"`).join(', ')}]`).join(', ') : '{}';
+          const userWithRole = element.userWithRole 
+            ? Object.entries(element.userWithRole).map(([role, users]) => {
+                const userArray = Array.isArray(users) ? users : users.split(', ');
+                return `"${role}": [${userArray.map(u => `"${u}"`).join(', ')}]`;
+              }).join(', ') 
+            : '{}';
+
           content += `userWithRole={${userWithRole}}, `;
           content += `security=${element.security}]\n`;
         } else if (element.type === 'bpmn:Participant') {
-          const userWithoutRole = element.userWithoutRole 
-            ? element.userWithoutRole.split(', ').map(user => `"${user}"`).join(', ') 
+          const userWithoutRole = Array.isArray(element.userWithoutRole)
+            ? element.userWithoutRole.map(user => `"${user}"`).join(', ')
             : '""';
         
-          const containedElements = element.containedElements && element.containedElements.length > 0
+          const containedElements = Array.isArray(element.containedElements) 
             ? element.containedElements.map(el => `"${el}"`).join(', ')
             : '""';
-        
-          content += `frequency=${element.Frequency}, userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;        
+          
+          content += `frequency=${element.Frequency}, userWithoutRole=[${userWithoutRole}], containedElements=[${containedElements}]]\n`;
       }  else {
           const subTasks = element.SubTasks ? element.SubTasks.join(', ') : 'No SubTasks';
           content += `subTask="${subTasks}"]\n`;
@@ -463,102 +455,69 @@ function esperRules(bpmnModeler) {
     try {
       const elements = getAllRelevantTasks(bpmnModeler);
       const triggeredRules = [];
-
-      elements.forEach(element => {
+      elements.filter(element => element.type === "bpmn:ServiceTask").forEach(element => {
         const subTasks = element.SubTasks
           ? element.SubTasks.map(id => getTaskById(bpmnModeler, id)).filter(st => st !== null)
           : [];
-        console.log('SubTasks for element', element.id_bpmn, subTasks);
 
-        // Obtener los UserTask que no sean null, vacíos o "Unknown"
-        const validUserTasks = subTasks.map(subTask => subTask.UserTask)
-          .filter(userTask => userTask && userTask.trim() !== '' && userTask !== 'Unknown');
+        const isBoD = element.Bod === true;
+        const isSoD = element.Sod === true;
+        const isUoC = element.Uoc === true;
 
-        // Calcular el número de usuarios únicos
-        const uniqueUserCount = new Set(validUserTasks).size;
-
-        // Determinar si los usuarios son los mismos o diferentes
-        const usersAreSame = uniqueUserCount === 1;
-        const usersAreDifferent = uniqueUserCount > 1;
-
-        // Reglas BoD, SoD, y UoC (Ajustadas para detectar violaciones)
-        const isBoDViolation = element.Bod === true && validUserTasks.length > 0 && usersAreDifferent;
-        const isSoDViolation = element.Sod === true && validUserTasks.length >= 2 && usersAreSame;
-        const isUoC = element.Uoc === true && element.Mth >= 4 && validUserTasks.length > 0;
-
-        // Crear el objeto para esta tarea
         const triggeredRuleData = {
           id_bpmn: element.id_bpmn || 'Unknown',
           triggeredMessages: []
         };
-
-        // Si se detecta una violación de BoD
-        if (isBoDViolation && subTasks.length >= 2) {
-          const subTask1Id = subTasks[0].id || subTasks[0];
-          const subTask2Id = subTasks[1].id || subTasks[1];
-          const user1 = subTasks[0].UserTask || "User1";
-          const user2 = subTasks[1].UserTask || "User2";
-
-          triggeredRuleData.triggeredMessages.push(
-            `[BOD MONITOR] Binding of Duty violation detected:\n` +
-            `- Parent Task ID: ${element.id_bpmn}\n` +
-            `- SubTask 1 ID: ${subTask1Id} - User ID: ${user1}\n` +
-            `- SubTask 2 ID: ${subTask2Id} - User ID: ${user2}\n` +
-            `- Expected: Same user should perform both tasks.\n`
-          );
-        }
-
-        // Si se detecta una violación de SoD
-        if (isSoDViolation && subTasks.length >= 2) {
-          const subTask1Id = subTasks[0].id || subTasks[0];
-          const subTask2Id = subTasks[1].id || subTasks[1];
-          const user = subTasks[0].UserTask || "No User Assigned"; // Mismo usuario
-
-          triggeredRuleData.triggeredMessages.push(
-            `[SOD MONITOR] Separation of Duties violation detected:\n` +
-            `- Parent Task ID: ${element.id_bpmn}\n` +
-            `- SubTask 1 ID: ${subTask1Id}\n` +
-            `- SubTask 2 ID: ${subTask2Id}\n` +
-            `- User ID: ${user}\n` +
-            `- Expected: Different users should perform the tasks.\n`
-          );
-        }
-
-        // Si UoC se dispara, agregar texto correspondiente
-        if (isUoC) {
-          const userTaskCount = validUserTasks.reduce((acc, userTask) => {
-            acc[userTask] = (acc[userTask] || 0) + 1;
-            return acc;
-          }, {});
-
-          for (const [user, count] of Object.entries(userTaskCount)) {
-            if (count >= element.Mth) {
-              const taskIds = subTasks.map(subTask => subTask.id || subTask).join(", ");
-              triggeredRuleData.triggeredMessages.push(
-                `[UOC MONITOR] Usage of Control detected:\n` +
-                `- Parent Task ID: ${element.id_bpmn}\n` +
-                `- SubTasks IDs: ${taskIds}\n` +
-                `- User ID: ${user}\n` +
-                `- Maximum allowed executions (Mth >= 4): ${element.Mth}\n`
-              );
-            }
+        if (isBoD) {
+          message = `[BOD MONITOR] Binding of Duty rule detected:\n` +
+            `- Parent Task ID: ${element.id_bpmn}\n`;
+          for(let i = 0; i<subTasks.length; i++) {
+            subTask = subTasks[i];
+            const subTaskId = subTask.id;
+            const user = subTask.UserTask;
+            message = message +
+            `- SubTask ${i} ID: ${subTaskId} - User ID: ${user}\n`;
           }
+          message = message +
+          `- Expected: The same user should perform the tasks.\n`
+          triggeredRuleData.triggeredMessages.push(message);
         }
-
-        // Solo agregar la tarea si alguna regla se disparó
+        if (isSoD) {
+          message = `[SOD MONITOR] Separation of Duties rule detected:\n` +
+            `- Parent Task ID: ${element.id_bpmn}\n`;
+          for(let i = 0; i<subTasks.length; i++) {
+            subTask = subTasks[i];
+            const subTaskId = subTask.id;
+            const user = subTask.UserTask;
+            message = message +
+            `- SubTask ${i} ID: ${subTaskId} - User ID: ${user}\n`;
+          }
+          message = message +
+          `- Expected: Different users should perform the tasks.\n`
+          triggeredRuleData.triggeredMessages.push(message);
+        }
+        if (isUoC) {
+          message = `[UOC MONITOR] Use of Control rule detected:\n` +
+            `- Parent Task ID: ${element.id_bpmn}\n`;
+          for(let i = 0; i<subTasks.length; i++) {
+            subTask = subTasks[i];
+            const subTaskId = subTask.id;
+            const user = subTask.UserTask;
+            const numberOfExecutions = subTask.NumberOfExecutions;
+            message = message +
+            `- SubTask ${i} ID: ${subTaskId} - User ID: ${user} - Number of executions: ${numberOfExecutions}\n`;
+          }
+          message = message +
+          `- Expected: Each user should perform a maximum of ${element.Mth} executions.\n`
+          triggeredRuleData.triggeredMessages.push(message);
+        }
         if (triggeredRuleData.triggeredMessages.length > 0) {
           triggeredRules.push(triggeredRuleData);
         }
       });
-
-      // Si no hay reglas que se disparen
       if (triggeredRules.length === 0) {
-        triggeredRules.push({ message: 'No rules triggered.' });
+        triggeredRules.push({ message: 'No rules detected.' });
       }
-
-      console.log('Triggered Rules:', triggeredRules);
-
-      // Convertir a JSON y resolver la promesa
       resolve(JSON.stringify(triggeredRules, null, 2));
     } catch (err) {
       reject(err);
@@ -573,73 +532,75 @@ function deployRules(bpmnModeler) {
 
       let eplStatements = "";
 
-      // BoD rules
       const bodElements = elements.filter(element => element.Bod === true);
       if (bodElements.length > 0) {
-        console.log("Creando expresión generalizada de BoD");
+        const bodEPL = `"select parent.idBpmn as parentId, "
+  "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, "
+  "sub1.userTask as user1, sub2.userTask as user2, "
+  "sub1.instance as instance1 "
+  "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 "
+  "where parent.bodSecurity = true "
+  "and sub1.userTask is not null and sub2.userTask is not null "
+  "and sub1.userTask != sub2.userTask "
+  "and sub1.idBpmn != sub2.idBpmn "
+  "and sub1.idBpmn in (parent.subTasks) "
+  "and sub2.idBpmn in (parent.subTasks) "
+  "and sub1.instance = sub2.instance"
 
-        const bodEPL = `"select parent.idBpmn as parentId, " 
-    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " 
-    "sub1.user as user1, sub2.user as user2 " 
-    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " 
-    "where parent.bodSecurity = true " 
-    "and sub1.user is not null and sub2.user is not null " 
-    "and sub1.user = sub2.user " 
-    "and sub1.idBpmn != sub2.idBpmn " 
-    "and sub1.idBpmn in (parent.subTasks) " 
-    "and sub2.idBpmn in (parent.subTasks)"
-    
-    --------------------------------------
-    `;
+--------------------------------------
+
+`;
 
         eplStatements += bodEPL;
       }
 
-      // SoD rules
       const sodElements = elements.filter(element => element.Sod === true);
       if (sodElements.length > 0) {
-        console.log("Creando expresión generalizada de SoD");
+        const sodEPL = `"select parent.idBpmn as parentId, "
+  "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, "
+  "sub1.userTask as userTask1, sub2.userTask as userTask2, "
+  "sub1.instance as instance1 "
+  "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 "
+  "where parent.sodSecurity = true "
+  "and sub1.idBpmn != sub2.idBpmn "
+  "and sub1.idBpmn in (parent.subTasks) "
+  "and sub2.idBpmn in (parent.subTasks) "
+  "and sub1.instance = sub2.instance "
+  "and sub1.userTask is not null "
+  "and sub2.userTask is not null "
+  "and sub1.userTask = sub2.userTask "
+  "and sub1.idBpmn < sub2.idBpmn"
 
-        const sodEPL = ` "select parent.idBpmn as parentId, " 
-    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " 
-    "sub1.user as user1, sub2.user as user2, " 
-    "count(distinct sub1.user) as distinctUserCount " 
-    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " 
-    "where parent.sodSecurity = true " 
-    "and sub1.user = sub2.user " 
-    "and sub1.idBpmn != sub2.idBpmn " 
-    "and sub1.idBpmn in (parent.subTasks) " 
-    "and sub2.idBpmn in (parent.subTasks) " 
-    
-    --------------------------------------
-    `;
+--------------------------------------
+
+`;
 
         eplStatements += sodEPL;
       }
-
-      // UoC rules
       const uocElements = elements.filter(element => element.Uoc === true);
       if (uocElements.length > 0) {
-        console.log("Creando expresión de UoC");
+        const uocEPL = `"select parent.idBpmn as parentId, "
+  "sub1.idBpmn as subTaskId, "
+  "sub1.userTask as userTask, "
+  "sub1.instance as instance1, "
+  "sub1.numberOfExecutions as totalExecutions, "
+  "parent.mth as parentMth "
+  "from Task#keepall as parent, Task#keepall as sub1 "
+  "where parent.uocSecurity = true "
+  "and sub1.idBpmn in (parent.subTasks) "
+  "and sub1.userTask is not null "
+  "and sub1.numberOfExecutions > parent.mth "
+  "group by parent.idBpmn, sub1.idBpmn, parent.mth, sub1.instance"
 
-        const uocEPL = `"select user as userId, count(*) as taskCount " 
-    "from Task#time(1 min) " 
-    "where uocSecurity = true and mth >= 4"
-    
-    --------------------------------------
-    `;
+--------------------------------------
+
+`;
 
         eplStatements += uocEPL;
       }
-
-      // Si no se generaron reglas
       if (eplStatements.trim() === "") {
         eplStatements = "No relevant rules generated.";
       }
-
-      console.log('Generated EPL Statements:', eplStatements);
-
-      // Resolver la promesa con las sentencias EPL generadas
       resolve(eplStatements);
     } catch (err) {
       reject(err);

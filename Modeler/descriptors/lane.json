@@ -15,9 +15,10 @@
       "properties": [
         {
           "name": "userWithoutRole",
-          "isAttr": true,
+          "isAttr": false,
+          "isMany": true,
           "type": "String"
-        } 
+        }        
       ]
     }
   ]

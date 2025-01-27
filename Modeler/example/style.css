@@ -215,6 +215,43 @@ body:not(.presentation-mode) .bts-notifications {
   background-color: var(--token-simulation-green-base-44, #10D070);
 }
 
+/* Contenedor principal para la entrada y el botón */
+.user-task-item {
+  position: relative; /* Permite posicionar elementos hijos absolutamente */
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+/* Input que ocupa todo el ancho */
+.user-task-input {
+  width: 100%;
+  padding: 8px 40px 8px 8px; /* Espacio para la "X" a la derecha */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+/* Botón "X" dentro del input */
+.user-task-button {
+  position: absolute;
+  top: 50%;
+  right: 10px; /* Espaciado desde el borde derecho */
+  transform: translateY(-50%);
+  padding: 4px 8px;
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.user-task-button:hover {
+  background-color: #cc0000;
+}
+
 /* Estilo para las entradas de clave-valor dentro de userPool */
 .user-pool-container {
   display: flex;
@@ -254,7 +291,7 @@ body:not(.presentation-mode) .bts-notifications {
   border: none;
   border-radius: 4px;
   font-size: 12px;
-  width: 150px;
+  width: 180px;
   display: block; /* Asegura que el botón ocupe una línea entera */
   margin-left: auto;
   margin-right: auto; /* Centra el botón horizontalmente */

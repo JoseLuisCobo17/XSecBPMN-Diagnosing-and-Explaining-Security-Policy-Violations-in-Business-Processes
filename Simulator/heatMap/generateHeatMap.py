@@ -1,10 +1,10 @@
 from heatMap.getColorDict import getColorDict
 import os
 
-def getHeatMap(process):
+def getHeatMap():
     scriptDir = os.path.dirname(__file__)
     diagramFile = os.path.join(os.path.dirname(scriptDir), 'files', 'diagram.bpmn')
-    elementColorDict, flowColorDict = getColorDict(process)
+    elementColorDict, flowColorDict = getColorDict()
     with open(diagramFile, 'r') as f:
         file = f.read()
     for element, color in elementColorDict.items():

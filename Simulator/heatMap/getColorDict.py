@@ -2,8 +2,8 @@ from heatMap.getTimeDict import getTimeDict
 from heatMap.getTotalTime import getTotalTime
 
 
-def getColor(value, process):
-    totalTime = getTotalTime(process)
+def getColor(value):
+    totalTime = getTotalTime()
     if value <= 0:
         return "#00CC00"
     elif value >= totalTime:
@@ -28,12 +28,12 @@ def getColor(value, process):
     return hex_color
 
 
-def getColorDict(process):
-    elementTimeDict, flowTimeDict = getTimeDict(process)
+def getColorDict():
+    elementTimeDict, flowTimeDict = getTimeDict()
     elementColorDict = {}
     flowColorDict = {}
     for element, time in elementTimeDict.items():
-        elementColorDict[element] = getColor(time, process)
+        elementColorDict[element] = getColor(time)
     for element, time in flowTimeDict.items():
-        flowColorDict[element] = getColor(time, process)
+        flowColorDict[element] = getColor(time)
     return elementColorDict, flowColorDict

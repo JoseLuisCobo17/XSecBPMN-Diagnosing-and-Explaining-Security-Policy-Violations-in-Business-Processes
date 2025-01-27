@@ -1,7 +1,7 @@
 {
-  "name": "bpmn-js-token-simulation",
+  "name": "cep-4-bpm-sec",
   "version": "0.34.5",
-  "description": "bpmn-js token simulation extension",
+  "description": "CEP4BPMSec",
   "module": "index.js",
   "scripts": {
     "all": "run-s bundle:src lint test bundle",
@@ -16,32 +16,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bpmn-io/bpmn-js-token-simulation.git"
+    "url": "git+https://github.com/ajvarela/caise2025"
   },
   "contributors": [
     {
-      "name": "Patrick Dehn",
-      "url": "https://github.com/pedesen"
+      "name": "José Luis Cobo Ariza",
+      "url": "https://github.com/JoseLuis17"
     },
     {
-      "name": "Philipp Fromme",
-      "url": "https://github.com/philippfromme"
-    },
-    {
-      "name": "Sebastian Warnke",
-      "url": "https://github.com/sebwarnke"
+      "name": "Joaquín Arregui Díaz",
+      "url": "https://github.com/Joaquin-Arregui"
     }
   ],
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/bpmn-io/bpmn-js-token-simulation/issues"
-  },
-  "homepage": "https://github.com/bpmn-io/bpmn-js-token-simulation#readme",
-  "files": [
-    "assets",
-    "lib",
-    "index.js"
-  ],
   "engines": {
     "node": ">= 16"
   },
@@ -95,7 +82,6 @@
   },
   "dependencies": {
     "axios": "^1.7.7",
-    "bpmn-js-token-simulation": "^0.34.5",
     "buffer": "^6.0.3",
     "cors": "^2.8.5",
     "crypto-browserify": "^3.12.0",

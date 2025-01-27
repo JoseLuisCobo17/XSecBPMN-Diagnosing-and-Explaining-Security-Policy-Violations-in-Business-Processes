@@ -22,9 +22,9 @@ with open(scriptName, 'w') as f:
 subprocess.run(['python', scriptName])
 
 
-resultsPath = os.path.join(os.path.dirname(scriptDir), 'Simulator', 'files', f'results_{process}.txt')
+resultsPath = os.path.join(os.path.dirname(scriptDir), 'Simulator', 'files', 'resultSimulation.txt')
 
-getHeatMap(process)
+getHeatMap()
 os.remove(rulesPath)
 os.remove(scriptName)
 os.remove(resultsPath)
