@@ -138,9 +138,12 @@
                 <version>3.1.0</version>
                 <configuration>
                     <mainClass>com.cor.cep.StartDemo</mainClass>
+                    <arguments>
+                        <argument>file</argument>
+                    </arguments>
                     <cleanupDaemonThreads>false</cleanupDaemonThreads>
                 </configuration>
-            </plugin>
+</plugin>
         </plugins>
     </build>
 

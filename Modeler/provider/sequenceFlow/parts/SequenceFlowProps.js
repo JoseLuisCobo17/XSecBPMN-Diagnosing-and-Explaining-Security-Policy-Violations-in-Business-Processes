@@ -28,7 +28,6 @@ function PercentageofBranchesFunction(props) {
       return '';
     }
     const value = element.businessObject.percentageOfBranches;
-    console.log('Current percentageOfBranches value (getValue):', value);
 
     // Si el valor es `NaN` o no es un número válido, retornar cadena vacía para permitir edición
     return (typeof value !== 'undefined' && !isNaN(value)) ? value.toString() : '';
@@ -103,14 +102,13 @@ function PercentageofBranchesFunction(props) {
     element=${element}
     label=${translate('Percentage of Branches')}
     getValue=${getValue}
-    setValue=${debounce(setValue)}
+    setValue=${setValue}
     debounce=${debounce}
     tooltip=${translate('Enter the percentage for this branch.')} 
   />`;
 }
 
 function isNumberEntryEdited(element) {
-  console.log("element:", element.businessObject);
 
   if (!element || !element.businessObject) {
     return '';

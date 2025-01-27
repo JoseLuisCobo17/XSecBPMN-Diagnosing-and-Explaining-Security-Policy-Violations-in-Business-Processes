@@ -14,14 +14,14 @@
       ],
       "properties": [
         {
-          "name": "Nu",
+          "name": "Mth",
           "isAttr": true,
           "type": "Integer"
         },
         {
-          "name": "Mth",
+          "name": "securityType",
           "isAttr": true,
-          "type": "Integer"
+          "type": "String"
         }
       ]
     }

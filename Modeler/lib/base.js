@@ -8,13 +8,11 @@ import LogModule from './features/log';
 import ElementSupportModule from './features/element-support';
 import PauseSimulationModule from './features/pause-simulation';
 import ResetSimulationModule from './features/reset-simulation';
-import TokenCountModule from './features/token-count';
 import SetAnimationSpeedModule from './features/set-animation-speed';
 
 import ExclusiveGatewaySettingsModule from './features/exclusive-gateway-settings';
 import NeutralElementColors from './features/neutral-element-colors';
 import InclusiveGatewaySettingsModule from './features/inclusive-gateway-settings';
-import TokenSimulationPaletteModule from './features/palette';
 
 export default {
   __depends__: [
@@ -28,11 +26,9 @@ export default {
     ElementSupportModule,
     PauseSimulationModule,
     ResetSimulationModule,
-    TokenCountModule,
     SetAnimationSpeedModule,
     ExclusiveGatewaySettingsModule,
     NeutralElementColors,
-    InclusiveGatewaySettingsModule,
-    TokenSimulationPaletteModule
+    InclusiveGatewaySettingsModule
   ]
 };

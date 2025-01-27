@@ -1,6 +1,6 @@
 import {
   ForkIcon
-} from '../../../icons';
+} from '../../../../images/icons';
 
 import { getBusinessObject } from '../../../util/ElementHelper';
 import { isSequenceFlow } from '../../../simulator/util/ModelUtil';

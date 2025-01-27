@@ -1,5 +1,5 @@
 {
-  "name": "spypro-api",
+  "name": "cep4bpmsec-api",
   "version": "1.0.0",
   "description": "BPMN security tasks",
   "main": "server.js",
@@ -13,7 +13,7 @@
     "RestAPI",
     "MongoDB",
     "Mongoose",
-    "Spypro"
+    "CEP4BPMSec"
   ],
   "author": "anapareciendo",
   "license": "MIT",

@@ -19,33 +19,9 @@ export default function KeyboardBindings(eventBus, injector) {
 
 
   function handleKeyEvent(keyEvent) {
-    if (isKey([ 't', 'T' ], keyEvent)) {
-      editorActions.trigger('toggleTokenSimulation');
-
-      return true;
-    }
 
     if (!isActive) {
       return;
-    }
-
-    if (isKey([ 'l', 'L' ], keyEvent)) {
-      editorActions.trigger('toggleTokenSimulationLog');
-
-      return true;
-    }
-
-    // see https://developer.mozilla.org/de/docs/Web/API/KeyboardEvent/key/Key_Values#Whitespace_keys
-    if (isKey([ ' ', 'Spacebar' ], keyEvent)) {
-      editorActions.trigger('togglePauseTokenSimulation');
-
-      return true;
-    }
-
-    if (isKey([ 'r', 'R' ], keyEvent)) {
-      editorActions.trigger('resetTokenSimulation');
-
-      return true;
     }
   }
 

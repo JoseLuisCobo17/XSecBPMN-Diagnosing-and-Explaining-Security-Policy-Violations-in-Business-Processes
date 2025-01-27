@@ -2,6 +2,10 @@ import SecurityProps from './parts/SecurityProps';
 import UserProps from '../user/parts/UserProps';
 import SequenceFlowProps from '../sequenceFlow/parts/SequenceFlowProps';
 import ModelProps from '../model/parts/ModelProps';
+import CollaborationProps from '../model/parts/CollaborationProps';
+import LaneProps from '../model/parts/LaneProps';
+import ParticipantProps from '../model/parts/ParticipantProps';
+import ParticipantWithoutLaneProps from '../model/parts/ParticipantWithoutLaneProps';
 
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
@@ -14,22 +18,39 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
   this.getGroups = function(element) {
     return function(groups) {
       if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'SoD') {
-        groups.push(createSoDGroup(element, translate));
+        return groups;
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'BoD') {
-        groups.push(createBoDGroup(element, translate));
+        return groups;
       } else if (is(element, 'bpmn:ServiceTask') && element.businessObject.securityType === 'UoC') {
         groups.push(createUoCGroup(element, translate));
-      }
-      else if (is(element, 'bpmn:ManualTask') || is(element, 'bpmn:UserTask') || (is(element, 'bpmn:Task') && !is(element, 'bpmn:BusinessRuleTask') && !is(element, 'bpmn:ScriptTask') && !is(element, 'bpmn:ServiceTask') && !is(element, 'bpmn:SendTask') && !is(element, 'bpmn:ReceiveTask'))) {
+      } else if (is(element, 'bpmn:ManualTask') || is(element, 'bpmn:UserTask') || (is(element, 'bpmn:Task') 
+        || is(element, 'bpmn:BusinessRuleTask') || is(element, 'bpmn:ScriptTask') || is(element, 'bpmn:CallActivity') 
+        || is(element, 'bpmn:SendTask') || is(element, 'bpmn:ReceiveTask')
+        && !is(element, 'bpmn:ServiceTask'))) {
         groups.push(createUserGroup(element, translate));
       } else if (is(element, 'bpmn:SequenceFlow')) {
+        const lengthSubTask = element.businessObject.sourceRef.outgoing.length;
         const sourceElement = element.businessObject.sourceRef;
-        if (sourceElement && is(sourceElement, 'bpmn:Gateway')) {
+        if (sourceElement && is(sourceElement, 'bpmn:Gateway') && lengthSubTask > 1) {
           groups.push(createSequenceFlowGroup(element, translate));
         }
       } else if (is(element, 'bpmn:Process')) {
         groups.push(createModelGroup(element, translate));
-      }
+      } else if ( is(element, 'bpmn:Collaboration')) {
+        groups.push(createCollaborationGroup(element, translate));
+      } else if ( is(element, 'bpmn:Lane')) {
+        groups.push(createLaneGroup(element, translate));
+      } else if (is(element, 'bpmn:Participant')) {
+        const processRef = element.businessObject.processRef;
+        const laneSets = processRef && processRef.laneSets;
+        const lanes = laneSets && laneSets[0] && laneSets[0].lanes;
+    
+        if (!lanes || lanes.length === 0) {
+            groups.push(createParticipantWithoutLaneGroup(element, translate));
+        } else {
+            groups.push(createParticipantGroup(element, translate));
+        }
+    }    
       return groups;
     };
   };
@@ -39,31 +60,6 @@ export default function SecurityPropertiesProvider(propertiesPanel, translate) {
 
 SecurityPropertiesProvider.$inject = ['propertiesPanel', 'translate'];
 
-// Crear el grupo personalizado para SoD
-function createSoDGroup(element, translate) {
-  const securityGroup = {
-    id: 'security-sod',
-    label: translate('SoD properties'),
-    entries: SecurityProps(element),
-    tooltip: translate('Ensure proper SoD management!')
-  };
-
-  return securityGroup;
-}
-
-// Crear el grupo personalizado para BoD
-function createBoDGroup(element, translate) {
-  const securityGroup = {
-    id: 'security-bod',
-    label: translate('BoD properties'),
-    entries: SecurityProps(element),
-    tooltip: translate('Ensure proper BoD management!')
-  };
-
-  return securityGroup;
-}
-
-// Crear el grupo personalizado para UoC
 function createUoCGroup(element, translate) {
   const securityGroup = {
     id: 'security-uoc',
@@ -75,11 +71,10 @@ function createUoCGroup(element, translate) {
   return securityGroup;
 }
 
-// Crear el grupo personalizado para UserTask
 function createUserGroup(element, translate) {
   const userGroup = {
     id: 'User',
-    label: translate('UserTask properties'),
+    label: translate('Simulation parameters'),
     entries: UserProps(element),
     tooltip: translate('Make sure you know what you are doing!')
   };
@@ -103,8 +98,52 @@ function createModelGroup(element, translate) {
     id: 'model',
     label: translate('Model properties'),
     entries: ModelProps(element),
-    tooltip: translate('Make sure you know what you are doing!')
+    tooltip: translate('Manage model-level properties')
   };
 
   return modelGroup;
+}
+
+function createCollaborationGroup(element, translate) {
+  const collaborationGroup = {
+    id: 'model',
+    label: translate('Model properties'),
+    entries: CollaborationProps(element),
+    tooltip: translate('Manage model-level properties')
+  };
+
+  return collaborationGroup;
+}
+
+function createLaneGroup(element, translate) {
+  const laneGroup = {
+    id: 'model',
+    label: translate('Model properties'),
+    entries: LaneProps(element),
+    tooltip: translate('Manage model-level properties')
+  };
+
+  return laneGroup;
+}
+
+function createParticipantGroup(element, translate) {
+  const laneGroup = {
+    id: 'model',
+    label: translate('Model properties'),
+    entries: ParticipantProps(element),
+    tooltip: translate('Manage model-level properties')
+  };
+
+  return laneGroup;
+}
+
+function createParticipantWithoutLaneGroup(element, translate) {
+  const laneGroup = {
+    id: 'model',
+    label: translate('Model properties'),
+    entries: ParticipantWithoutLaneProps(element),
+    tooltip: translate('Manage model-level properties')
+  };
+
+  return laneGroup;
 }

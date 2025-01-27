@@ -1,7 +1,7 @@
 {
-  "name": "bpmn-js-token-simulation",
+  "name": "cep-4-bpm-sec",
   "version": "0.34.5",
-  "description": "bpmn-js token simulation extension",
+  "description": "CEP4BPMSec",
   "module": "index.js",
   "scripts": {
     "all": "run-s bundle:src lint test bundle",
@@ -16,32 +16,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bpmn-io/bpmn-js-token-simulation.git"
+    "url": "git+https://github.com/ajvarela/caise2025"
   },
   "contributors": [
     {
-      "name": "Patrick Dehn",
-      "url": "https://github.com/pedesen"
+      "name": "José Luis Cobo Ariza",
+      "url": "https://github.com/JoseLuis17"
     },
     {
-      "name": "Philipp Fromme",
-      "url": "https://github.com/philippfromme"
-    },
-    {
-      "name": "Sebastian Warnke",
-      "url": "https://github.com/sebwarnke"
+      "name": "Joaquín Arregui Díaz",
+      "url": "https://github.com/Joaquin-Arregui"
     }
   ],
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/bpmn-io/bpmn-js-token-simulation/issues"
-  },
-  "homepage": "https://github.com/bpmn-io/bpmn-js-token-simulation#readme",
-  "files": [
-    "assets",
-    "lib",
-    "index.js"
-  ],
   "engines": {
     "node": ">= 16"
   },
@@ -55,8 +42,8 @@
     "@bpmn-io/properties-panel": "^3.23.0",
     "babel-loader": "^9.2.1",
     "babel-plugin-istanbul": "^7.0.0",
-    "bpmn-js": "^17.9.2",
-    "bpmn-js-properties-panel": "^5.23.0",
+    "bpmn-js": "^17.11.1",
+    "bpmn-js-properties-panel": "^5.25.0",
     "chai": "^4.5.0",
     "copy-webpack-plugin": "^12.0.2",
     "cross-env": "^7.0.3",
@@ -65,6 +52,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-bpmn-io": "^1.0.1",
     "file-drops": "^0.5.0",
+    "file-loader": "^6.2.0",
     "file-open": "^0.1.1",
     "karma": "^6.4.4",
     "karma-chrome-launcher": "^3.2.0",
@@ -81,18 +69,19 @@
     "npm-run-all2": "^6.2.2",
     "path-browserify": "^1.0.1",
     "puppeteer": "^23.2.1",
+    "raw-loader": "^4.0.2",
     "rollup": "^4.21.1",
     "rollup-plugin-string": "^3.0.0",
     "sinon": "^17.0.1",
     "sinon-chai": "^3.7.0",
     "style-loader": "^4.0.0",
+    "svg-url-loader": "^8.0.0",
     "webpack": "^5.94.0",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.0.4"
   },
   "dependencies": {
     "axios": "^1.7.7",
-    "bpmn-js-token-simulation": "^0.34.5",
     "buffer": "^6.0.3",
     "cors": "^2.8.5",
     "crypto-browserify": "^3.12.0",

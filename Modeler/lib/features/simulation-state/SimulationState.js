@@ -4,7 +4,7 @@ import {
 
 import {
   CheckCircleIcon
-} from '../../icons';
+} from '../../../images/icons';
 
 
 export default function SimulationState(

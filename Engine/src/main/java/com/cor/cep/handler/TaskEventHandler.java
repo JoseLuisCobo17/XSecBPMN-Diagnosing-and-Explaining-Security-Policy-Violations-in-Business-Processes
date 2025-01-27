@@ -12,17 +12,30 @@ import com.espertech.esper.compiler.client.CompilerArguments;
 import com.espertech.esper.compiler.client.EPCompiler;
 import com.espertech.esper.compiler.client.EPCompilerProvider;
 import com.espertech.esper.common.client.EPCompiled;
+import com.espertech.esper.common.client.EventBean;
 import com.espertech.esper.runtime.client.EPDeployment;
 import com.espertech.esper.runtime.client.EPRuntime;
 import com.espertech.esper.runtime.client.EPRuntimeProvider;
 import com.espertech.esper.runtime.client.EPStatement;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
+import com.espertech.esper.common.client.PropertyAccessException;
 
 @Component
 @Scope(value = "singleton")
@@ -30,6 +43,11 @@ public class TaskEventHandler implements InitializingBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(TaskEventHandler.class);
     private EPRuntime epRuntime;
+    private StringBuilder sb = new StringBuilder();
+    private Set<String> reportedBodViolations = new HashSet<>();
+    private Set<String> reportedSodViolations = new HashSet<>();
+    private Set<String> reportedMultiInstanceSodViolations = new HashSet<>();
+    private Set<String> reportedUocViolations = new HashSet<>();
 
     public void initService() {
         LOG.debug("Initializing Service ..");
@@ -46,10 +64,10 @@ public class TaskEventHandler implements InitializingBean {
         if (listOfFiles != null) {
             for (File file : listOfFiles) {
                 if (file.isFile()) {
-                    LOG.info("Processing file: " + file.getName());
-                    listaStrings.addAll(obtenerUserTasksDesdeArchivo(file.getAbsolutePath()));
+                    listaStrings.addAll(obtenerUserTaskDesdeArchivo(file.getAbsolutePath()));
                 }
             }
+            
         } else {
             LOG.error("No files found in the current working directory: " + currentDir.getAbsolutePath());
             return; 
@@ -59,155 +77,482 @@ public class TaskEventHandler implements InitializingBean {
             EPCompiler compiler = EPCompilerProvider.getCompiler();
             CompilerArguments args = new CompilerArguments(configuration);
 
-            // BoD rules 
-            LOG.debug("Creating Generalized BoD Check Expression");
+LOG.debug("Creating Generalized BoD Check Expression");
+String bodEPL = "select parent.idBpmn as parentId, " +
+    "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+    "sub1.name as subTask1Name, sub2.name as subTask2Name, " +
+    "sub1.userTask as user1, sub2.userTask as user2, " +
+    "sub1.instance as instance1 " +
+    "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+    "where parent.bodSecurity = true " +
+    "and sub1.userTask is not null and sub2.userTask is not null " +
+    "and sub1.userTask != sub2.userTask " +
+    "and sub1.idBpmn != sub2.idBpmn " +
+    "and sub1.idBpmn in (parent.subTasks) " +
+    "and sub2.idBpmn in (parent.subTasks) " +
+    "and  sub1.execution = sub2.execution " +
+    "and sub1.instance = sub2.instance";
 
-            String bodEPL = "select parent.idBpmn as parentId, " +
+EPCompiled compiledBod = compiler.compile(bodEPL, args);
+EPDeployment deploymentBod = epRuntime.getDeploymentService().deploy(compiledBod);
+EPStatement statementBod = deploymentBod.getStatements()[0];
+
+statementBod.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
+        String subTask1Id = (String) newData[0].get("subTask1Id");
+        String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
+        String user1 = (String) newData[0].get("user1");
+        String user2 = (String) newData[0].get("user2");
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id + "|" + instance1;
+        String violationKey2 = parentId + "|" + subTask2Id + "|" + subTask1Id + "|" + instance1;
+
+        LOG.warn("BoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
+                 parentId, subTask1Id, subTask2Id, user1, user2, instance1);
+        
+        if (!reportedBodViolations.contains(violationKey) && !reportedBodViolations.contains(violationKey2)) {
+            reportedBodViolations.add(violationKey);
+            reportedBodViolations.add(violationKey2);
+
+            sb.append("\n---------------------------------");
+            sb.append("\n- [BOD MONITOR] Binding of Duties violation detected:");
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
+            sb.append("\n- Executed By Users: ").append(user1).append(" and ").append(user2);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n---------------------------------");
+        } else {
+            LOG.debug("BoD violation already reported for key: " + violationKey);
+        }
+    }
+});
+
+LOG.debug("Creating Multi-Instance BoD Check Expression");
+
+String multiInstanceBodEPL = 
+"select parent.idBpmn as parentId, " +
+"       sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+"sub1.name as subTask1Name, sub2.name as subTask2Name, " +
+"       sub1.userTask as userTask1, sub2.userTask as userTask2, " + 
+"       sub1.instance as instance1, sub2.instance as instance2, " +
+"       sub1.execution as execution1, sub2.execution as execution2 " +
+"from   Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+"where parent.bodSecurity = true " +  
+"  and  sub1.idBpmn = sub2.idBpmn " +
+"  and  sub1.execution != sub2.execution " +
+"  and  sub1.instance = sub2.instance " +
+"and sub1.idBpmn in (parent.subTasks) " +
+"and sub2.idBpmn in (parent.subTasks) " +
+"  and  sub1.userTask is not null " +
+"  and  sub2.userTask is not null " +
+"  and  sub1.userTask != sub2.userTask";
+
+EPCompiled compiledMultiBod = compiler.compile(multiInstanceBodEPL, args);
+EPDeployment deploymentMultiBod = epRuntime.getDeploymentService().deploy(compiledMultiBod);
+EPStatement statementMultiBod = deploymentMultiBod.getStatements()[0];
+
+statementMultiBod.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
+        String subTask1Id = (String) newData[0].get("subTask1Id");
+        String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
+        String user1 = (String) newData[0].get("userTask1");
+        String user2 = (String) newData[0].get("userTask2");             
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        Integer instance2 = (Integer) newData[0].get("instance2");
+        Integer execution1 = (Integer) newData[0].get("execution1");
+        Integer execution2 = (Integer) newData[0].get("execution2");
+        String violationKey = parentId + "|" + subTask1Id + "|" + instance1 + "|" + instance2
+        + "|" + execution1 + "|" + execution2;
+
+        LOG.warn(" Multi-Instance BoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
+                 parentId, subTask1Id, subTask2Id, user1, user2, instance1);
+
+        if (!reportedBodViolations.contains(violationKey)) {
+            reportedBodViolations.add(violationKey);
+
+            sb.append("\n---------------------------------");
+            sb.append("\n- [MULTI-INSTANCE BoD MONITOR] Multi-Instance violation detected:");
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
+            sb.append("\n- Executed By Users: ").append(user1).append(" and ").append(user2);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n- Execution 1: ").append(execution1);
+            sb.append("\n- Execution 2: ").append(execution2);
+            sb.append("\n---------------------------------");
+        } else {
+            LOG.debug("Multi-instance BoD violation already reported for key: " + violationKey);
+        }
+    }
+});
+
+
+LOG.debug("Creating StandBy Check Expression");
+String standByEPL = "select * from Task where stopTime is not null";
+
+
+EPCompiled compiledStandBy = compiler.compile(standByEPL, args);
+EPDeployment deploymentStandBy = epRuntime.getDeploymentService().deploy(compiledStandBy);
+EPStatement statementStandBy = deploymentStandBy.getStatements()[0];
+
+statementStandBy.addListener((newData, oldData, stat, rt) -> {
+    
+    if (newData != null && newData.length > 0) {
+        String idBpmn = (String) newData[0].get("idBpmn");
+        Long startTime = (Long) newData[0].get("startTime");
+        Long stopTime = (Long) newData[0].get("stopTime");
+        Long time = (Long) newData[0].get("time");
+        Integer instance = (Integer) newData[0].get("instance");
+
+        String violationMessage = String.format(
+            "Instance %d: StandBy on task %s, start at %d, stops at %d, duration of %d", 
+            instance, idBpmn, startTime, stopTime, time
+        );
+
+        sb.append("\n---------------------------------");
+        sb.append("\n- [STANDBY VIOLATION] Detected:");
+        sb.append("\n").append(violationMessage);
+        sb.append("\n---------------------------------");
+    }
+});
+
+LOG.debug("Creating Generalized SoD Check Expression");
+String sodEPL = "select parent.idBpmn as parentId, " +
                 "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-                "sub1.user as user1, sub2.user as user2 " +
+                "sub1.name as subTask1Name, sub2.name as subTask2Name, " +
+                "sub1.userTask as userTask1, sub2.userTask as userTask2, " +
+                "sub1.instance as instance1, " +
+                "sub1.execution as execution1, sub2.execution as execution2 " +
                 "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-                "where parent.bodSecurity = true " +              // Parent task has BoD enabled
-                "and sub1.user is not null and sub2.user is not null " + // Ensure both users are not null
-                "and sub1.user = sub2.user " +                    // Same user for both sub-tasks
-                "and sub1.idBpmn != sub2.idBpmn " +               // Different sub-tasks
-                "and sub1.idBpmn in (parent.subTasks) " +         // sub1 is a sub-task of parent
-                "and sub2.idBpmn in (parent.subTasks) ";          // sub2 is a sub-task of parent
+                "where parent.sodSecurity = true " +  
+                "and sub1.idBpmn != sub2.idBpmn " +  
+                "and sub1.idBpmn in (parent.subTasks) " +  
+                "and sub2.idBpmn in (parent.subTasks) " +  
+                "and sub1.instance = sub2.instance " + 
+                "and  sub1.execution = sub2.execution " + 
+                "and sub1.userTask is not null " +
+                "and sub2.userTask is not null " + 
+                "and sub1.userTask = sub2.userTask " +
+                "and sub1.idBpmn < sub2.idBpmn";
+
+EPCompiled compiledSod = compiler.compile(sodEPL, args);
+EPDeployment deploymentSod = epRuntime.getDeploymentService().deploy(compiledSod);
+EPStatement statementSod = deploymentSod.getStatements()[0];
+
+statementSod.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
+        String subTask1Id = (String) newData[0].get("subTask1Id");
+        String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
+        String userTask1 = (String) newData[0].get("userTask1");
+        Integer instance1 = (Integer) newData[0].get("instance1");
+
+        String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id + "|" + instance1;
+        String violationKey2 = parentId + "|" + subTask2Id + "|" + subTask1Id + "|" + instance1;
+
+        LOG.warn(" SoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
+                 parentId, subTask1Id, subTask2Id, userTask1, instance1);
+
+        if (!reportedSodViolations.contains(violationKey) && !reportedSodViolations.contains(violationKey2)) {
+            reportedSodViolations.add(violationKey);
+            reportedSodViolations.add(violationKey2);
+
+            sb.append("\n---------------------------------");
+            sb.append("\n- [SOD MONITOR] Segregation of Duties violation detected:");
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
+            sb.append("\n- Executed By User: ").append(userTask1);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n---------------------------------");
+        } else {
+            LOG.debug("SoD violation already reported for key: " + violationKey);
+        }
+    }
+});
+
+LOG.debug("Creating Generalized SoD Check Expression");
+String multiInstanceSodEPL = 
+
+  "select parent.idBpmn as parentId, " +
+  "       sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+  "sub1.name as subTask1Name, sub2.name as subTask2Name, " +
+  "       sub1.userTask as userTask1, " + 
+  "       sub1.instance as instance1, sub2.instance as instance2, " +
+  "       sub1.execution as execution1, sub2.execution as execution2 " +
+  "from   Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+  "where parent.sodSecurity = true " +  
+  "and  sub1.idBpmn = sub2.idBpmn " +
+  "and sub1.idBpmn in (parent.subTasks) " +  
+  "and sub2.idBpmn in (parent.subTasks) " +  
+  "  and  sub1.execution != sub2.execution " +
+  "  and  sub1.instance = sub2.instance " +
+  "  and  sub1.userTask is not null " +
+  "  and  sub2.userTask is not null " +
+  "  and  sub1.userTask = sub2.userTask";
 
 
-            EPCompiled compiledBod = compiler.compile(bodEPL, args);
-            EPDeployment deploymentBod = epRuntime.getDeploymentService().deploy(compiledBod);
-            EPStatement statementBod = deploymentBod.getStatements()[0];
-            statementBod.addListener((newData, oldData, stat, rt) -> {
-                if (newData != null && newData.length > 0) {
-                    String parentId = (String) newData[0].get("parentId");
-                    String subTask1Id = (String) newData[0].get("subTask1Id");
-                    String subTask2Id = (String) newData[0].get("subTask2Id");
-                    String user1 = (String) newData[0].get("user1");
-                    String user2 = (String) newData[0].get("user2");
+EPCompiled compiledMultiInstanceSod = compiler.compile(multiInstanceSodEPL, args);
+EPDeployment deploymentMultiInstanceSod = epRuntime.getDeploymentService().deploy(compiledMultiInstanceSod);
+EPStatement statementMultiInstanceSod = deploymentMultiInstanceSod.getStatements()[0];
 
-            // Debug log for BoD checks
-            LOG.debug("New data received for BoD check: Parent Task ID = {}, SubTask 1 ID = {}, SubTask 2 ID = {}, User1 = {}, User2 = {}", 
-                  parentId, subTask1Id, subTask2Id, user1, user2);
+statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId   = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
+        String subTask1Id = (String) newData[0].get("subTask1Id");
+        String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
+        String userTask1  = (String) newData[0].get("userTask1"); 
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        Integer instance2 = (Integer) newData[0].get("instance2");
+        Integer execution1 = (Integer) newData[0].get("execution1");
+        Integer execution2 = (Integer) newData[0].get("execution2");
 
-            LOG.info("Checking BoD for Parent Task: {}", parentId);
-            LOG.info("SubTask 1: {} (User: {})", subTask1Id, user1);
-            LOG.info("SubTask 2: {} (User: {})", subTask2Id, user2);
+        String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id 
+                              + "|" + userTask1 + "|" + instance1 + "|" + instance2;
 
-            if (user1 != null && user1.equals(user2)) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("---------------------------------");
-                sb.append("\n- [BOD MONITOR] Binding of Duties detected:");
-                sb.append("\n- Parent Task ID: ").append(parentId);
-                sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-                sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
-                sb.append("\n- User ID: ").append(user1);
+        LOG.warn("Multi-Instance SoD Violation Detected: " +
+                 "Parent={}, SubTask1={}, SubTask2={}, UserTask={}, " +
+                 "execution1={}, execution2={}, instance1={}, instance2={}",
+                 parentId, subTask1Id, subTask2Id, userTask1,
+                 execution1, execution2, instance1, instance2);
+
+        if (!reportedMultiInstanceSodViolations.contains(violationKey)) {
+            reportedMultiInstanceSodViolations.add(violationKey);
+
+            sb.append("\n---------------------------------");
+            sb.append("\n- [MULTI-INSTANCE SoD MONITOR] Segregation of Duties violation detected:");
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
+            sb.append("\n- Executed By User: ").append(userTask1);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n- Execution 1: ").append(execution1);
+            sb.append("\n- Execution 2: ").append(execution2);
+            sb.append("\n---------------------------------");
+
+        } else {
+            LOG.debug("Multi-Instance SoD violation already reported for key: " + violationKey);
+        }
+    }
+});
+
+LOG.debug("Creating UoC Check Expression");
+String uocEPL = "select parent.idBpmn as parentId, " +
+    "sub1.idBpmn as subTaskId, " +
+    "sub1.name as subTaskName, "+
+    "sub1.userTask as userTask, " +
+    "sub1.instance as instance1, " +
+    "sub1.numberOfExecutions as totalExecutions, " +
+    "parent.mth as parentMth " +
+    "from Task#keepall as parent, Task#keepall as sub1 " +
+    "where parent.uocSecurity = true " + 
+    "and sub1.idBpmn in (parent.subTasks) " + 
+    "and sub1.userTask is not null " + 
+    "and sub1.numberOfExecutions > parent.mth " + 
+    "group by parent.idBpmn, sub1.idBpmn, parent.mth, sub1.instance";
+
+    EPCompiled compiledUoc = compiler.compile(uocEPL, args);
+    EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
+    EPStatement statementUoc = deploymentUoc.getStatements()[0];
+    Map<String, Integer> reportedUocViolations = new HashMap<>();
+
+statementUoc.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
+        String subTaskId = (String) newData[0].get("subTaskId");
+        String subTaskName = (String) newData[0].get("subTaskName");
+        String userTask = (String) newData[0].get("userTask");
+        Integer totalExecutions = (Integer) newData[0].get("totalExecutions");
+        Integer maxTimes = (Integer) newData[0].get("parentMth");
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        String taskKey = parentId + "|" + subTaskId  + "|" + instance1;
+        if (totalExecutions > maxTimes) {
+            if (!reportedUocViolations.containsKey(taskKey)) {
                 sb.append("\n---------------------------------");
-
-                LOG.info(sb.toString());
-            } else {
-                LOG.info("No BoD violation: Users differ or are empty.");
+                sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
+                sb.append("\n- Parent Task ID: ").append(parentId);
+                sb.append("\n- SubTask: ").append(subTaskName).append(" (").append(subTaskId).append(")");
+                sb.append("\n- User(s): ").append(userTask); 
+                sb.append("\n- Total number of executions (accumulated): ").append(totalExecutions);
+                sb.append("\n- Maximum allowed: ").append(maxTimes != null ? maxTimes : "N/A");
+                sb.append("\n- Instance: ").append(instance1);
+                sb.append("\n---------------------------------");
+                reportedUocViolations.put(taskKey, totalExecutions);
             }
         }
-    });
+    }
+});
 
-            // SoD rules
-            LOG.debug("Creating Generalized SoD Check Expression");
-            String sodEPL = "select parent.idBpmn as parentId, " +
-                "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
-                "sub1.userTasks as userTasks1, sub2.userTasks as userTasks2, " +
-                "parent.nu as nuValue, " +
-                "count(distinct user) as distinctUserCount " +
-                "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
-                "unidirectional " +  // To ensure we evaluate sub1 and sub2 in one direction only
-                "where parent.sodSecurity = true " +  // Parent task has SoD enabled
-                "and sub1.idBpmn != sub2.idBpmn " +  // Different sub-tasks
-                "and sub1.idBpmn in (parent.subTasks) " +  // sub1 is a sub-task of parent
-                "and sub2.idBpmn in (parent.subTasks) " +  // sub2 is a sub-task of parent
-                // Check for intersection between userTasks1 and userTasks2
-                "and (select count(*) from sub1.userTasks as u1, sub2.userTasks as u2 where u1 = u2) > 0 " + 
-                "group by parent.idBpmn, sub1.idBpmn, sub2.idBpmn, parent.nu, sub1.userTasks, sub2.userTasks " +
-                "having count(distinct (select u from sub1.userTasks as u union sub2.userTasks)) < parent.nu";  // Check if 'nu' is greater than distinct user count
+LOG.debug("Creating Multi-Instance UoC Check Expression");
 
-            EPCompiled compiledSod = compiler.compile(sodEPL, args);
-            EPDeployment deploymentSod = epRuntime.getDeploymentService().deploy(compiledSod);
-            EPStatement statementSod = deploymentSod.getStatements()[0];
-            statementSod.addListener((newData, oldData, stat, rt) -> {
-                if (newData != null && newData.length > 0) {
-                    String parentId = (String) newData[0].get("parentId");
-                    String subTask1Id = (String) newData[0].get("subTask1Id");
-                    String subTask2Id = (String) newData[0].get("subTask2Id");
-                    String user1 = (String) newData[0].get("user1");
-                    String user2 = (String) newData[0].get("user2");
-                    Integer nuValue = (Integer) newData[0].get("nuValue");
-                    Long distinctUserCount = (Long) newData[0].get("distinctUserCount");
+String multiInstanceUocEPL = 
+    "SELECT " +
+    "   parent.idBpmn AS parentId, " +
+    "   sub1.idBpmn  AS subTaskId, " +
+    "sub1.name as subTaskName, "+
+    "   sub1.userTask AS userTask, " +
+    "   sub1.instance AS instance1, " +
+    "   MAX(sub1.execution) AS maxExecution, " +
+    "   SUM(sub1.numberOfExecutions) AS sumNumberOfExecutions, " +
+    "   (MAX(sub1.execution) * SUM(sub1.numberOfExecutions)) AS totalExecutionValue, " +
+    "   parent.mth AS parentMth " +
+    "FROM Task#keepall AS parent, Task#keepall AS sub1 " +
+    "WHERE parent.uocSecurity = true " +
+    "  AND sub1.idBpmn IN (parent.subTasks) " +
+    "  AND sub1.userTask IS NOT NULL " +
+    "  AND sub1.execution IS NOT NULL " +
+    "  AND sub1.numberOfExecutions IS NOT NULL " +
+    "GROUP BY " +
+    "   parent.idBpmn, " +
+    "   sub1.idBpmn, " +
+    "   sub1.userTask, " +
+    "   sub1.instance, " +
+    "   parent.mth " +
+    "HAVING (MAX(sub1.execution) * SUM(sub1.numberOfExecutions)) > parent.mth";
 
-                    LOG.info("Comparing SubTasks: {} (User: {}) and {} (User: {}) under Parent Task: {} with NU: {} and Distinct Users: {}",
-                            subTask1Id, user1, subTask2Id, user2, parentId, nuValue, distinctUserCount);
+EPCompiled compiledMultiInstanceUoc = compiler.compile(multiInstanceUocEPL, args);
+EPDeployment deploymentMultiInstanceUoc = epRuntime.getDeploymentService().deploy(compiledMultiInstanceUoc);
+EPStatement statementMultiInstanceUoc = deploymentMultiInstanceUoc.getStatements()[0];
 
-                    if (user1.equals(user2) || nuValue > distinctUserCount) {
-                        StringBuilder sb = new StringBuilder();
-                        sb.append("---------------------------------");
-                        sb.append("\n- [SOD MONITOR] Segregation of Duties enforced:");
-                        sb.append("\n- Parent Task ID: ").append(parentId);
-                        sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-                        sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
-                        sb.append("\n- User 1 ID: ").append(user1);
-                        sb.append("\n- User 2 ID: ").append(user2);
-                        sb.append("\n- NU Value: ").append(nuValue);
-                        sb.append("\n- Distinct User Count: ").append(distinctUserCount);
-                        sb.append("\n---------------------------------");
+Map<String, Integer> reportedMultiInstanceUocViolations = new HashMap<>();
 
-                        LOG.info(sb.toString());
-                    }
-                }
-            });
+// Ojo: Usar la variable de la nueva sentencia
+statementMultiInstanceUoc.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String  parentId               = (String)  newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
+        String  subTaskId              = (String)  newData[0].get("subTaskId");
+        String subTaskName             = (String) newData[0].get("subTaskName");
+        String  userTask               = (String)  newData[0].get("userTask");
+        Integer instance1              = (Integer) newData[0].get("instance1");
+        Integer maxExecution           = (Integer) newData[0].get("maxExecution");
+        Integer sumNumberOfExecutions  = (Integer) newData[0].get("sumNumberOfExecutions");
+        Integer totalExecutionValue    = (Integer) newData[0].get("totalExecutionValue");
+        Integer maxTimes               = (Integer) newData[0].get("parentMth");
 
-            // UoC rules
-            LOG.debug("Creating UoC Check Expression");
-            String uocEPL = "select user as userId, count(*) as taskCount " +
-                            "from Task#time(1 min) " +
-                            "where uocSecurity = true and mth >= 4 ";
-            EPCompiled compiledUoc = compiler.compile(uocEPL, args);
-            EPDeployment deploymentUoc = epRuntime.getDeploymentService().deploy(compiledUoc);
-            EPStatement statementUoc = deploymentUoc.getStatements()[0];
-            statementUoc.addListener((newData, oldData, stat, rt) -> {
-                String userId = (String) newData[0].get("userId");
-                Long taskCount = (Long) newData[0].get("taskCount");
+        String taskKey = parentId + "|" + subTaskId + "|" + instance1;
 
-                StringBuilder sb = new StringBuilder();
-                sb.append("---------------------------------");
-                sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
-                sb.append("\n- User ID: ").append(userId);
-                sb.append("\n- Number of executions: ").append(taskCount);
+        if (totalExecutionValue > maxTimes) {
+            if (!reportedMultiInstanceUocViolations.containsKey(taskKey)) {
+                sb.append("\n---------------------------------");
+                sb.append("\n- [UOC MONITOR - Multi-Instance Rule]");
+                sb.append("\n- Violation detected: Product of (maxExecution x sumNumberOfExecutions) exceeded MTH");
+                sb.append("\n- Parent Task ID: ").append(parentId);
+                sb.append("\n- SubTask: ").append(subTaskName).append(" (").append(subTaskId).append(")");
+                sb.append("\n- User(s): ").append(userTask);
+                sb.append("\n- Instance: ").append(instance1);
+                sb.append("\n- Max Execution observed: ").append(maxExecution);
+                sb.append("\n- Sum of numberOfExecutions: ").append(sumNumberOfExecutions);
+                sb.append("\n- Product (totalExecutionValue): ").append(totalExecutionValue);
+                sb.append("\n- Maximum allowed (mth): ").append(maxTimes != null ? maxTimes : "N/A");
                 sb.append("\n---------------------------------");
 
-                LOG.info(sb.toString());
-            });
-
-            // Monitor all tasks
-            LOG.debug("Creating Monitor Expression");
-            String monitorEPL = "select * from Task";
-            EPCompiled compiledMonitor = compiler.compile(monitorEPL, args);
-            EPDeployment deploymentMonitor = epRuntime.getDeploymentService().deploy(compiledMonitor);
-            EPStatement statementMonitor = deploymentMonitor.getStatements()[0];
-            statementMonitor.addListener((newData, oldData, stat, rt) -> {
-                Task task = (Task) newData[0].getUnderlying();
-                LOG.info("Task: " + task);
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    LOG.error("Thread was interrupted", e);
-                }
-            });
+                // Usar la map adecuada para almacenar violaciones
+                reportedMultiInstanceUocViolations.put(taskKey, totalExecutionValue);
+            }
+        }
+    }
+});
 
         } catch (Exception e) {
             LOG.error("Error compiling or deploying EPL statements", e);
         }
     }
 
-    private Set<String> obtenerUserTasksDesdeArchivo(String rutaArchivo) {
-        Set<String> userTasks = new HashSet<>();
+    private Map<Long, List<Task>> taskGroups = new HashMap<>();
+    private Set<Long> processedStartTimes = new HashSet<>();
+
+    public void handle(Task event) {
+        Long startTime = event.getStartTime();
+
+        LOG.info("Analyzing task: {}", event);
+    
+        if (startTime != null || event.isBodSecurity() || event.isSodSecurity() || event.isUocSecurity()) {
+            taskGroups.computeIfAbsent(startTime != null ? startTime : -1L, k -> new ArrayList<>()).add(event);
+        }
+    
+        processTaskGroups();
+    }    
+
+    private Long previousStartTime = null;
+
+    private void processTaskGroups() {
+        taskGroups.forEach((startTime, tasks) -> {
+            if (previousStartTime == null || !startTime.equals(previousStartTime)) {
+                previousStartTime = startTime;
+            }
+    
+            tasks.forEach(task -> {
+                epRuntime.getEventService().sendEventBean(task, "Task");
+            });
+    
+            processedStartTimes.add(startTime);
+        });
+        taskGroups.clear();
+    }
+    
+
+public void handleTasks(List<Task> tasks) {
+    if (tasks == null || tasks.isEmpty()) {
+        LOG.warn("La lista de tareas está vacía o es nula.");
+        return;
+    }
+
+    Map<Long, List<Task>> groupedTasks = tasks.stream()
+        .filter(task -> task.getStartTime() != null || 
+            (task.isBodSecurity() || task.isUocSecurity() || task.isSodSecurity())) 
+        .collect(Collectors.groupingBy(task -> 
+            task.getStartTime() != null ? task.getStartTime() : -1L, 
+            TreeMap::new, Collectors.toList()));
+
+    groupedTasks.forEach((startTime, taskList) -> {
+        taskList.forEach(task -> {
+            epRuntime.getEventService().sendEventBean(task, "Task");
+            epRuntime.getEventService().sendEventBean(task, "Task");
+
+        });
+
+        tasks.forEach(task -> {
+            epRuntime.getEventService().sendEventBean(task, "Task");
+        });
+        
+    });
+}
+
+    private List<Task> obtenerListaDeTareas() {
+        return new ArrayList<>(); 
+    }
+
+    private Set<String> obtenerUserTaskDesdeArchivo(String rutaArchivo) {
+        Set<String> userTask = new HashSet<>();
         try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivo))) {
             String linea;
             while ((linea = br.readLine()) != null) {
@@ -215,21 +560,24 @@ public class TaskEventHandler implements InitializingBean {
                     String[] partes = linea.split("userTask=");
                     if (partes.length > 1) {
                         String userTaskValue = partes[1].split(",")[0].trim(); 
-                        userTasks.add(userTaskValue); 
+                        userTask.add(userTaskValue); 
                     }
                 }
             }
         } catch (IOException e) {
             LOG.error("Error reading file: " + rutaArchivo, e);
         }
-        return userTasks;
+        return userTask;
     }
 
-    public void handle(Task event) {
-        LOG.debug(event.toString());
-        epRuntime.getEventService().sendEventBean(event, "Task");
+    public void writeViolationsToFile(String filename) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+            writer.write(sb.toString());
+        } catch (IOException e) {
+            LOG.error("Error writing violations to file", e);
+        }
     }
-
+    
     @Override
     public void afterPropertiesSet() {
         LOG.debug("Configuring..");
