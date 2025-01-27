@@ -94,7 +94,7 @@ public class TaskProcessor {
         List<String> subTasks = new ArrayList<>();
         List<String> subTasksUserTasks = new ArrayList<>();
         boolean sodSecurity = false, bodSecurity = false, uocSecurity = false;
-        Integer mth = null, instance = null, numberOfExecutions = 1;
+        Integer mth = null, instance = null, numberOfExecutions = 1, execution = 0;
         Long startTime = null; 
         Long stopTime = null;
         Long time = null;
@@ -173,15 +173,15 @@ public class TaskProcessor {
                 case "numberOfExecutions":
                     numberOfExecutions = Integer.parseInt(keyValue[1].trim());
                     break;
+                case "execution":
+                    execution = Integer.parseInt(keyValue[1].trim());
+                    break;
             }
         }
     
-        LOG.debug("Parsed Task: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTask={}, stopTime={}, numberOfExecutions={}",
-        idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTask, stopTime, numberOfExecutions);
-    
-        if (bodSecurity) {
-        }
+        LOG.debug("Parsed Task: idBpmn={}, bodSecurity={}, sodSecurity={}, uocSecurity={}, subTasks={}, userTask={}, stopTime={}, numberOfExecutions={}, execution={}",
+        idBpmn, bodSecurity, sodSecurity, uocSecurity, subTasks, userTask, stopTime, numberOfExecutions, execution);
 
-        return new Task(type, name, idBpmn, mth, subTasks, userTask, bodSecurity, sodSecurity, uocSecurity, startTime, stopTime, time, instance, numberOfExecutions, subTasksUserTasks);
-    }
-}    
+    return new Task(type, name, idBpmn, mth, subTasks, userTask, bodSecurity, sodSecurity, uocSecurity, startTime, stopTime, time, instance, numberOfExecutions, execution, subTasksUserTasks);
+    } 
+}   

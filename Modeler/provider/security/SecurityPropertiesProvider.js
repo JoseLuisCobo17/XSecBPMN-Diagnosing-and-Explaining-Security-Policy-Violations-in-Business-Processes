@@ -74,7 +74,7 @@ function createUoCGroup(element, translate) {
 function createUserGroup(element, translate) {
   const userGroup = {
     id: 'User',
-    label: translate('UserTask properties'),
+    label: translate('Simulation parameters'),
     entries: UserProps(element),
     tooltip: translate('Make sure you know what you are doing!')
   };

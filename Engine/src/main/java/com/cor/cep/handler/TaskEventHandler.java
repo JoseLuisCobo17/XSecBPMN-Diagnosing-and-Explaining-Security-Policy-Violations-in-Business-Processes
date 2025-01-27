@@ -12,6 +12,7 @@ import com.espertech.esper.compiler.client.CompilerArguments;
 import com.espertech.esper.compiler.client.EPCompiler;
 import com.espertech.esper.compiler.client.EPCompilerProvider;
 import com.espertech.esper.common.client.EPCompiled;
+import com.espertech.esper.common.client.EventBean;
 import com.espertech.esper.runtime.client.EPDeployment;
 import com.espertech.esper.runtime.client.EPRuntime;
 import com.espertech.esper.runtime.client.EPRuntimeProvider;
@@ -45,6 +46,7 @@ public class TaskEventHandler implements InitializingBean {
     private StringBuilder sb = new StringBuilder();
     private Set<String> reportedBodViolations = new HashSet<>();
     private Set<String> reportedSodViolations = new HashSet<>();
+    private Set<String> reportedMultiInstanceSodViolations = new HashSet<>();
     private Set<String> reportedUocViolations = new HashSet<>();
 
     public void initService() {
@@ -78,6 +80,7 @@ public class TaskEventHandler implements InitializingBean {
 LOG.debug("Creating Generalized BoD Check Expression");
 String bodEPL = "select parent.idBpmn as parentId, " +
     "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+    "sub1.name as subTask1Name, sub2.name as subTask2Name, " +
     "sub1.userTask as user1, sub2.userTask as user2, " +
     "sub1.instance as instance1 " +
     "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
@@ -87,6 +90,7 @@ String bodEPL = "select parent.idBpmn as parentId, " +
     "and sub1.idBpmn != sub2.idBpmn " +
     "and sub1.idBpmn in (parent.subTasks) " +
     "and sub2.idBpmn in (parent.subTasks) " +
+    "and  sub1.execution = sub2.execution " +
     "and sub1.instance = sub2.instance";
 
 EPCompiled compiledBod = compiler.compile(bodEPL, args);
@@ -96,13 +100,21 @@ EPStatement statementBod = deploymentBod.getStatements()[0];
 statementBod.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
         String user1 = (String) newData[0].get("user1");
         String user2 = (String) newData[0].get("user2");
         Integer instance1 = (Integer) newData[0].get("instance1");
         String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id + "|" + instance1;
         String violationKey2 = parentId + "|" + subTask2Id + "|" + subTask1Id + "|" + instance1;
+
+        LOG.warn("BoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
+                 parentId, subTask1Id, subTask2Id, user1, user2, instance1);
         
         if (!reportedBodViolations.contains(violationKey) && !reportedBodViolations.contains(violationKey2)) {
             reportedBodViolations.add(violationKey);
@@ -111,8 +123,8 @@ statementBod.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n---------------------------------");
             sb.append("\n- [BOD MONITOR] Binding of Duties violation detected:");
             sb.append("\n- Parent Task ID: ").append(parentId);
-            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
             sb.append("\n- Executed By Users: ").append(user1).append(" and ").append(user2);
             sb.append("\n- Instance: ").append(instance1);
             sb.append("\n---------------------------------");
@@ -121,6 +133,72 @@ statementBod.addListener((newData, oldData, stat, rt) -> {
         }
     }
 });
+
+LOG.debug("Creating Multi-Instance BoD Check Expression");
+
+String multiInstanceBodEPL = 
+"select parent.idBpmn as parentId, " +
+"       sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+"sub1.name as subTask1Name, sub2.name as subTask2Name, " +
+"       sub1.userTask as userTask1, sub2.userTask as userTask2, " + 
+"       sub1.instance as instance1, sub2.instance as instance2, " +
+"       sub1.execution as execution1, sub2.execution as execution2 " +
+"from   Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+"where parent.bodSecurity = true " +  
+"  and  sub1.idBpmn = sub2.idBpmn " +
+"  and  sub1.execution != sub2.execution " +
+"  and  sub1.instance = sub2.instance " +
+"and sub1.idBpmn in (parent.subTasks) " +
+"and sub2.idBpmn in (parent.subTasks) " +
+"  and  sub1.userTask is not null " +
+"  and  sub2.userTask is not null " +
+"  and  sub1.userTask != sub2.userTask";
+
+EPCompiled compiledMultiBod = compiler.compile(multiInstanceBodEPL, args);
+EPDeployment deploymentMultiBod = epRuntime.getDeploymentService().deploy(compiledMultiBod);
+EPStatement statementMultiBod = deploymentMultiBod.getStatements()[0];
+
+statementMultiBod.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
+        String subTask1Id = (String) newData[0].get("subTask1Id");
+        String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
+        String user1 = (String) newData[0].get("userTask1");
+        String user2 = (String) newData[0].get("userTask2");             
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        Integer instance2 = (Integer) newData[0].get("instance2");
+        Integer execution1 = (Integer) newData[0].get("execution1");
+        Integer execution2 = (Integer) newData[0].get("execution2");
+        String violationKey = parentId + "|" + subTask1Id + "|" + instance1 + "|" + instance2
+        + "|" + execution1 + "|" + execution2;
+
+        LOG.warn(" Multi-Instance BoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
+                 parentId, subTask1Id, subTask2Id, user1, user2, instance1);
+
+        if (!reportedBodViolations.contains(violationKey)) {
+            reportedBodViolations.add(violationKey);
+
+            sb.append("\n---------------------------------");
+            sb.append("\n- [MULTI-INSTANCE BoD MONITOR] Multi-Instance violation detected:");
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
+            sb.append("\n- Executed By Users: ").append(user1).append(" and ").append(user2);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n- Execution 1: ").append(execution1);
+            sb.append("\n- Execution 2: ").append(execution2);
+            sb.append("\n---------------------------------");
+        } else {
+            LOG.debug("Multi-instance BoD violation already reported for key: " + violationKey);
+        }
+    }
+});
+
 
 LOG.debug("Creating StandBy Check Expression");
 String standByEPL = "select * from Task where stopTime is not null";
@@ -154,14 +232,17 @@ statementStandBy.addListener((newData, oldData, stat, rt) -> {
 LOG.debug("Creating Generalized SoD Check Expression");
 String sodEPL = "select parent.idBpmn as parentId, " +
                 "sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+                "sub1.name as subTask1Name, sub2.name as subTask2Name, " +
                 "sub1.userTask as userTask1, sub2.userTask as userTask2, " +
-                "sub1.instance as instance1 " +
+                "sub1.instance as instance1, " +
+                "sub1.execution as execution1, sub2.execution as execution2 " +
                 "from Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
                 "where parent.sodSecurity = true " +  
                 "and sub1.idBpmn != sub2.idBpmn " +  
                 "and sub1.idBpmn in (parent.subTasks) " +  
                 "and sub2.idBpmn in (parent.subTasks) " +  
-                "and sub1.instance = sub2.instance " +  
+                "and sub1.instance = sub2.instance " + 
+                "and  sub1.execution = sub2.execution " + 
                 "and sub1.userTask is not null " +
                 "and sub2.userTask is not null " + 
                 "and sub1.userTask = sub2.userTask " +
@@ -174,13 +255,21 @@ EPStatement statementSod = deploymentSod.getStatements()[0];
 statementSod.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
         String subTask1Id = (String) newData[0].get("subTask1Id");
         String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
         String userTask1 = (String) newData[0].get("userTask1");
         Integer instance1 = (Integer) newData[0].get("instance1");
 
         String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id + "|" + instance1;
         String violationKey2 = parentId + "|" + subTask2Id + "|" + subTask1Id + "|" + instance1;
+
+        LOG.warn(" SoD Violation Detected: Parent Task ID: {}, SubTask1 ID: {}, SubTask2 ID: {}, Users: {} and {}, Instance: {}",
+                 parentId, subTask1Id, subTask2Id, userTask1, instance1);
 
         if (!reportedSodViolations.contains(violationKey) && !reportedSodViolations.contains(violationKey2)) {
             reportedSodViolations.add(violationKey);
@@ -189,8 +278,8 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
             sb.append("\n---------------------------------");
             sb.append("\n- [SOD MONITOR] Segregation of Duties violation detected:");
             sb.append("\n- Parent Task ID: ").append(parentId);
-            sb.append("\n- SubTask 1 ID: ").append(subTask1Id);
-            sb.append("\n- SubTask 2 ID: ").append(subTask2Id);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
             sb.append("\n- Executed By User: ").append(userTask1);
             sb.append("\n- Instance: ").append(instance1);
             sb.append("\n---------------------------------");
@@ -200,9 +289,80 @@ statementSod.addListener((newData, oldData, stat, rt) -> {
     }
 });
 
+LOG.debug("Creating Generalized SoD Check Expression");
+String multiInstanceSodEPL = 
+
+  "select parent.idBpmn as parentId, " +
+  "       sub1.idBpmn as subTask1Id, sub2.idBpmn as subTask2Id, " +
+  "sub1.name as subTask1Name, sub2.name as subTask2Name, " +
+  "       sub1.userTask as userTask1, " + 
+  "       sub1.instance as instance1, sub2.instance as instance2, " +
+  "       sub1.execution as execution1, sub2.execution as execution2 " +
+  "from   Task#keepall as parent, Task#keepall as sub1, Task#keepall as sub2 " +
+  "where parent.sodSecurity = true " +  
+  "and  sub1.idBpmn = sub2.idBpmn " +
+  "and sub1.idBpmn in (parent.subTasks) " +  
+  "and sub2.idBpmn in (parent.subTasks) " +  
+  "  and  sub1.execution != sub2.execution " +
+  "  and  sub1.instance = sub2.instance " +
+  "  and  sub1.userTask is not null " +
+  "  and  sub2.userTask is not null " +
+  "  and  sub1.userTask = sub2.userTask";
+
+
+EPCompiled compiledMultiInstanceSod = compiler.compile(multiInstanceSodEPL, args);
+EPDeployment deploymentMultiInstanceSod = epRuntime.getDeploymentService().deploy(compiledMultiInstanceSod);
+EPStatement statementMultiInstanceSod = deploymentMultiInstanceSod.getStatements()[0];
+
+statementMultiInstanceSod.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String parentId   = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
+        String subTask1Id = (String) newData[0].get("subTask1Id");
+        String subTask2Id = (String) newData[0].get("subTask2Id");
+        String subTask1Name = (String) newData[0].get("subTask1Name");
+        String subTask2Name = (String) newData[0].get("subTask1Name");
+        String userTask1  = (String) newData[0].get("userTask1"); 
+        Integer instance1 = (Integer) newData[0].get("instance1");
+        Integer instance2 = (Integer) newData[0].get("instance2");
+        Integer execution1 = (Integer) newData[0].get("execution1");
+        Integer execution2 = (Integer) newData[0].get("execution2");
+
+        String violationKey = parentId + "|" + subTask1Id + "|" + subTask2Id 
+                              + "|" + userTask1 + "|" + instance1 + "|" + instance2;
+
+        LOG.warn("Multi-Instance SoD Violation Detected: " +
+                 "Parent={}, SubTask1={}, SubTask2={}, UserTask={}, " +
+                 "execution1={}, execution2={}, instance1={}, instance2={}",
+                 parentId, subTask1Id, subTask2Id, userTask1,
+                 execution1, execution2, instance1, instance2);
+
+        if (!reportedMultiInstanceSodViolations.contains(violationKey)) {
+            reportedMultiInstanceSodViolations.add(violationKey);
+
+            sb.append("\n---------------------------------");
+            sb.append("\n- [MULTI-INSTANCE SoD MONITOR] Segregation of Duties violation detected:");
+            sb.append("\n- Parent Task ID: ").append(parentId);
+            sb.append("\n- SubTask 1: ").append(subTask1Name).append(" (").append(subTask1Id).append(")");
+            sb.append("\n- SubTask 2: ").append(subTask2Name).append(" (").append(subTask2Id).append(")");
+            sb.append("\n- Executed By User: ").append(userTask1);
+            sb.append("\n- Instance: ").append(instance1);
+            sb.append("\n- Execution 1: ").append(execution1);
+            sb.append("\n- Execution 2: ").append(execution2);
+            sb.append("\n---------------------------------");
+
+        } else {
+            LOG.debug("Multi-Instance SoD violation already reported for key: " + violationKey);
+        }
+    }
+});
+
 LOG.debug("Creating UoC Check Expression");
 String uocEPL = "select parent.idBpmn as parentId, " +
     "sub1.idBpmn as subTaskId, " +
+    "sub1.name as subTaskName, "+
     "sub1.userTask as userTask, " +
     "sub1.instance as instance1, " +
     "sub1.numberOfExecutions as totalExecutions, " +
@@ -222,7 +382,11 @@ String uocEPL = "select parent.idBpmn as parentId, " +
 statementUoc.addListener((newData, oldData, stat, rt) -> {
     if (newData != null && newData.length > 0) {
         String parentId = (String) newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
         String subTaskId = (String) newData[0].get("subTaskId");
+        String subTaskName = (String) newData[0].get("subTaskName");
         String userTask = (String) newData[0].get("userTask");
         Integer totalExecutions = (Integer) newData[0].get("totalExecutions");
         Integer maxTimes = (Integer) newData[0].get("parentMth");
@@ -233,13 +397,86 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
                 sb.append("\n---------------------------------");
                 sb.append("\n- [UOC MONITOR] Usage of Control violation detected:");
                 sb.append("\n- Parent Task ID: ").append(parentId);
-                sb.append("\n- SubTask ID: ").append(subTaskId);
+                sb.append("\n- SubTask: ").append(subTaskName).append(" (").append(subTaskId).append(")");
                 sb.append("\n- User(s): ").append(userTask); 
                 sb.append("\n- Total number of executions (accumulated): ").append(totalExecutions);
                 sb.append("\n- Maximum allowed: ").append(maxTimes != null ? maxTimes : "N/A");
                 sb.append("\n- Instance: ").append(instance1);
                 sb.append("\n---------------------------------");
                 reportedUocViolations.put(taskKey, totalExecutions);
+            }
+        }
+    }
+});
+
+LOG.debug("Creating Multi-Instance UoC Check Expression");
+
+String multiInstanceUocEPL = 
+    "SELECT " +
+    "   parent.idBpmn AS parentId, " +
+    "   sub1.idBpmn  AS subTaskId, " +
+    "sub1.name as subTaskName, "+
+    "   sub1.userTask AS userTask, " +
+    "   sub1.instance AS instance1, " +
+    "   MAX(sub1.execution) AS maxExecution, " +
+    "   SUM(sub1.numberOfExecutions) AS sumNumberOfExecutions, " +
+    "   (MAX(sub1.execution) * SUM(sub1.numberOfExecutions)) AS totalExecutionValue, " +
+    "   parent.mth AS parentMth " +
+    "FROM Task#keepall AS parent, Task#keepall AS sub1 " +
+    "WHERE parent.uocSecurity = true " +
+    "  AND sub1.idBpmn IN (parent.subTasks) " +
+    "  AND sub1.userTask IS NOT NULL " +
+    "  AND sub1.execution IS NOT NULL " +
+    "  AND sub1.numberOfExecutions IS NOT NULL " +
+    "GROUP BY " +
+    "   parent.idBpmn, " +
+    "   sub1.idBpmn, " +
+    "   sub1.userTask, " +
+    "   sub1.instance, " +
+    "   parent.mth " +
+    "HAVING (MAX(sub1.execution) * SUM(sub1.numberOfExecutions)) > parent.mth";
+
+EPCompiled compiledMultiInstanceUoc = compiler.compile(multiInstanceUocEPL, args);
+EPDeployment deploymentMultiInstanceUoc = epRuntime.getDeploymentService().deploy(compiledMultiInstanceUoc);
+EPStatement statementMultiInstanceUoc = deploymentMultiInstanceUoc.getStatements()[0];
+
+Map<String, Integer> reportedMultiInstanceUocViolations = new HashMap<>();
+
+// Ojo: Usar la variable de la nueva sentencia
+statementMultiInstanceUoc.addListener((newData, oldData, stat, rt) -> {
+    if (newData != null && newData.length > 0) {
+        String  parentId               = (String)  newData[0].get("parentId");
+        if (parentId != null) {
+            parentId = parentId.replace("\"", "");
+        }
+        String  subTaskId              = (String)  newData[0].get("subTaskId");
+        String subTaskName             = (String) newData[0].get("subTaskName");
+        String  userTask               = (String)  newData[0].get("userTask");
+        Integer instance1              = (Integer) newData[0].get("instance1");
+        Integer maxExecution           = (Integer) newData[0].get("maxExecution");
+        Integer sumNumberOfExecutions  = (Integer) newData[0].get("sumNumberOfExecutions");
+        Integer totalExecutionValue    = (Integer) newData[0].get("totalExecutionValue");
+        Integer maxTimes               = (Integer) newData[0].get("parentMth");
+
+        String taskKey = parentId + "|" + subTaskId + "|" + instance1;
+
+        if (totalExecutionValue > maxTimes) {
+            if (!reportedMultiInstanceUocViolations.containsKey(taskKey)) {
+                sb.append("\n---------------------------------");
+                sb.append("\n- [UOC MONITOR - Multi-Instance Rule]");
+                sb.append("\n- Violation detected: Product of (maxExecution x sumNumberOfExecutions) exceeded MTH");
+                sb.append("\n- Parent Task ID: ").append(parentId);
+                sb.append("\n- SubTask: ").append(subTaskName).append(" (").append(subTaskId).append(")");
+                sb.append("\n- User(s): ").append(userTask);
+                sb.append("\n- Instance: ").append(instance1);
+                sb.append("\n- Max Execution observed: ").append(maxExecution);
+                sb.append("\n- Sum of numberOfExecutions: ").append(sumNumberOfExecutions);
+                sb.append("\n- Product (totalExecutionValue): ").append(totalExecutionValue);
+                sb.append("\n- Maximum allowed (mth): ").append(maxTimes != null ? maxTimes : "N/A");
+                sb.append("\n---------------------------------");
+
+                // Usar la map adecuada para almacenar violaciones
+                reportedMultiInstanceUocViolations.put(taskKey, totalExecutionValue);
             }
         }
     }
@@ -255,6 +492,8 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
 
     public void handle(Task event) {
         Long startTime = event.getStartTime();
+
+        LOG.info("Analyzing task: {}", event);
     
         if (startTime != null || event.isBodSecurity() || event.isSodSecurity() || event.isUocSecurity()) {
             taskGroups.computeIfAbsent(startTime != null ? startTime : -1L, k -> new ArrayList<>()).add(event);

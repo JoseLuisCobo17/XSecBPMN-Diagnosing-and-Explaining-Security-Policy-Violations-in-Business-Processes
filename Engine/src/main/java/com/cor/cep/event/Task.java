@@ -17,9 +17,10 @@ public class Task {
     private Long time;
     private Integer instance;
     private Integer numberOfExecutions;
+    private Integer execution;
     private List<String> subTasksUserTasks;
 
-    public Task(String type, String name, String idBpmn, Integer mth, List<String> subTasks, String userTask, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity, Long startTime, Long stopTime, Long time, Integer instance, Integer numberOfExecutions, List<String> subTasksUserTasks) {
+    public Task(String type, String name, String idBpmn, Integer mth, List<String> subTasks, String userTask, boolean bodSecurity, boolean sodSecurity, boolean uocSecurity, Long startTime, Long stopTime, Long time, Integer instance, Integer numberOfExecutions, Integer execution, List<String> subTasksUserTasks) {
         this.type = type;
         this.name = name;
         this.idBpmn = idBpmn;
@@ -34,6 +35,7 @@ public class Task {
         this.time = time;
         this.instance = instance;
         this.numberOfExecutions = numberOfExecutions;
+        this.execution = execution;
         this.subTasksUserTasks = subTasksUserTasks;
     }
 
@@ -149,6 +151,14 @@ public class Task {
         this.numberOfExecutions = numberOfExecutions;
     }
 
+    public Integer getExecution() {
+        return execution;
+    }
+
+    public void setExecution(Integer execution) {
+        this.execution = execution;
+    }
+
     public List<String> getSubTasksUserTasks() {
         return subTasksUserTasks;
     }
@@ -164,6 +174,6 @@ public class Task {
             + ", bodSecurity=" + bodSecurity + ", sodSecurity=" + sodSecurity
             + ", uocSecurity=" + uocSecurity + ", startTime=" + startTime + ", stopTime=" + stopTime 
             + ", time=" + time + ", instance=" + instance + ", numberOfExecutions=" + numberOfExecutions
-            + ", subTasksUserTasks=" + subTasksUserTasks + "]";
+            + ", execution=" + execution + ", subTasksUserTasks=" + subTasksUserTasks + "]";
     }
 }

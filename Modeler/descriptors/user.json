@@ -17,7 +17,7 @@
       "properties": [
         {
           "name": "UserTask",
-          "isAttr": true,
+          "isAttr": false,
           "type": "String",
           "isMany": true
         },
@@ -34,6 +34,16 @@
         },
         {
           "name": "maximumTime",
+          "isAttr": true,
+          "type": "Integer"
+        },
+        {
+          "name": "loopParameter",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "AdditionalIntegerParameter",
           "isAttr": true,
           "type": "Integer"
         }

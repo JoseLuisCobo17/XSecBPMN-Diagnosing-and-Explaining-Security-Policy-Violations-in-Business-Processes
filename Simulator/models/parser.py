@@ -158,16 +158,40 @@ def parse_bpmn_elements(file_content: str):
                 numberOfExecutions = int(re.search(r'numberOfExecutions=(\d+)', line).group(1))
                 minimumTime = int(re.search(r'minimumTime=(\d+)', line).group(1))
                 maximumTime = int(re.search(r'maximumTime=(\d+)', line).group(1))
+                loopParameter_match = re.search(r'loopParameter=({[^}]+})', line)
+                if loopParameter_match:
+                    loopParameter_str = loopParameter_match.group(1)
+                    loopParameter = ast.literal_eval(loopParameter_str)
+                else:
+                    loopParameter = None
+                multiInstanceType_match = re.search(r'multiInstanceType="([^"]+)"', line)
+                if multiInstanceType_match:
+                    multiInstanceType_str = multiInstanceType_match.group(1)
+                    multiInstanceType = multiInstanceType_str == "true"
+                else:
+                    multiInstanceType = None
                 subTask = re.search(r'subTask="([^"]+)"', line).group(1)
-                element = BPMNTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, subTask)
+                element = BPMNTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, loopParameter, multiInstanceType, subTask)
             
             elif element_type == "UserTask":
                 userTask = match.group(1).split(', ') if (match := re.search(r'userTask="([^"]+)"', line)) else None
                 numberOfExecutions = int(re.search(r'numberOfExecutions=(\d+)', line).group(1))
                 minimumTime = int(re.search(r'minimumTime=(\d+)', line).group(1))
                 maximumTime = int(re.search(r'maximumTime=(\d+)', line).group(1))
+                loopParameter_match = re.search(r'loopParameter=({[^}]+})', line)
+                if loopParameter_match:
+                    loopParameter_str = loopParameter_match.group(1)
+                    loopParameter = ast.literal_eval(loopParameter_str)
+                else:
+                    loopParameter = None
+                multiInstanceType_match = re.search(r'multiInstanceType="([^"]+)"', line)
+                if multiInstanceType_match:
+                    multiInstanceType_str = multiInstanceType_match.group(1)
+                    multiInstanceType = multiInstanceType_str == "true"
+                else:
+                    multiInstanceType = None
                 subTask = re.search(r'subTask="([^"]+)"', line).group(1)
-                element = BPMNUserTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, subTask)
+                element = BPMNUserTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, loopParameter, multiInstanceType, subTask)
 
             elif element_type == "SendTask":
                 messageThrowElement.append(id_bpmn)
@@ -176,8 +200,20 @@ def parse_bpmn_elements(file_content: str):
                 minimumTime = int(re.search(r'minimumTime=(\d+)', line).group(1))
                 maximumTime = int(re.search(r'maximumTime=(\d+)', line).group(1))
                 messageDestiny = None
+                loopParameter_match = re.search(r'loopParameter=({[^}]+})', line)
+                if loopParameter_match:
+                    loopParameter_str = loopParameter_match.group(1)
+                    loopParameter = ast.literal_eval(loopParameter_str)
+                else:
+                    loopParameter = None
+                multiInstanceType_match = re.search(r'multiInstanceType="([^"]+)"', line)
+                if multiInstanceType_match:
+                    multiInstanceType_str = multiInstanceType_match.group(1)
+                    multiInstanceType = multiInstanceType_str == "true"
+                else:
+                    multiInstanceType = None
                 subTask = re.search(r'subTask="([^"]+)"', line).group(1)
-                element = BPMNSendTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, messageDestiny, subTask)
+                element = BPMNSendTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, messageDestiny, loopParameter, multiInstanceType, subTask)
 
             elif element_type == "ReceiveTask":
                 messageCatchElement.append(id_bpmn)
@@ -186,40 +222,100 @@ def parse_bpmn_elements(file_content: str):
                 minimumTime = int(re.search(r'minimumTime=(\d+)', line).group(1))
                 maximumTime = int(re.search(r'maximumTime=(\d+)', line).group(1))
                 messageOrigin = None
+                loopParameter_match = re.search(r'loopParameter=({[^}]+})', line)
+                if loopParameter_match:
+                    loopParameter_str = loopParameter_match.group(1)
+                    loopParameter = ast.literal_eval(loopParameter_str)
+                else:
+                    loopParameter = None
+                multiInstanceType_match = re.search(r'multiInstanceType="([^"]+)"', line)
+                if multiInstanceType_match:
+                    multiInstanceType_str = multiInstanceType_match.group(1)
+                    multiInstanceType = multiInstanceType_str == "true"
+                else:
+                    multiInstanceType = None
                 subTask = re.search(r'subTask="([^"]+)"', line).group(1)
-                element = BPMNReceiveTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, messageOrigin, subTask)
+                element = BPMNReceiveTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, messageOrigin, loopParameter, multiInstanceType, subTask)
             
             elif element_type == "ManualTask":
                 userTask = match.group(1).split(', ') if (match := re.search(r'userTask="([^"]+)"', line)) else None
                 numberOfExecutions = int(re.search(r'numberOfExecutions=(\d+)', line).group(1))
                 minimumTime = int(re.search(r'minimumTime=(\d+)', line).group(1))
                 maximumTime = int(re.search(r'maximumTime=(\d+)', line).group(1))
+                loopParameter_match = re.search(r'loopParameter=({[^}]+})', line)
+                if loopParameter_match:
+                    loopParameter_str = loopParameter_match.group(1)
+                    loopParameter = ast.literal_eval(loopParameter_str)
+                else:
+                    loopParameter = None
+                multiInstanceType_match = re.search(r'multiInstanceType="([^"]+)"', line)
+                if multiInstanceType_match:
+                    multiInstanceType_str = multiInstanceType_match.group(1)
+                    multiInstanceType = multiInstanceType_str == "true"
+                else:
+                    multiInstanceType = None
                 subTask = re.search(r'subTask="([^"]+)"', line).group(1)
-                element = BPMNManualTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, subTask)
+                element = BPMNManualTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, loopParameter, multiInstanceType, subTask)
 
             elif element_type == "BusinessRuleTask":
                 userTask = match.group(1).split(', ') if (match := re.search(r'userTask="([^"]+)"', line)) else None
                 numberOfExecutions = int(re.search(r'numberOfExecutions=(\d+)', line).group(1))
                 minimumTime = int(re.search(r'minimumTime=(\d+)', line).group(1))
                 maximumTime = int(re.search(r'maximumTime=(\d+)', line).group(1))
+                loopParameter_match = re.search(r'loopParameter=({[^}]+})', line)
+                if loopParameter_match:
+                    loopParameter_str = loopParameter_match.group(1)
+                    loopParameter = ast.literal_eval(loopParameter_str)
+                else:
+                    loopParameter = None
+                multiInstanceType_match = re.search(r'multiInstanceType="([^"]+)"', line)
+                if multiInstanceType_match:
+                    multiInstanceType_str = multiInstanceType_match.group(1)
+                    multiInstanceType = multiInstanceType_str == "true"
+                else:
+                    multiInstanceType = None
                 subTask = re.search(r'subTask="([^"]+)"', line).group(1)
-                element = BPMNBusinessRuleTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, subTask)
+                element = BPMNBusinessRuleTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, loopParameter, multiInstanceType, subTask)
 
             elif element_type == "ScriptTask":
                 userTask = match.group(1).split(', ') if (match := re.search(r'userTask="([^"]+)"', line)) else None
                 numberOfExecutions = int(re.search(r'numberOfExecutions=(\d+)', line).group(1))
                 minimumTime = int(re.search(r'minimumTime=(\d+)', line).group(1))
                 maximumTime = int(re.search(r'maximumTime=(\d+)', line).group(1))
+                loopParameter_match = re.search(r'loopParameter=({[^}]+})', line)
+                if loopParameter_match:
+                    loopParameter_str = loopParameter_match.group(1)
+                    loopParameter = ast.literal_eval(loopParameter_str)
+                else:
+                    loopParameter = None
+                multiInstanceType_match = re.search(r'multiInstanceType="([^"]+)"', line)
+                if multiInstanceType_match:
+                    multiInstanceType_str = multiInstanceType_match.group(1)
+                    multiInstanceType = multiInstanceType_str == "true"
+                else:
+                    multiInstanceType = None
                 subTask = re.search(r'subTask="([^"]+)"', line).group(1)
-                element = BPMNScriptTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, subTask)
+                element = BPMNScriptTask(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, loopParameter, multiInstanceType, subTask)
             
             elif element_type == "CallActivity":
                 userTask = match.group(1).split(', ') if (match := re.search(r'userTask="([^"]+)"', line)) else None
                 numberOfExecutions = int(re.search(r'numberOfExecutions=(\d+)', line).group(1))
                 minimumTime = int(re.search(r'minimumTime=(\d+)', line).group(1))
                 maximumTime = int(re.search(r'maximumTime=(\d+)', line).group(1))
+                loopParameter_match = re.search(r'loopParameter=({[^}]+})', line)
+                if loopParameter_match:
+                    loopParameter_str = loopParameter_match.group(1)
+                    loopParameter = ast.literal_eval(loopParameter_str)
+                else:
+                    loopParameter = None
+                multiInstanceType_match = re.search(r'multiInstanceType="([^"]+)"', line)
+                if multiInstanceType_match:
+                    multiInstanceType_str = multiInstanceType_match.group(1)
+                    multiInstanceType = multiInstanceType_str == "true"
+                else:
+                    multiInstanceType = None
                 subTask = re.search(r'subTask="([^"]+)"', line).group(1)
-                element = BPMNCallActivity(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, subTask)
+                element = BPMNCallActivity(name, id_bpmn, bpmn_type, userTask, numberOfExecutions, minimumTime, maximumTime, loopParameter, multiInstanceType, subTask)
 
             elif element_type == "ServiceTask":
                 trackSecurity = True
