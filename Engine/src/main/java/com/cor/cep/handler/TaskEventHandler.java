@@ -412,73 +412,70 @@ statementUoc.addListener((newData, oldData, stat, rt) -> {
 LOG.debug("Creating Multi-Instance UoC Check Expression");
 
 String multiInstanceUocEPL = 
-    "SELECT " +
-    "   parent.idBpmn AS parentId, " +
-    "   sub1.idBpmn  AS subTaskId, " +
-    "sub1.name as subTaskName, "+
-    "   sub1.userTask AS userTask, " +
-    "   sub1.instance AS instance1, " +
-    "   MAX(sub1.execution) AS maxExecution, " +
-    "   SUM(sub1.numberOfExecutions) AS sumNumberOfExecutions, " +
-    "   (MAX(sub1.execution) * SUM(sub1.numberOfExecutions)) AS totalExecutionValue, " +
-    "   parent.mth AS parentMth " +
-    "FROM Task#keepall AS parent, Task#keepall AS sub1 " +
-    "WHERE parent.uocSecurity = true " +
-    "  AND sub1.idBpmn IN (parent.subTasks) " +
-    "  AND sub1.userTask IS NOT NULL " +
-    "  AND sub1.execution IS NOT NULL " +
-    "  AND sub1.numberOfExecutions IS NOT NULL " +
-    "GROUP BY " +
-    "   parent.idBpmn, " +
-    "   sub1.idBpmn, " +
-    "   sub1.userTask, " +
-    "   sub1.instance, " +
-    "   parent.mth " +
-    "HAVING (MAX(sub1.execution) * SUM(sub1.numberOfExecutions)) > parent.mth";
+  "SELECT " +
+  "   parent.idBpmn       AS parentId, " +
+  "   sub.idBpmn          AS subTaskId, " +
+  "   sub.name            AS subTaskName, " +
+  "   sub.userTask        AS userTask, " +
+  "   sub.instance          AS instance, " +
+  "   SUM(1)              AS totalExecution, " +
+  "   parent.mth          AS parentMth " +
+  "FROM Task#keepall AS parent, Task#keepall AS sub " +
+  "WHERE " +
+  "   parent.uocSecurity = true " +
+  "   AND sub.idBpmn IN (parent.subTasks) " + 
+  "   AND sub.userTask IS NOT NULL " +
+  "   AND sub.execution IS NOT NULL " +
+  "GROUP BY " +
+  "   parent.idBpmn, " +
+  "   sub.idBpmn, " +
+  "   sub.userTask, " +
+  "   parent.mth " +
+  "HAVING SUM(1) > parent.mth";
 
-EPCompiled compiledMultiInstanceUoc = compiler.compile(multiInstanceUocEPL, args);
-EPDeployment deploymentMultiInstanceUoc = epRuntime.getDeploymentService().deploy(compiledMultiInstanceUoc);
-EPStatement statementMultiInstanceUoc = deploymentMultiInstanceUoc.getStatements()[0];
+  EPCompiled compiledMultiInstanceUoc = compiler.compile(multiInstanceUocEPL, args);
+  EPDeployment deploymentMultiInstanceUoc = epRuntime.getDeploymentService().deploy(compiledMultiInstanceUoc);
+  EPStatement statementMultiInstanceUoc = deploymentMultiInstanceUoc.getStatements()[0];
+  
+  Map<String, Integer> reportedMultiInstanceUocViolations = new HashMap<>();
+  
+  statementMultiInstanceUoc.addListener((newData, oldData, stat, rt) -> {
+      if (newData != null && newData.length > 0) {
+          String parentId = (String) newData[0].get("parentId");
+          if (parentId != null) {
+              parentId = parentId.replace("\"", "");
+          }
+          String subTaskId = (String) newData[0].get("subTaskId");
+          String subTaskName = (String) newData[0].get("subTaskName");
+          String userTask = (String) newData[0].get("userTask");
+          Integer instance = (Integer) newData[0].get("instance");
+          Integer totalExecutionValue = (Integer) newData[0].get("totalExecution");
+          Integer maxTimes = (Integer) newData[0].get("parentMth");
+  
+          String taskKey = parentId + "|" + subTaskId + "|" + instance;
 
-Map<String, Integer> reportedMultiInstanceUocViolations = new HashMap<>();
-
-// Ojo: Usar la variable de la nueva sentencia
-statementMultiInstanceUoc.addListener((newData, oldData, stat, rt) -> {
-    if (newData != null && newData.length > 0) {
-        String  parentId               = (String)  newData[0].get("parentId");
-        if (parentId != null) {
-            parentId = parentId.replace("\"", "");
-        }
-        String  subTaskId              = (String)  newData[0].get("subTaskId");
-        String subTaskName             = (String) newData[0].get("subTaskName");
-        String  userTask               = (String)  newData[0].get("userTask");
-        Integer instance1              = (Integer) newData[0].get("instance1");
-        Integer maxExecution           = (Integer) newData[0].get("maxExecution");
-        Integer sumNumberOfExecutions  = (Integer) newData[0].get("sumNumberOfExecutions");
-        Integer totalExecutionValue    = (Integer) newData[0].get("totalExecutionValue");
-        Integer maxTimes               = (Integer) newData[0].get("parentMth");
-
-        String taskKey = parentId + "|" + subTaskId + "|" + instance1;
-
-        if (totalExecutionValue > maxTimes) {
-            if (!reportedMultiInstanceUocViolations.containsKey(taskKey)) {
-                sb.append("\n---------------------------------");
-                sb.append("\n- [UOC MONITOR - Multi-Instance Rule]");
-                sb.append("\n- Violation detected: Product of (maxExecution x sumNumberOfExecutions) exceeded MTH");
-                sb.append("\n- Parent Task ID: ").append(parentId);
-                sb.append("\n- SubTask: ").append(subTaskName).append(" (").append(subTaskId).append(")");
-                sb.append("\n- User(s): ").append(userTask);
-                sb.append("\n- Instance: ").append(instance1);
-                sb.append("\n- Max Execution observed: ").append(maxExecution);
-                sb.append("\n- Sum of numberOfExecutions: ").append(sumNumberOfExecutions);
-                sb.append("\n- Product (totalExecutionValue): ").append(totalExecutionValue);
-                sb.append("\n- Maximum allowed (mth): ").append(maxTimes != null ? maxTimes : "N/A");
-                sb.append("\n---------------------------------");
-
-                // Usar la map adecuada para almacenar violaciones
-                reportedMultiInstanceUocViolations.put(taskKey, totalExecutionValue);
-            }
-        }
+          LOG.warn("Multi-Instance UoC Violation Detected: " +
+                 "Parent={}, SubTask={}, UserTask={}, " +
+                 " instance={}, execution={}, mth={}",
+                 parentId, subTaskId, userTask, instance,
+                 totalExecutionValue, maxTimes);
+  
+          if (totalExecutionValue > maxTimes) {
+              if (!reportedMultiInstanceUocViolations.containsKey(taskKey)) {
+                  sb.append("\n---------------------------------");
+                  sb.append("\n- [UOC MONITOR - Multi-Instance Rule]");
+                  sb.append("\n- Violation detected: Execution count exceeded MTH");
+                  sb.append("\n- Parent Task ID: ").append(parentId);
+                  sb.append("\n- SubTask: ").append(subTaskName).append(" (").append(subTaskId).append(")");
+                  sb.append("\n- User(s): ").append(userTask);
+                  sb.append("\n- Instance: ").append(instance);
+                  //sb.append("\n- Total Execution: ").append(totalExecutionValue);
+                  sb.append("\n- Maximum allowed (MTH): ").append(maxTimes != null ? maxTimes : "N/A");
+                  sb.append("\n---------------------------------");
+  
+                  reportedMultiInstanceUocViolations.put(taskKey, totalExecutionValue);
+              }
+          }
     }
 });
 
