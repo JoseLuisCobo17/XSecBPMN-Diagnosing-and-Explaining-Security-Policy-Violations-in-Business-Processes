@@ -46,6 +46,7 @@ public class StartDemo {
 
         String canonicalPath = directory.getCanonicalPath();
 
-        taskProcessor.processTaskFiles(directoryPath);
+        taskProcessor.processXESFiles(directoryPath);
+        //taskProcessor.processTaskFiles(directoryPath);
     }
 }
