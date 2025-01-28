@@ -380,7 +380,7 @@ function SelectOptionFunction(props) {
 
   const modeling = useService('modeling');
   const translate = useService('translate');
-  const debounce = useService('debounceInput');
+  const elementRegistry = useService('elementRegistry');
 
   // Obtener el valor actual de loopParameter
   const getValue = () => {
@@ -390,61 +390,99 @@ function SelectOptionFunction(props) {
     return element.businessObject.loopParameter || '<none>';
   };
 
-  // Actualizar el valor de loopParameter en el businessObject
+  // Sincronizar loopParameter entre SendTask y ReceiveTask
+  const synchronizeTasks = (value) => {
+    const bo = element.businessObject;
+
+    // Verificar si el elemento es SendTask o ReceiveTask
+    const isSendOrReceive = bo.$type === 'bpmn:SendTask' || bo.$type === 'bpmn:ReceiveTask';
+    if (!isSendOrReceive) {
+      return;
+    }
+
+    const definitions = bo.$parent.$parent; // Obtener las definiciones globales
+
+    // Buscar la colaboración y los messageFlows
+    const collaboration = definitions.rootElements.find(e => e.$type === 'bpmn:Collaboration');
+    if (!collaboration || !collaboration.messageFlows) {
+      return;
+    }
+
+    // Encontrar el flujo relacionado con la tarea actual
+    const relatedFlow = collaboration.messageFlows.find(flow =>
+      flow.sourceRef === bo || flow.targetRef === bo
+    );
+    if (!relatedFlow) {
+      return;
+    }
+
+    // Identificar el otro lado del flujo (sourceRef o targetRef)
+    const otherSide = relatedFlow.sourceRef === bo
+      ? relatedFlow.targetRef
+      : relatedFlow.sourceRef;
+
+    // Verificar si el otro lado también es SendTask o ReceiveTask
+    const otherIsSendOrReceive =
+      otherSide.$type === 'bpmn:SendTask' || otherSide.$type === 'bpmn:ReceiveTask';
+    if (!otherIsSendOrReceive) {
+      return;
+    }
+
+    // Buscar el elemento en el registro
+    const otherElement = elementRegistry.get(otherSide.id);
+    if (!otherElement) {
+      return;
+    }
+
+    // Actualizar el loopParameter del otro elemento
+    modeling.updateProperties(otherElement, {
+      loopParameter: value,
+    });
+  };
+
+  // Actualizar el valor de loopParameter en el businessObject y sincronizar
   const setValue = (value) => {
     if (!element || !element.businessObject) {
       return;
     }
 
-    // Asegurarse de que la propiedad loopParameter existe en el businessObject
-    if (!('loopParameter' in element.businessObject)) {
-      element.businessObject.loopParameter = '<none>';
-    }
-
-    // Actualiza el modelo BPMN
+    // Actualizar la tarea actual
     modeling.updateProperties(element, {
       loopParameter: value,
     });
+
+    // Sincronizar con la tarea relacionada
+    synchronizeTasks(value);
   };
 
-  // Opciones del desplegable con tooltips
-const getOptionsWithTooltips = () => [
-  { value: '<none>', label: translate('<none>'), tooltip: translate('No specific value selected.') },
-  { value: 'Time', label: translate('Time'), tooltip: translate('Maximum execution time') },
-  { value: 'Units', label: translate('Units'), tooltip: translate('Maximum number of repetitions') },
-  { value: 'Percentage', label: translate('Percentage'), tooltip: translate('Probability of task repetition (number between 0 and 100)') },
-];
+  // Opciones del desplegable
+  const getOptions = () => [
+    { value: '<none>', label: translate('<none>') },
+    { value: 'Time', label: translate('Time') },
+    { value: 'Units', label: translate('Units') },
+    { value: 'Percentage', label: translate('Percentage') },
+  ];
 
-// Función para obtener el tooltip de la opción seleccionada
-const getTooltip = (value) => {
-  const options = getOptionsWithTooltips();
-  const selectedOption = options.find(option => option.value === value);
-  return selectedOption?.tooltip || translate('Select a valid option.');
-};
-
-return html`
-  <div>
-    <${SelectEntry}
-      id=${id}
-      element=${element}
-      label=${translate('Select an option')}
-      getValue=${getValue}
-      setValue=${setValue}
-      getOptions=${() => getOptionsWithTooltips().map(({ value, label }) => ({ value, label }))}
-      tooltip=${getTooltip(getValue())}
-    />
-  </div>
-`;
-
+  return html`
+    <div>
+      <${SelectEntry}
+        id=${id}
+        element=${element}
+        label=${translate('Select an option')}
+        getValue=${getValue}
+        setValue=${setValue}
+        getOptions=${getOptions}
+      />
+    </div>
+  `;
 }
 
-// Componente para el parámetro adicional de tipo entero
 function IntegerParameterEntry(props) {
   const { element, id } = props;
 
   const modeling = useService('modeling');
   const translate = useService('translate');
-  const debounce = useService('debounceInput');
+  const elementRegistry = useService('elementRegistry');
 
   const getValue = () => {
     if (!element || !element.businessObject) {
@@ -453,33 +491,86 @@ function IntegerParameterEntry(props) {
     return element.businessObject.AdditionalIntegerParameter || '';
   };
 
+  // Sincronizar el valor entre SendTask y ReceiveTask
+  const synchronizeAdditionalIntegerParameter = (value) => {
+    const bo = element.businessObject;
+
+    // Verificar si el elemento es SendTask o ReceiveTask
+    const isSendOrReceive = bo.$type === 'bpmn:SendTask' || bo.$type === 'bpmn:ReceiveTask';
+    if (!isSendOrReceive) {
+      return;
+    }
+
+    const definitions = bo.$parent.$parent; // Obtener las definiciones globales
+
+    // Buscar la colaboración y los messageFlows
+    const collaboration = definitions.rootElements.find(e => e.$type === 'bpmn:Collaboration');
+    if (!collaboration || !collaboration.messageFlows) {
+      return;
+    }
+
+    // Encontrar el flujo relacionado con la tarea actual
+    const relatedFlow = collaboration.messageFlows.find(flow =>
+      flow.sourceRef === bo || flow.targetRef === bo
+    );
+    if (!relatedFlow) {
+      return;
+    }
+
+    // Identificar el otro lado del flujo (sourceRef o targetRef)
+    const otherSide = relatedFlow.sourceRef === bo
+      ? relatedFlow.targetRef
+      : relatedFlow.sourceRef;
+
+    // Verificar si el otro lado también es SendTask o ReceiveTask
+    const otherIsSendOrReceive =
+      otherSide.$type === 'bpmn:SendTask' || otherSide.$type === 'bpmn:ReceiveTask';
+    if (!otherIsSendOrReceive) {
+      return;
+    }
+
+    // Buscar el elemento en el registro
+    const otherElement = elementRegistry.get(otherSide.id);
+    if (!otherElement) {
+      return;
+    }
+
+    // Actualizar el valor de AdditionalIntegerParameter en el otro elemento
+    modeling.updateProperties(otherElement, {
+      AdditionalIntegerParameter: value,
+    });
+  };
+
   const setValue = (value) => {
     if (!element || !element.businessObject) {
       return;
     }
-  
+
     const parsedValue = parseInt(value, 10);
     if (isNaN(parsedValue) || parsedValue < 0) {
       alert('Please enter a valid positive integer.');
       return;
     }
-  
+
+    // Actualizar la propiedad en la tarea actual
     modeling.updateProperties(element, {
       AdditionalIntegerParameter: parsedValue,
     });
+
+    // Sincronizar con la tarea relacionada
+    synchronizeAdditionalIntegerParameter(parsedValue);
   };
 
   return html`<${TextFieldEntry}
     id=${id}
     element=${element}
-    label=${translate('Value')}
+    label=${translate('Additional Integer Parameter')}
     getValue=${getValue}
     setValue=${setValue}
-    debounce=${debounce}
-    tooltip=${translate('Enter an positive integer value.')}
+    debounce=${useService('debounceInput')}
+    tooltip=${translate('Enter a positive integer value to synchronize.')}
   />`;
 }
-
 
 // Funciones auxiliares
 function isSelectEntryEdited(element) {
