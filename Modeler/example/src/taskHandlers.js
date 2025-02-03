@@ -329,7 +329,10 @@ function getAllRelevantTasks(bpmnModeler) {
       security: security,
       time: time,
       userWithoutRole: (isProcess || isLane || isParticipant) ? userWithoutRole : '',
-      userWithRole: businessObject.userWithRole || {},
+      userWithRole: Object.entries(businessObject.userWithRole || {}).map(([role, users]) => ({
+        role,
+        users: Array.isArray(users) ? users : [users]
+    })),    
       type: type,
       loopParameter: loopParameter,
       loopCharacteristics: loopCharacteristics,

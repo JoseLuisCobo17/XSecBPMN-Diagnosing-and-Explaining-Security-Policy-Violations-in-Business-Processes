@@ -259,14 +259,20 @@ function userWithRoleFunction(props) {
 
   const getuserWithRole = () => {
     if (!element || !element.businessObject) return [];
+
     if (element.businessObject.participants) {
-      const firstParticipant = element.businessObject.participants[0];
-      if (firstParticipant?.processRef) {
-        return firstParticipant.processRef.userWithRole || [];
-      }
+        const firstParticipant = element.businessObject.participants[0];
+        if (firstParticipant?.processRef) {
+            return Array.isArray(firstParticipant.processRef.userWithRole) 
+                ? firstParticipant.processRef.userWithRole 
+                : [];
+        }
     }
-    return element.businessObject.userWithRole || [];
-  };
+
+    return Array.isArray(element.businessObject.userWithRole) 
+        ? element.businessObject.userWithRole 
+        : [];
+};
 
   const setuserWithRole = (updatedArray) => {
     // Collaboration
