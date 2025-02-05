@@ -29,6 +29,7 @@ f'''
             <string key="bpmn:id" value="{element.id_bpmn}"/>
             <string key="bpmn:subTask" value="{{selectedElement}}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     yield env.timeout(0)
     return selectedElement
@@ -52,6 +53,7 @@ f'''
             <string key="bpmn:id" value="{element.id_bpmn}"/>
             <string key="bpmn:subTask" value="{{strSelectedElements}}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     yield env.timeout(0)
     return {possibleElements}
@@ -80,6 +82,7 @@ f'''
             <string key="bpmn:id" value="{element.id_bpmn}"/>
             <string key="bpmn:subTask" value="{{selectedElements}}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     yield env.timeout(0)
     return selectedElements
@@ -114,6 +117,7 @@ f'''
             <string key="bpmn:id" value="{element.id_bpmn}"/>
             <string key="bpmn:subTask" value="{{selected_event}}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
             for j, proc in enumerate(event_processes):
                 if j != i:
@@ -146,6 +150,7 @@ f'''
             <date key="time:startTime" value="{{start_standBy_data}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy_data}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     for i in range({element.numberOfExecutions}):
         start_standBy = env.now
@@ -186,10 +191,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandBy"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{i+1}}"/>
+            <string key="bpmn:execution" value="{{i+1}}"/>
             <date key="time:startTime" value="{{start_standBy}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 simulationResults[name].append(
 f'''
@@ -202,6 +208,7 @@ f'''
             <int key="bpmn:time" value="{{time}}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 yield env.timeout(time)
             finally:
@@ -267,10 +274,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandBy"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{executionNumber+1}}"/>
+            <string key="bpmn:execution" value="{{executionNumber+1}}"/>
             <date key="time:startTime" value="{{start_standBy}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 simulationResults[name].append(
 f'''
@@ -283,6 +291,7 @@ f'''
             <int key="bpmn:time" value="{{time}}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 yield env.timeout(time)
             finally:
@@ -302,6 +311,7 @@ f'''
             <date key="time:startTime" value="{{start_standBy_data}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy_data}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     executionProcesses = []
     for i in range({element.numberOfExecutions}):
@@ -356,6 +366,7 @@ f'''
             <date key="time:startTime" value="{{start_standBy_data}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy_data}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     units = {units}
     loopStartTime = env.now
@@ -402,10 +413,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandBy"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{execution}}"/>
+            <string key="bpmn:execution" value="{{execution}}"/>
             <date key="time:startTime" value="{{start_standBy}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 simulationResults[name].append(
 f'''
@@ -418,6 +430,7 @@ f'''
             <int key="bpmn:time" value="{{time}}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 yield env.timeout(time)
             finally:
@@ -464,6 +477,7 @@ f'''
             <date key="time:startTime" value="{{start_standBy_data}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy_data}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     for i in range({element.numberOfExecutions}):
         start_standBy = env.now
@@ -504,10 +518,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandBy"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{i+1}}"/>
+            <string key="bpmn:execution" value="{{i+1}}"/>
             <date key="time:startTime" value="{{start_standBy}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 simulationResults[name].append(
 f'''
@@ -521,6 +536,7 @@ f'''
             <int key="bpmn:time" value="{{time}}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 yield env.timeout(time)
             finally:
@@ -588,10 +604,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandBy"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{executionNumber+1}}"/>
+            <string key="bpmn:execution" value="{{executionNumber+1}}"/>
             <date key="time:startTime" value="{{start_standBy}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 simulationResults[name].append(
 f'''
@@ -605,6 +622,7 @@ f'''
             <int key="bpmn:time" value="{{time}}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 yield env.timeout(time)
             finally:
@@ -626,6 +644,7 @@ f'''
             <date key="time:startTime" value="{{start_standBy_data}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy_data}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     executionProcesses = []
     for i in range({element.numberOfExecutions}):
@@ -680,6 +699,7 @@ f'''
             <date key="time:startTime" value="{{start_standBy_data}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy_data}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     units = {units}
     loopStartTime = env.now
@@ -726,10 +746,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandBy"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{execution}}"/>
+            <string key="bpmn:execution" value="{{execution}}"/>
             <date key="time:startTime" value="{{start_standBy}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 simulationResults[name].append(
 f'''
@@ -743,6 +764,7 @@ f'''
             <int key="bpmn:time" value="{{time}}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 yield env.timeout(time)
             finally:
@@ -791,6 +813,7 @@ f'''
             <date key="time:startTime" value="{{start_standBy_data}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy_data}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     for i in range({element.numberOfExecutions}):
         start_standby_message = env.now
@@ -804,10 +827,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandByMessage"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{i+1}}"/>
-            <date key="time:startTime" value="{{start_standBy_message}}"/>
+            <string key="bpmn:execution" value="{{i+1}}"/>
+            <date key="time:startTime" value="{{start_standby_message}}"/>
             <date key="time:endTime" value="{{end_standby_message}}"/>
             <date key="time:duration" value="{{duration_standby_message}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
         start_standBy = env.now
         possibleUsers = {element.userTask}
@@ -847,10 +871,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandBy"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{i+1}}"/>
+            <string key="bpmn:execution" value="{{i+1}}"/>
             <date key="time:startTime" value="{{start_standBy}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 simulationResults[name].append(
 f'''
@@ -864,6 +889,7 @@ f'''
             <int key="bpmn:time" value="{{time}}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 yield env.timeout(time)
             finally:
@@ -902,10 +928,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandByMessage"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{executionNumber+1}}"/>
-            <date key="time:startTime" value="{{start_standBy_message}}"/>
+            <string key="bpmn:execution" value="{{executionNumber+1}}"/>
+            <date key="time:startTime" value="{{start_standby_message}}"/>
             <date key="time:endTime" value="{{end_standby_message}}"/>
             <date key="time:duration" value="{{duration_standby_message}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
         start_standBy = env.now
         possibleUsers = {element.userTask}
@@ -945,10 +972,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandBy"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{executionNumber+1}}"/>
+            <string key="bpmn:execution" value="{{executionNumber+1}}"/>
             <date key="time:startTime" value="{{start_standBy}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 simulationResults[name].append(
 f'''
@@ -956,12 +984,13 @@ f'''
             <string key="bpmn:type" value="{element.bpmn_type}"/>
             <string key="bpmn:name" value="{element.name}"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:messageDestiny" value="{element.messageDestiny}"/>
+            <string key="bpmn:messageOrigin" value="{element.messageOrigin}"/>
             <string key="bpmn:userTask" value="{{userTask}}"/>
             <int key="bpmn:execution" value="{{executionNumber+1}}"/>
             <int key="bpmn:time" value="{{time}}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 yield env.timeout(time)
             finally:
@@ -981,6 +1010,7 @@ f'''
             <date key="time:startTime" value="{{start_standBy_data}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy_data}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     executionProcesses = []
     for i in range({element.numberOfExecutions}):
@@ -1035,6 +1065,7 @@ f'''
             <date key="time:startTime" value="{{start_standBy_data}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy_data}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     units = {units}
     loopStartTime = env.now
@@ -1054,10 +1085,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandByMessage"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{execution}}"/>
-            <date key="time:startTime" value="{{start_standBy_message}}"/>
+            <string key="bpmn:execution" value="{{execution}}"/>
+            <date key="time:startTime" value="{{start_standby_message}}"/>
             <date key="time:endTime" value="{{end_standby_message}}"/>
             <date key="time:duration" value="{{duration_standby_message}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
         start_standBy = env.now
         possibleUsers = {element.userTask}
@@ -1097,10 +1129,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandBy"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{execution}}"/>
+            <string key="bpmn:execution" value="{{execution}}"/>
             <date key="time:startTime" value="{{start_standBy}}"/>
             <date key="time:endTime" value="{{env.now}}"/>
             <date key="time:duration" value="{{env.now-start_standBy}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 simulationResults[name].append(
 f'''
@@ -1108,12 +1141,13 @@ f'''
             <string key="bpmn:type" value="{element.bpmn_type}"/>
             <string key="bpmn:name" value="{element.name}"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:messageDestiny" value="{element.messageDestiny}"/>
+            <string key="bpmn:messageOrigin" value="{element.messageOrigin}"/>
             <string key="bpmn:userTask" value="{{userTask}}"/>
             <int key="bpmn:execution" value="{{execution}}"/>
             <int key="bpmn:time" value="{{time}}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
                 yield env.timeout(time)
             finally:
@@ -1151,6 +1185,7 @@ f'''
             <string key="bpmn:id" value="{element.id_bpmn}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     yield env.timeout(0)
     return '{element.subTask}'
@@ -1172,10 +1207,11 @@ f'''
         <event>
             <string key="bpmn:type" value="StandByMessage"/>
             <string key="bpmn:id" value="{{TaskName}}"/>
-            <string key="bpmn:execution" value={{execution}}"/>
-            <date key="time:startTime" value="{{start_standBy_message}}"/>
+            <string key="bpmn:execution" value="{{execution}}"/>
+            <date key="time:startTime" value="{{start_standby_message}}"/>
             <date key="time:endTime" value="{{end_standby_message}}"/>
             <date key="time:duration" value="{{duration_standby_message}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     simulationResults[name].append(
 f'''
@@ -1186,6 +1222,7 @@ f'''
             <string key="bpmn:messageOrigin" value="{element.messageOrigin}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     return '{element.subTask}'
 """
@@ -1204,6 +1241,7 @@ f'''
             <string key="bpmn:messageDestiny" value="{element.messageDestiny}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     yield env.timeout(0)
     if (TaskName, '{element.messageDestiny}', name) not in message_events:
@@ -1224,6 +1262,7 @@ f'''
             <int key="bpmn:time" value="{element.time}"/>
             <string key="bpmn:subTask" value="{element.subTask}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     yield env.timeout({element.time})
     return '{element.subTask}'
@@ -1241,6 +1280,7 @@ f'''
             <string key="bpmn:id" value="{element.id_bpmn}"/>
             <string key="bpmn:subTask" value=""/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{name.split()[-1]}}"/>
         </event>''')
     yield env.timeout(0)
     """
@@ -1275,30 +1315,25 @@ def generateFunction(elements, elementId, script=False):
         return endEvent(elements, element, script)
 
 def serviceTask(elements):
-    script = f"""
-    <list key="serviceTasks">
-        <values>"""
     securityTasks = set()
     for task in elements['security'].values():
         for st in task.keys():
             securityTasks.add(st)
+    script = ""
     for st in securityTasks:
         element = elements[st]
         subtasks_str = ", ".join(element.subTask)
         script = script + f"""
-            <container>
-                <string key="bpmn:type" value="{element.bpmn_type}"/>
-                <string key="bpmn:name" value="{element.name}"/>
-                <string key="bpmn:id" value="{element.id_bpmn}"/>
-                <boolean key="bpmn:sodSecurity" value="{element.sodSecurity}"/>
-                <boolean key="bpmn:bodSecurity" value="{element.bodSecurity}"/>
-                <boolean key="bpmn:uocSecurity" value="{element.uocSecurity}"/>
-                <int key="bpmn:uocSecurity" value="{element.mth}"/>
-                <string key="bpmn:subTask" value="{subtasks_str}"/>
-            </container>"""
-    script = script + f"""
-        </values>
-    </list>"""
+        <event>
+            <string key="bpmn:type" value="{element.bpmn_type}"/>
+            <string key="bpmn:name" value="{element.name}"/>
+            <string key="bpmn:id" value="{element.id_bpmn}"/>
+            <boolean key="bpmn:sodSecurity" value="{element.sodSecurity}"/>
+            <boolean key="bpmn:bodSecurity" value="{element.bodSecurity}"/>
+            <boolean key="bpmn:uocSecurity" value="{element.uocSecurity}"/>
+            <int key="bpmn:uocSecurity" value="{element.mth}"/>
+            <string key="bpmn:subTask" value="{subtasks_str}"/>
+        </event>"""
     return script
 
 def generateScript(elements, process, starts, messageStarts, security):
@@ -1443,7 +1478,7 @@ def start_process(env, name, nextTask):
 def main(env):
     global user_resources
     user_resources = {{user: simpy.Resource(env, capacity=1) for user in userPool}}
-    simulationResults['Start'] = '''<?xml version="1.0" encoding="UTF-8"?>
+    simulationResults['Start'] = f'''<?xml version="1.0" encoding="UTF-8"?>
 <log xes.version="1.0" xes.features="nested-attributes" openxes.version="1.0RC7" xmlns="http://www.xes-standard.org/">
     <global>
         <string key="type" value="{elementProcess.bpmn_type}"/>
@@ -1453,16 +1488,20 @@ def main(env):
         <int key="frequency" value="{{frequency}}"/>
         <list key="userWithoutRole">
             <values>"""
-        for user in elementProcess.userWithoutRole:
+        if elementProcess.bpmn_type == "bpmn:Process":
+            scriptMainFunction = scriptMainFunction + """
+        <list key="userWithoutRole">
+            <values>"""
+            for user in elementProcess.userWithoutRole:
                 scriptMainFunction = scriptMainFunction + f"""
                 <string value="{user}"/>"""
-        scriptMainFunction = scriptMainFunction + f"""
+            scriptMainFunction = scriptMainFunction + f"""
             </values>
         </list>
         <container key="userWithRole">"""
-        for role, users in elementProcess.userWithRole.items():
+            for role, users in elementProcess.userWithRole.items():
                 scriptMainFunction = scriptMainFunction + f"""
-            <list key="role1">"""
+            <list key="{role}">"""
                 for user in users:
                     scriptMainFunction = scriptMainFunction + f"""
                 <values>
@@ -1471,7 +1510,6 @@ def main(env):
                 scriptMainFunction = scriptMainFunction + f"""
             <list>"""
         scriptMainFunction = scriptMainFunction + f"""
-        </container>
     </global>'''
     startEvents = {startElements}
     messageStartEvents = {messageStartElements}
@@ -1489,6 +1527,7 @@ f'''
             <string key="bpmn:id" value="{{startEvents[start][2]}}"/>
             <string key="bpmn:subTask" value="{{startEvents[start][3]}}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{i+1}}"/>
         </event>''')
             env.process(start_process(env, f'Instance {{i + 1}}', startEvents[start][3]))
         for start in {messageStarts}:
@@ -1506,6 +1545,7 @@ f'''
             <date key="time:startTime" value="{{start_standby_message}}"/>
             <date key="time:endTime" value="{{end_standby_message}}"/>
             <date key="time:duration" value="{{duration_standby_message}}"/>
+            <int key="bpmn:instance" value="{{i+1}}"/>
         </event>''')
             simulationResults[f'Instance {{i+1}}'].append(
 f'''
@@ -1516,6 +1556,7 @@ f'''
             <string key="bpmn:messageOrigin" value="{{messageStartEvents[start][3]}}"/>
             <string key="bpmn:subTask" value="{{messageStartEvents[start][4]}}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{i+1}}"/>
         </event>''')
             env.process(start_process(env, f'Instance {{i + 1}}', messageStartEvents[start][4]))
         yield env.timeout(frequency)
@@ -1528,11 +1569,11 @@ simulationResults.pop('Start')
 for key in sorted(simulationResults):
     for str in simulationResults[key]:
         res = res + str
-    res = res + '''
+    res = res + '''{serviceTask(elements)}
     </trace>'''
-res = res + '''{serviceTask(elements)}
+res = res + '''
 </log>'''
-with open(f'files/resultSimulation.txt', 'w') as f:
+with open(f'files/resultSimulation.xes', 'w') as f:
     f.write(res)"""
     else:
         script = f"""
@@ -1648,10 +1689,10 @@ def resolve_possible_users_security(possibleUsers, taskName, instance):
             lane = elements[laneName]
             laneString = laneString + f'''
         <container key="{lane.bpmn_type}">
-            <string key="bpmn:name" value=={lane.name}"/>
-            <string key="bpmn:id" value=={lane.id_bpmn}"/>
-            <string key="bpmn:users" value=={lane.user}"/>
-            <string key="bpmn:elements" value=={lane.contained_elements}"/>
+            <string key="bpmn:name" value="{lane.name}"/>
+            <string key="bpmn:id" value="{lane.id_bpmn}"/>
+            <string key="bpmn:users" value="{lane.users}"/>
+            <string key="bpmn:elements" value="{lane.contained_elements}"/>
         </container>'''
         scriptMainFunction = f"""
 def process_task(env, name, task_name):
@@ -1685,10 +1726,13 @@ def participant_process(env, frequency, p):
     messageStartEvents = {messageStartElements}
     startsParticipant = {elements['startsParticipant']}
     for i in range(nInstances):
+        simulationResults[f'Instance {{i+1}}'] = [
+f'''
+    <trace>
+        <string key="concept:name" value="Instance {{i+1}}"/>''']
         for start in {starts}:
             if startsParticipant[start] == p:
-                with open(f'files/resultSimulation.txt', 'a') as f:
-                    simulationResults[f'Instance {{i+1}}'].append(
+                simulationResults[f'Instance {{i+1}}'].append(
 f'''
         <event>
             <string key="bpmn:type" value="{{startEvents[start][0]}}"/>
@@ -1696,6 +1740,7 @@ f'''
             <string key="bpmn:id" value="{{startEvents[start][2]}}"/>
             <string key="bpmn:subTask" value="{{startEvents[start][3]}}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{i+1}}"/>
         </event>''')
                 env.process(start_process(env, f'Instance {{i + 1}}', startEvents[start][3]))
         for start in {messageStarts}:
@@ -1706,8 +1751,7 @@ f'''
                 end_standby_message = env.now
                 duration_standby_message = end_standby_message - start_standby_message
                 if duration_standby_message > 0:
-                    with open(f'files/resultSimulation.txt', 'a') as f:
-                        simulationResults[f'Instance {{i+1}}'].append(
+                    simulationResults[f'Instance {{i+1}}'].append(
 f'''
         <event>
             <string key="bpmn:type" value="StandByMessage"/>
@@ -1715,6 +1759,7 @@ f'''
             <date key="time:startTime" value="{{start_standby_message}}"/>
             <date key="time:endTime" value="{{end_standby_message}}"/>
             <date key="time:duration" value="{{duration_standby_message}}"/>
+            <int key="bpmn:instance" value="{{i+1}}"/>
         </event>''')
             simulationResults[f'Instance {{i+1}}'].append(
 f'''
@@ -1725,33 +1770,36 @@ f'''
             <string key="bpmn:messageOrigin" value="{{messageStartEvents[start][3]}}"/>
             <string key="bpmn:subTask" value="{{messageStartEvents[start][4]}}"/>
             <date key="time:startTime" value="{{env.now}}"/>
+            <int key="bpmn:instance" value="{{i+1}}"/>
         </event>''')
-                env.process(start_process(env, f'Instance {{i + 1}}', messageStartEvents[start][4]))
+            env.process(start_process(env, f'Instance {{i + 1}}', messageStartEvents[start][4]))
         yield env.timeout(frequency)
 
 def main(env):
     global user_resources
     user_resources = {{user: simpy.Resource(env, capacity=1) for user in userPool}}
-    simulationResults['Start'] = '''<?xml version="1.0" encoding="UTF-8"?>
+    simulationResults['Start'] = f'''<?xml version="1.0" encoding="UTF-8"?>
 <log xes.version="1.0" xes.features="nested-attributes" openxes.version="1.0RC7" xmlns="http://www.xes-standard.org/">
     <global>
         <string key="type" value="{elementProcess.bpmn_type}"/>
         <string key="name" value="{elementProcess.name}"/>
         <string key="id_bpmn" value="{elementProcess.id_bpmn}"/>
-        <int key="instances" value="{{nInstances}}"/>
-        <int key="frequency" value="{{frequency}}"/>
+        <int key="instances" value="{{nInstances}}"/>"/>
+        """
+        if elementProcess.bpmn_type == "bpmn:Process":
+            scriptMainFunction = scriptMainFunction + """
         <list key="userWithoutRole">
             <values>"""
-        for user in elementProcess.userWithoutRole:
-                scriptMainFunction = f"""
+            for user in elementProcess.userWithoutRole:
+                scriptMainFunction = scriptMainFunction + f"""
                 <string value="{user}"/>"""
-        scriptMainFunction = scriptMainFunction + f"""
+            scriptMainFunction = scriptMainFunction + f"""
             </values>
         </list>
         <container key="userWithRole">"""
-        for role, users in elementProcess.userWithRole.items():
+            for role, users in elementProcess.userWithRole.items():
                 scriptMainFunction = scriptMainFunction + f"""
-            <list key="role1">"""
+            <list key="{role}">"""
                 for user in users:
                     scriptMainFunction = scriptMainFunction + f"""
                 <values>
@@ -1759,8 +1807,7 @@ def main(env):
                 </values>"""
                 scriptMainFunction = scriptMainFunction + f"""
             <list>"""
-        scriptMainFunction = scriptMainFunction + f"""
-        </container>""" + laneString + f"""
+        scriptMainFunction = scriptMainFunction + laneString + f"""
     </global>'''
     for frequency, p in {elements['participants']}:
         env.process(participant_process(env, frequency, p))
@@ -1774,11 +1821,10 @@ simulationResults.pop('Start')
 for key in sorted(simulationResults):
     for str in simulationResults[key]:
         res = res + str
-    res = res + '''
+    res = res + '''{serviceTask(elements)}
     </trace>'''
-res = res + serviceTasks()
-res = res + '''{serviceTask(elements)}
+res = res + '''
 </log>'''
-with open(f'files/resultSimulation.txt', 'w') as f:
+with open(f'files/resultSimulation.xes', 'w') as f:
     f.write(res)"""
     return script + scriptServiceTask + scriptMainFunction, process

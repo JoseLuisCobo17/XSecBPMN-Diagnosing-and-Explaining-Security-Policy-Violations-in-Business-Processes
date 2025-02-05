@@ -126,53 +126,51 @@ private Task parseXesEvent(Element eventElement, Integer instance) {
             // en lugar de fiarte sólo de "key" y "value". Ej.: if (attr.getTagName().equals("int")) ...
             
             switch (key) {
-                case "concept:name":
+                case "bpmn:type":
                     // Mapeamos a un tipo BPMN según la convención de tu ejemplo
                     type = mapToBpmnType(strValue); 
                     break;
                 case "bpmn:id":
                     idBpmn = strValue;
                     break;
-                case "userTask":
+                case "bpmn:userTask":
                     userTask = strValue;
                     break;
-                case "subTask":
-                    // Podría venir con comas: "Activity_08mmvm4, Activity_0y9zttf"
+                    case "bpmn:subTask":
                     if (!strValue.trim().isEmpty()) {
                         subTasks = Arrays.asList(strValue.split("\\s*,\\s*"));
                     }
-                    break;
-                case "sodSecurity":
+                    break;                
+                case "bpmn:sodSecurity":
                     sodSecurity = Boolean.parseBoolean(strValue);
                     break;
-                case "bodSecurity":
+                case "bpmn:bodSecurity":
                     bodSecurity = Boolean.parseBoolean(strValue);
                     break;
-                case "uocSecurity":
+                case "bpmn:uocSecurity":
                     uocSecurity = Boolean.parseBoolean(strValue);
                     break;
-                case "mth":
+                case "bpmn:mth":
                     mth = parseInteger(strValue);
                     break;
-                case "time":
+                case "bpmn:time":
                     time = parseLong(strValue);
                     break;
-                case "execution":
+                case "bpmn:execution":
                     execution = parseInteger(strValue);
                     break;
-                case "time:timestamp":
-                    // A veces <date> key="time:timestamp" puede llevar un valor del tipo "2023-01-01T12:34:00Z"
-                    // En tu ejemplo, sale "0", "15", etc. Lo parseamos a Long
+                case "bpmn:instance":
+                    instance = parseInteger(strValue);
+                    break;
+                case "time:startTime":
                     startTime = parseLong(strValue);
                     break;
                 default:
-                    // Si necesitas extraer más campos, agrégalos aquí
                     break;
             }
         }
     }
 
-    // Construimos la Task
     Task task = new Task(
         type, 
         name, 
@@ -183,13 +181,13 @@ private Task parseXesEvent(Element eventElement, Integer instance) {
         bodSecurity, 
         sodSecurity, 
         uocSecurity,
-        startTime,   // startTime
-        stopTime,        // stopTime, no se ve en tu XES
-        time,        // time
+        startTime,
+        stopTime,
+        time,
         instance, 
-        1,           // numberOfExecutions default
+        1,
         execution != null ? execution : 0,
-        null         // subTasksUserTasks
+        null
     );
 
     return task;
@@ -211,15 +209,6 @@ private Long parseLong(String val) {
     }
 }
 
-/**
- * Mapea los valores de concept:name (del XES) al tipo BPMN esperado en tu salida:
- * - "StartEvent" => "bpmn:StartEvent"
- * - "Task" => "bpmn:Task"
- * - "ServiceTask" => "bpmn:ServiceTask"
- * - "ExclusiveGateway" => "bpmn:ExclusiveGateway"
- * - "EndEvent" => "bpmn:EndEvent"
- * etc.
- */
 private String mapToBpmnType(String conceptName) {
     switch (conceptName) {
         case "StartEvent":
@@ -232,7 +221,6 @@ private String mapToBpmnType(String conceptName) {
             return "bpmn:ExclusiveGateway";
         case "EndEvent":
             return "bpmn:EndEvent";
-        // Agrega más mapeos si tus BPMN son distintos
         default:
             return "bpmn:Task"; 
     }
