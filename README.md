@@ -1,4 +1,4 @@
-# CEP4BPMSec
+# XSecBPMN: Diagnosing and Explaining Security Policy Violations in Business Processes
 
 ## Prerequisites
 
