@@ -1187,7 +1187,7 @@ def serviceTask(elements):
             <boolean key="bpmn:sodSecurity" value="{element.sodSecurity}"/>
             <boolean key="bpmn:bodSecurity" value="{element.bodSecurity}"/>
             <boolean key="bpmn:uocSecurity" value="{element.uocSecurity}"/>
-            <int key="bpmn:uocSecurity" value="{element.mth}"/>
+            <int key="bpmn:mth" value="{element.mth}"/>
             <string key="bpmn:subTask" value="{subtasks_str}"/>
         </event>"""
     return script
