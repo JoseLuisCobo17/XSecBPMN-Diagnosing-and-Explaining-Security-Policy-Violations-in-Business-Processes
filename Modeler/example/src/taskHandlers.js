@@ -85,6 +85,29 @@ function getAllRelevantTasks(bpmnModeler) {
   var definitions = bpmnModeler.get('canvas').getRootElement().businessObject.$parent;
   var id_model = definitions.diagrams[0].id;
 
+  const elements = elementRegistry.filter((e) => true).map((e) => e.businessObject);
+  const keyValuePairs = definitions.rootElements
+    .filter((el) => el.$type === 'model:KeyValuePair')
+    .map((pair) => ({
+      key: pair.key,
+      value: pair.value,
+    }));
+
+    elements.forEach((element) => {
+      if (element.$type === 'bpmn:Process') {
+        const businessObject = element;
+        if (!businessObject.userWithRole) {
+          businessObject.userWithRole = {};
+        }
+    
+        keyValuePairs.forEach((pair) => {
+          if (!businessObject.userWithRole[pair.key]) {
+            businessObject.userWithRole[pair.key] = pair.value.split(',').map((v) => v.trim());
+          }
+        });
+      }
+    });    
+
   var relevantElements = elementRegistry.filter(e =>
     e.type === 'bpmn:Task' ||
     e.type === 'bpmn:ServiceTask' ||
@@ -306,7 +329,10 @@ function getAllRelevantTasks(bpmnModeler) {
       security: security,
       time: time,
       userWithoutRole: (isProcess || isLane || isParticipant) ? userWithoutRole : '',
-      userWithRole: userWithRole,
+      userWithRole: Object.entries(businessObject.userWithRole || {}).map(([role, users]) => ({
+        role,
+        users: Array.isArray(users) ? users : [users]
+    })),    
       type: type,
       loopParameter: loopParameter,
       loopCharacteristics: loopCharacteristics,
@@ -402,19 +428,27 @@ function exportToEsper(bpmnModeler) {
         } else if (element.type === 'bpmn:Process') {
           content += `instances=${element.Instances}, `;
           content += `frequency=${element.Frequency}, `;
-
+        
           const userWithoutRole = Array.isArray(element.userWithoutRole) 
             ? element.userWithoutRole.map(user => `"${user}"`).join(', ')
             : '""';
           content += `userWithoutRole=[${userWithoutRole}], `;
-
-          const userWithRole = element.userWithRole 
-            ? Object.entries(element.userWithRole).map(([role, users]) => {
-                const userArray = Array.isArray(users) ? users : users.split(', ');
-                return `"${role}": [${userArray.map(u => `"${u}"`).join(', ')}]`;
-              }).join(', ') 
+        
+          const userWithRole = element.userWithRole
+            ? element.userWithRole
+                .map((pair) => {
+                  if (!pair.key || !pair.value) {
+                    console.warn('Formato inesperado en ModdleElement:', pair);
+                    return '';
+                  }
+                  const role = pair.key;
+                  const users = pair.value.split(',').map((u) => u.trim());
+                  return `"${role}": [${users.map((u) => `"${u}"`).join(', ')}]`;
+                })
+                .filter((entry) => entry !== '')
+                .join(', ')
             : '{}';
-
+        
           content += `userWithRole={${userWithRole}}, `;
           content += `security=${element.security}]\n`;
         } else if (element.type === 'bpmn:Participant') {
